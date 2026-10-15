@@ -24,6 +24,7 @@ import { HAZARD_TYPES, OFFICIAL_SOURCES } from '../data/mockData';
 
 export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardData, setHazardData }) {
   const [selectedQuickHazard, setSelectedQuickHazard] = useState(hazardData.type || 'banjir');
+  const selectedHazard = HAZARD_TYPES.find(hazard => hazard.id === selectedQuickHazard) || HAZARD_TYPES[0];
 
   const handleHazardClick = (hazard) => {
     setSelectedQuickHazard(hazard.id);
@@ -55,45 +56,70 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
       </div>
 
       {/* Hero Primary Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0D47A1] via-[#1565C0] to-[#2196F3] p-6 sm:p-10 text-white shadow-xl shadow-blue-900/10">
+      <div className="home-hero relative overflow-hidden rounded-[2rem] p-6 sm:p-10 text-white">
         {/* Subtle decorative circles */}
-        <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/5 blur-2xl pointer-events-none"></div>
-        <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-[#90CAF9]/10 blur-xl pointer-events-none"></div>
+        <div className="hero-orb hero-orb-one" />
+        <div className="hero-orb hero-orb-two" />
 
-        <div className="relative max-w-3xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs sm:text-sm font-medium tracking-wide">
-            <Radio className="w-4 h-4 text-[#90CAF9] animate-pulse" />
-            <span>Pendamping Keputusan & Evakuasi Cepat Terstruktur</span>
+        <div className="relative grid lg:grid-cols-[1.15fr_0.85fr] items-center gap-8 lg:gap-4">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs sm:text-sm font-medium tracking-wide">
+              <Radio className="w-4 h-4 text-[#90CAF9] animate-pulse" />
+              <span>Pendamping keputusan saat darurat</span>
+            </div>
+
+            <div className="space-y-3">
+              <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.12]">
+                Tetap tenang.<br />
+                Pahami situasi.<br />
+                <span className="text-[#90CAF9]">Ambil langkah aman.</span>
+              </h1>
+              <p className="text-blue-100 text-sm sm:text-base leading-relaxed max-w-xl font-normal">
+                Panduan awal yang ringkas, bertahap, dan mempertimbangkan keselamatan seluruh anggota keluarga.
+              </p>
+            </div>
+
+            {/* Core Action Callouts */}
+            <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <button
+                onClick={handleTriggerEmergency}
+                className="group relative flex items-center justify-center gap-3 px-6 py-4 bg-white text-[#0D47A1] hover:bg-[#E3F2FD] rounded-2xl font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200 transform active:scale-[0.98] cursor-pointer"
+              >
+                <ShieldAlert className="w-5 h-5 text-rose-600 transition-transform group-hover:scale-110" />
+                <span>Saya sedang darurat</span>
+                <ArrowRight className="w-4 h-4 text-[#2196F3] group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button
+                onClick={handlePreparedness}
+                className="flex items-center justify-center gap-2 px-5 py-4 bg-white/10 hover:bg-white/20 text-white border border-white/25 rounded-2xl font-semibold text-xs sm:text-sm backdrop-blur-sm transition-all duration-200 cursor-pointer"
+              >
+                <span>Siapkan tas siaga</span>
+                <ChevronRight className="w-4 h-4 text-[#90CAF9]" />
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-              “Tetap tenang. Pahami situasi. <br className="hidden sm:inline" />
-              <span className="text-[#90CAF9]">Ambil langkah aman.”</span>
-            </h1>
-            <p className="text-blue-100 text-sm sm:text-base leading-relaxed max-w-2xl font-normal">
-              Bantuan panduan awal saat darurat melanda. Mengubah kepanikan menjadi tindakan berurutan, terverifikasi, dan mempertimbangkan keselamatan seluruh anggota keluarga.
-            </p>
-          </div>
-
-          {/* Core Action Callouts */}
-          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
-            <button
-              onClick={handleTriggerEmergency}
-              className="group relative flex items-center justify-center gap-3 px-8 py-4 bg-white text-[#0D47A1] hover:bg-[#E3F2FD] rounded-2xl font-bold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-200 transform active:scale-[0.98] cursor-pointer"
-            >
-              <ShieldAlert className="w-6 h-6 text-rose-600 transition-transform group-hover:scale-110" />
-              <span>Saya Sedang Dalam Keadaan Darurat</span>
-              <ArrowRight className="w-5 h-5 text-[#2196F3] group-hover:translate-x-1 transition-transform" />
-            </button>
-
-            <button
-              onClick={handlePreparedness}
-              className="flex items-center justify-center gap-2 px-6 py-4 bg-white/10 hover:bg-white/20 text-white border border-white/25 rounded-2xl font-semibold text-sm sm:text-base backdrop-blur-sm transition-all duration-200 cursor-pointer"
-            >
-              <span>Cari Kesiapsiagaan & Checklist</span>
-              <ChevronRight className="w-4 h-4 text-[#90CAF9]" />
-            </button>
+          <div className="hero-visual relative hidden md:flex items-center justify-center min-h-[270px]" aria-label="Ilustrasi peta simulasi">
+            <div className="hero-radar">
+              <span className="hero-radar-ring hero-radar-ring-one" />
+              <span className="hero-radar-ring hero-radar-ring-two" />
+              <span className="hero-radar-ring hero-radar-ring-three" />
+              <span className="hero-radar-cross hero-radar-cross-one" />
+              <span className="hero-radar-cross hero-radar-cross-two" />
+              <span className="hero-radar-route" />
+              <span className="hero-radar-point hero-radar-point-one" />
+              <span className="hero-radar-point hero-radar-point-two" />
+              <span className="hero-radar-center"><MapPin className="w-6 h-6" /></span>
+            </div>
+            <div className="hero-float-card hero-float-card-top">
+              <span className="hero-float-icon"><MapPin className="w-4 h-4" /></span>
+              <span><small>SKENARIO DIPILIH</small><strong>{selectedHazard.label}</strong></span>
+            </div>
+            <div className="hero-float-card hero-float-card-bottom">
+              <span className="hero-status-dot" />
+              <span><small>AREA CONTOH</small><strong>Data demo · bukan live</strong></span>
+            </div>
           </div>
         </div>
       </div>
@@ -117,6 +143,7 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
               <button
                 key={item.id}
                 onClick={() => handleHazardClick(item)}
+                aria-pressed={isSelected}
                 className={`flex flex-col items-center text-center p-4 rounded-2xl border transition-all duration-200 cursor-pointer group text-left ${
                   isSelected 
                     ? 'bg-[#E3F2FD] border-[#2196F3] shadow-md shadow-blue-500/10 ring-2 ring-[#2196F3]' 
@@ -148,9 +175,10 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
       {/* Quick Access Tiles - Clean and Minimal */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Tile 1: Family Safety */}
-        <div 
+        <button 
+          type="button"
           onClick={() => onNavigateScreen('family')}
-          className="group p-5 bg-white rounded-2xl border border-slate-200/80 hover:border-[#2196F3] shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
+          className="group text-left p-5 bg-white rounded-2xl border border-slate-200/80 hover:border-[#2196F3] shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
         >
           <div className="space-y-3">
             <div className="w-10 h-10 rounded-xl bg-[#E3F2FD] text-[#0D47A1] flex items-center justify-center group-hover:bg-[#0D47A1] group-hover:text-white transition-colors">
@@ -169,12 +197,13 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
             <span>Kelola Anggota</span>
             <ArrowRight className="w-4 h-4 text-[#2196F3] group-hover:translate-x-1 transition-transform" />
           </div>
-        </div>
+        </button>
 
         {/* Tile 2: Safe Route */}
-        <div 
+        <button
+          type="button"
           onClick={() => onNavigateScreen('route')}
-          className="group p-5 bg-white rounded-2xl border border-slate-200/80 hover:border-[#2196F3] shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
+          className="group text-left p-5 bg-white rounded-2xl border border-slate-200/80 hover:border-[#2196F3] shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
         >
           <div className="space-y-3">
             <div className="w-10 h-10 rounded-xl bg-[#E3F2FD] text-[#0D47A1] flex items-center justify-center group-hover:bg-[#0D47A1] group-hover:text-white transition-colors">
@@ -193,12 +222,13 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
             <span>Lihat Posko & Peta</span>
             <ArrowRight className="w-4 h-4 text-[#2196F3] group-hover:translate-x-1 transition-transform" />
           </div>
-        </div>
+        </button>
 
         {/* Tile 3: Emergency Checklist */}
-        <div 
+        <button
+          type="button"
           onClick={() => onNavigateScreen('checklist')}
-          className="group p-5 bg-white rounded-2xl border border-slate-200/80 hover:border-[#2196F3] shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
+          className="group text-left p-5 bg-white rounded-2xl border border-slate-200/80 hover:border-[#2196F3] shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
         >
           <div className="space-y-3">
             <div className="w-10 h-10 rounded-xl bg-[#E3F2FD] text-[#0D47A1] flex items-center justify-center group-hover:bg-[#0D47A1] group-hover:text-white transition-colors">
@@ -217,7 +247,7 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
             <span>Buka Tas Siaga</span>
             <ArrowRight className="w-4 h-4 text-[#2196F3] group-hover:translate-x-1 transition-transform" />
           </div>
-        </div>
+        </button>
 
         {/* Tile 4: Global Safety Map */}
         <button
@@ -252,7 +282,7 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
             <Info className="w-4 h-4 text-[#2196F3]" />
             <span>Kanal Informasi Resmi Terhubung (Simulasi)</span>
           </div>
-          <span className="text-[11px] text-slate-500">Pembaruan berkala sesuai protokol kebencanaan</span>
+          <span className="demo-badge">Contoh informasi · tidak real-time</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {OFFICIAL_SOURCES.map((src, idx) => (
@@ -261,8 +291,8 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
                 <p className="font-semibold text-[#0D47A1]">{src.name}</p>
                 <p className="text-[11px] text-slate-500">Update {src.update}</p>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded">
-                AKTIF
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
+              DEMO
               </span>
             </div>
           ))}

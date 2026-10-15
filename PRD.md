@@ -543,6 +543,8 @@ Fallback: jika input tidak jelas, AI gagal, peta tidak tersedia, atau sumber tid
 
 - Mobile-first, tetapi tetap responsif untuk desktop.
 
+- Navigasi utama ditempatkan pada dock bawah berbasis glassmorphism agar mudah dijangkau; halaman darurat menyembunyikan dock untuk mengurangi distraksi.
+
 - Prioritas visual: kondisi / tindakan utama → tindakan berikutnya → sumber / keterbatasan → navigasi sekunder.
 
 - Gunakan warna urgensi secara konsisten, tetapi sertai dengan teks dan ikon.
@@ -600,6 +602,8 @@ Fallback: jika input tidak jelas, AI gagal, peta tidak tersedia, atau sumber tid
 - Share Status menampilkan preview sebelum publikasi, persetujuan eksplisit, cakupan audiens, masa berlaku, serta kontrol berhenti berbagi.
 
 - Micro-interaction memberi umpan balik pada pilihan, progres, dan perpindahan layar tanpa animasi berlebihan atau countdown palsu.
+
+- Layar tambahan prototype dan perpindahan layar demo tersedia dari menu “Lainnya” pada dock bawah, bukan menu navigasi di header.
 
 ## 7.4 Visual Direction
 

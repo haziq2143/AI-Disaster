@@ -1,22 +1,14 @@
+'use client';
+
 import React, { useState } from 'react';
 import { 
   ShieldAlert, 
   Home, 
   Users, 
-  MapPin, 
+  MapPin,
   CheckSquare, 
-  Sparkles, 
-  LifeBuoy, 
   Layers, 
-  PhoneCall, 
-  Eye, 
-  Sun, 
-  Moon,
-  ChevronRight,
-  Menu,
-  X,
-  Radio,
-  FileText
+  X
 } from 'lucide-react';
 
 import OnboardingScreen from './components/OnboardingScreen';
@@ -37,7 +29,7 @@ import { INITIAL_FAMILY } from './data/mockData';
 export default function App() {
   // Navigation states: 12 screens according to PRD 7.2
   const [currentScreen, setCurrentScreen] = useState('home');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isSafetyShareActive, setIsSafetyShareActive] = useState(false);
   const [safetyShareDetails, setSafetyShareDetails] = useState({
     status: 'checking',
@@ -74,9 +66,19 @@ export default function App() {
     { id: 'share_status', num: '12', name: 'Share Status & Report Abuse' },
   ];
 
-  const handleStartEmergencyFlow = (target) => {
-    setCurrentScreen('input');
-  };
+  const primaryNavigation = [
+    { id: 'home', label: 'Beranda', icon: Home },
+    { id: 'family', label: 'Keluarga', icon: Users },
+    { id: 'safety_map', label: 'Peta', icon: MapPin },
+    { id: 'checklist', label: 'Tas Siaga', icon: CheckSquare },
+  ];
+
+  const secondaryScreens = screenList.filter(screen => (
+    !primaryNavigation.some(item => item.id === screen.id) && screen.id !== 'emergency'
+  ));
+
+  const isMoreScreen = secondaryScreens.some(screen => screen.id === currentScreen)
+    || currentScreen === 'emergency';
 
   return (
     <div className="app-shell min-h-screen text-slate-800 flex flex-col font-sans">
@@ -84,35 +86,19 @@ export default function App() {
       <div className="demo-bar text-white text-xs px-4 py-2 border-b border-[#2196F3]/30">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 bg-[#2196F3] text-white rounded text-[10px] font-extrabold tracking-wider uppercase">
-              12 SCREEN PROTOTYPE
+            <span className="w-2 h-2 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.9)]">
             </span>
-            <span className="hidden sm:inline text-blue-200">
-              PRD AI Disaster Assistant (Sesuai Spesifikasi Lomba)
+            <span className="font-extrabold tracking-[0.14em] uppercase text-[10px] text-blue-100">
+              Prototype interaktif · Data simulasi
             </span>
           </div>
-
-          {/* Quick Screen Jump Selector */}
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
-            <span className="text-[11px] text-[#90CAF9] whitespace-nowrap hidden md:inline">Lompat Layar:</span>
-            <select
-              value={currentScreen}
-              onChange={(e) => setCurrentScreen(e.target.value)}
-              className="bg-[#1565C0] text-white text-xs font-semibold px-2.5 py-1 rounded-lg border border-[#90CAF9]/40 outline-none cursor-pointer"
-            >
-              {screenList.map(s => (
-                <option key={s.id} value={s.id}>
-                  Screen {s.num}: {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <span className="hidden sm:inline text-[10px] font-medium text-blue-200">Informasi pada prototype bukan data real-time</span>
         </div>
       </div>
 
-      {/* Main Navigation Header */}
+      {/* Compact brand header; primary navigation lives in the bottom dock. */}
       <header className="app-header sticky top-0 z-40 backdrop-blur-xl border-b border-white/70">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-[4.5rem] flex items-center justify-between">
           {/* Brand */}
           <button 
             onClick={() => setCurrentScreen('home')}
@@ -134,102 +120,21 @@ export default function App() {
             </div>
           </button>
 
-          {/* Center Links (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-1">
-            <button
-              onClick={() => setCurrentScreen('home')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                currentScreen === 'home' ? 'text-[#0D47A1] bg-[#E3F2FD]' : 'text-slate-600 hover:text-[#0D47A1]'
-              }`}
-            >
-              Beranda
-            </button>
-            <button
-              onClick={() => setCurrentScreen('family')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                currentScreen === 'family' ? 'text-[#0D47A1] bg-[#E3F2FD]' : 'text-slate-600 hover:text-[#0D47A1]'
-              }`}
-            >
-              Family Safety
-            </button>
-            <button
-              onClick={() => setCurrentScreen('route')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                currentScreen === 'route' ? 'text-[#0D47A1] bg-[#E3F2FD]' : 'text-slate-600 hover:text-[#0D47A1]'
-              }`}
-            >
-              Safe Route
-            </button>
-            <button
-              onClick={() => setCurrentScreen('safety_map')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                currentScreen === 'safety_map' ? 'text-[#0D47A1] bg-[#E3F2FD]' : 'text-slate-600 hover:text-[#0D47A1]'
-              }`}
-            >
-              Safety Map
-            </button>
-            <button
-              onClick={() => setCurrentScreen('checklist')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                currentScreen === 'checklist' ? 'text-[#0D47A1] bg-[#E3F2FD]' : 'text-slate-600 hover:text-[#0D47A1]'
-              }`}
-            >
-              Tas Siaga
-            </button>
-            <button
-              onClick={() => setCurrentScreen('onboarding')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                currentScreen === 'onboarding' ? 'text-[#0D47A1] bg-[#E3F2FD]' : 'text-slate-600 hover:text-[#0D47A1]'
-              }`}
-            >
-              Tentang Produk
-            </button>
-          </nav>
-
-          {/* Right Action: Emergency Fast Button */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCurrentScreen('emergency')}
-              className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 hover:shadow-lg transition-all cursor-pointer pulse-emergency"
+              className="emergency-header-action"
             >
               <ShieldAlert className="w-4 h-4 text-white" />
-              <span>Emergency Mode</span>
-            </button>
-
-            {/* Mobile Hamburger */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 cursor-pointer"
-            >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <span className="hidden sm:inline">Mode Darurat</span>
+              <span className="sm:hidden">Darurat</span>
             </button>
           </div>
         </div>
-
-        {/* Mobile Dropdown Menu */}
-        {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-slate-200 bg-white p-4 space-y-2 animate-fadeIn">
-            {screenList.map(s => (
-              <button
-                key={s.id}
-                onClick={() => {
-                  setCurrentScreen(s.id);
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between ${
-                  currentScreen === s.id ? 'bg-[#E3F2FD] text-[#0D47A1]' : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <span>Screen {s.num}: {s.name}</span>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
-              </button>
-            ))}
-          </div>
-        )}
       </header>
 
       {/* Screen Render Switcher */}
-      <main className="app-main flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className={`app-main flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8 ${currentScreen === 'emergency' ? 'pb-8' : 'pb-32 sm:pb-36'}`}>
         {currentScreen === 'onboarding' && (
           <OnboardingScreen 
             onStartApp={() => setCurrentScreen('home')}
@@ -334,6 +239,66 @@ export default function App() {
           />
         )}
       </main>
+
+      {currentScreen !== 'emergency' && (
+        <div className="bottom-dock-wrap">
+          {isMoreMenuOpen && (
+            <div className="dock-more-menu animate-fadeIn" role="menu" aria-label="Layar prototype lainnya">
+              <div className="flex items-center justify-between px-2 pb-2 border-b border-slate-200/70">
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-500">Layar lainnya</span>
+                <button type="button" className="dock-close" onClick={() => setIsMoreMenuOpen(false)} aria-label="Tutup menu layar lainnya">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 pt-2">
+                {secondaryScreens.map(screen => (
+                  <button
+                    key={screen.id}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setCurrentScreen(screen.id);
+                      setIsMoreMenuOpen(false);
+                    }}
+                    className={`dock-more-item ${screen.id === currentScreen ? 'dock-more-item-active' : ''}`}
+                  >
+                    <span className="text-[10px] font-extrabold text-blue-500">{screen.num}</span>
+                    <span>{screen.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <nav className="bottom-dock" aria-label="Navigasi utama">
+            {primaryNavigation.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => {
+                  setCurrentScreen(id);
+                  setIsMoreMenuOpen(false);
+                }}
+                aria-current={currentScreen === id ? 'page' : undefined}
+                className={`dock-item ${currentScreen === id ? 'dock-item-active' : ''}`}
+              >
+                <span className="dock-icon-wrap"><Icon className="w-[18px] h-[18px]" /></span>
+                <span className="dock-label">{label}</span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setIsMoreMenuOpen(open => !open)}
+              aria-expanded={isMoreMenuOpen}
+              aria-current={isMoreScreen ? 'page' : undefined}
+              className={`dock-item ${isMoreScreen ? 'dock-item-active' : ''}`}
+            >
+              <span className="dock-icon-wrap"><Layers className="w-[18px] h-[18px]" /></span>
+              <span className="dock-label">Lainnya</span>
+            </button>
+          </nav>
+        </div>
+      )}
 
       {/* Footer conforming to PRD Principles & Transparency */}
       <footer className="app-footer border-t border-white/70 py-6 px-4 text-xs text-slate-500">
