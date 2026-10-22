@@ -237,30 +237,43 @@ export default function EmergencyMode({
       </div>
 
       {/* QUICK COMPANION SHORTCUTS during Emergency */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <button
           onClick={() => onNavigateScreen('family')}
-          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-[#2196F3] shadow-xs flex items-center gap-3 text-left transition-all cursor-pointer"
+          className="p-3.5 bg-white rounded-2xl border border-slate-200 hover:border-[#2196F3] shadow-xs flex items-center gap-3 text-left transition-all cursor-pointer"
         >
           <div className="w-9 h-9 rounded-xl bg-[#E3F2FD] text-[#0D47A1] flex items-center justify-center shrink-0">
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <p className="font-bold text-xs text-slate-800">Cek Status Keluarga</p>
+            <p className="font-bold text-xs text-slate-800">Status Keluarga</p>
             <p className="text-[11px] text-slate-500">3 anggota terdata</p>
           </div>
         </button>
 
         <button
           onClick={() => onNavigateScreen('route')}
-          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-[#2196F3] shadow-xs flex items-center gap-3 text-left transition-all cursor-pointer"
+          className="p-3.5 bg-white rounded-2xl border border-slate-200 hover:border-[#2196F3] shadow-xs flex items-center gap-3 text-left transition-all cursor-pointer"
         >
           <div className="w-9 h-9 rounded-xl bg-[#E3F2FD] text-[#0D47A1] flex items-center justify-center shrink-0">
             <MapPin className="w-5 h-5" />
           </div>
           <div>
-            <p className="font-bold text-xs text-slate-800">Peta & Rute Evakuasi</p>
+            <p className="font-bold text-xs text-slate-800">Rute Evakuasi</p>
             <p className="text-[11px] text-slate-500">Posko RW 04 (350m)</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => onNavigateScreen('safety_map')}
+          className="p-3.5 bg-rose-50/80 rounded-2xl border border-rose-200 hover:border-rose-400 shadow-xs flex items-center gap-3 text-left transition-all cursor-pointer"
+        >
+          <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 animate-pulse">
+            <ShieldAlert className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="font-bold text-xs text-rose-900">Radar Warga (1 km)</p>
+            <p className="text-[11px] text-rose-600 font-semibold">PIN SOS Aktif</p>
           </div>
         </button>
       </div>

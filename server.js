@@ -1,5 +1,12 @@
 import express from 'express';
 import cors from 'cors';
+import { 
+  getAllMarkers, 
+  saveUserLocation, 
+  addEmergencyReport, 
+  getReportById, 
+  updateReportStatus 
+} from './src/lib/disasterDb.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -264,6 +271,214 @@ app.post('/api/confirm-safe', (req, res) => {
       verified_by_user: true
     }
   });
+});
+
+// 6. Global Safety Map & 1km Radius / SOS Pin APIs (PRD 4.11 & 4.13)
+let communityPins = [
+  {
+    id: 'user-me',
+    isCurrentUser: true,
+    alias: 'Anda (Dina)',
+    area: 'Kelurahan Sukajadi, RT 02 / RW 04',
+    x: 48,
+    y: 52,
+    status: 'checking',
+    displayMode: 'radius_1km',
+    radiusKm: 1.0,
+    distanceMeters: 0,
+    updated: 'Baru saja'
+  },
+  {
+    id: 'p-hendra',
+    alias: 'Pak Hendra (Ketua RT 02)',
+    area: 'Sukajadi Utara, RT 02',
+    x: 46,
+    y: 36,
+    status: 'safe',
+    displayMode: 'radius_1km',
+    radiusKm: 1.0,
+    distanceMeters: 280,
+    updated: '4 menit lalu',
+    canHelp: true
+  },
+  {
+    id: 'p-ratmi',
+    alias: 'Keluarga Bu Ratmi',
+    area: 'Gang Kenanga, RT 03',
+    x: 62,
+    y: 44,
+    status: 'checking',
+    displayMode: 'radius_1km',
+    radiusKm: 1.0,
+    distanceMeters: 520,
+    updated: '11 menit lalu',
+    canHelp: false
+  },
+  {
+    id: 'p-pmi',
+    alias: 'Posko Relawan Siaga PMI Sukajadi',
+    area: 'Balai Warga RW 04',
+    x: 36,
+    y: 65,
+    status: 'safe',
+    displayMode: 'radius_1km',
+    radiusKm: 1.0,
+    distanceMeters: 750,
+    updated: '7 menit lalu',
+    isVolunteerPost: true,
+    canHelp: true
+  },
+  {
+    id: 'p-siti',
+    alias: 'Ibu Siti & Balita (Butuh Bantuan)',
+    area: 'Sukajadi Selatan, Gang Melati RT 04',
+    x: 58,
+    y: 69,
+    status: 'help',
+    displayMode: 'pin_sos',
+    radiusKm: 1.0,
+    distanceMeters: 890,
+    updated: '2 menit lalu',
+    urgent: true
+  }
+];
+
+let abuseReports = [];
+
+app.get('/api/safety-map/pins', (req, res) => {
+  res.json({
+    success: true,
+    data: communityPins,
+    privacyNotice: 'Default warga aman menggunakan radius 1km perkiraan. Warga darurat otomatis menggunakan PIN presisi.'
+  });
+});
+
+app.post('/api/safety-map/toggle-emergency', (req, res) => {
+  const { status } = req.body; // 'help' or 'safe'/'checking'
+  const userPin = communityPins.find(p => p.id === 'user-me');
+  if (userPin) {
+    userPin.status = status || 'help';
+    userPin.displayMode = status === 'help' ? 'pin_sos' : 'radius_1km';
+    userPin.updated = 'Baru saja';
+  }
+  res.json({
+    success: true,
+    data: userPin,
+    message: status === 'help' 
+      ? 'Mode Darurat Aktif: Lokasi presisi dibuka sebagai PIN SOS kepada warga sekitar.' 
+      : 'Mode Normal Aktif: Privasi dilindungi dengan radius perkiraan 1 km.'
+  });
+});
+
+app.get('/api/safety-map/nearby', (req, res) => {
+  const maxDistance = parseInt(req.query.maxDistance || '1000', 10);
+  const nearby = communityPins.filter(p => !p.isCurrentUser && p.distanceMeters <= maxDistance);
+  res.json({
+    success: true,
+    count: nearby.length,
+    radiusKm: 1.0,
+    data: nearby
+  });
+});
+
+app.post('/api/safety-map/report', (req, res) => {
+  const { pinId, reason } = req.body;
+  const report = {
+    id: 'rep-' + Date.now(),
+    pinId,
+    reason: reason || 'Lokasi tidak akurat',
+    timestamp: new Date().toISOString(),
+    status: 'under_review'
+  };
+  abuseReports.push(report);
+  res.json({
+    success: true,
+    message: 'Laporan tercatat untuk peninjauan verifikasi anti-spoofing.',
+    report
+  });
+});
+
+// 7. Actual Database GPS & Leaflet + OpenStreetMap Integrated Endpoints
+app.get('/api/map/markers', (req, res) => {
+  const lat = req.query.lat ? parseFloat(req.query.lat) : null;
+  const lng = req.query.lng ? parseFloat(req.query.lng) : null;
+  const userCoords = lat && lng ? { lat, lng } : null;
+  const markers = getAllMarkers(userCoords);
+  res.json({
+    success: true,
+    source: 'database',
+    timestamp: new Date().toISOString(),
+    privacy_notice: 'Radius 1 km perkiraan adalah visualisasi privasi, bukan jaminan validasi laporan anti-spoofing.',
+    data: markers
+  });
+});
+
+app.post('/api/map/user-location', (req, res) => {
+  const { lat, lng, accuracy, precision_consent, status } = req.body;
+  if (typeof lat !== 'number' || typeof lng !== 'number') {
+    return res.status(400).json({ success: false, error: 'Koordinat GPS aktual (lat, lng) diperlukan.' });
+  }
+  const saved = saveUserLocation({
+    lat,
+    lng,
+    accuracy: accuracy || 10,
+    precision_consent: Boolean(precision_consent),
+    status: status || 'checking'
+  });
+  res.json({
+    success: true,
+    message: precision_consent
+      ? 'Koordinat GPS aktual presisi diaktifkan untuk mode darurat.'
+      : 'Koordinat GPS disimpan. Tampilan publik dilindungi radius perkiraan 1 km.',
+    data: saved
+  });
+});
+
+app.get('/api/map/emergency-reports', (req, res) => {
+  const markers = getAllMarkers();
+  res.json({
+    success: true,
+    count: markers.laporan_darurat.length,
+    data: markers.laporan_darurat
+  });
+});
+
+app.post('/api/map/emergency-reports', (req, res) => {
+  const { lat, lng, needs_description, reporter_name, hazard_type, vulnerable_members, urgency_level, precision_consent } = req.body;
+  if (typeof lat !== 'number' || typeof lng !== 'number') {
+    return res.status(400).json({ success: false, error: 'Koordinat GPS aktual laporan diperlukan.' });
+  }
+  const report = addEmergencyReport({
+    lat,
+    lng,
+    reporter_name,
+    hazard_type,
+    urgency_level: urgency_level || 'KRITIS',
+    needs_description,
+    vulnerable_members,
+    precision_consent: Boolean(precision_consent)
+  });
+  res.status(201).json({
+    success: true,
+    message: 'Laporan darurat berhasil dicatat ke database geospasial.',
+    data: report
+  });
+});
+
+app.get('/api/map/emergency-reports/:id', (req, res) => {
+  const report = getReportById(req.params.id);
+  if (!report) {
+    return res.status(404).json({ success: false, error: 'Laporan darurat tidak ditemukan.' });
+  }
+  res.json({ success: true, data: report });
+});
+
+app.patch('/api/map/emergency-reports/:id', (req, res) => {
+  const updated = updateReportStatus(req.params.id, req.body.status);
+  if (!updated) {
+    return res.status(404).json({ success: false, error: 'Laporan darurat tidak ditemukan.' });
+  }
+  res.json({ success: true, message: 'Status laporan darurat diperbarui.', data: updated });
 });
 
 app.listen(PORT, () => {

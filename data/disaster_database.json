@@ -1,0 +1,153 @@
+{
+  "posko": [
+    {
+      "id": "posko-1",
+      "name": "Posko Balai Warga RW 04 & Pos Pengungsian Mandiri",
+      "lat": -6.8872,
+      "lng": 107.5948,
+      "address": "Jl. Sukajadi No. 142, RT 04 / RW 04",
+      "capacity": "120 orang (Tersisa ~45 slot)",
+      "facilities": [
+        "Genset Darurat",
+        "Dapur Umum Mandiri",
+        "Tenaga Medis P3K",
+        "Air Bersih"
+      ],
+      "contact": "0812-9988-RW04 (Bpk. Subagio)",
+      "status": "active",
+      "verified_by": "BPBD Posko Wilayah",
+      "verified_at": "12 menit lalu",
+      "elevation": "+18m mdpl (Dataran Tinggi Aman)"
+    },
+    {
+      "id": "posko-2",
+      "name": "Posko Terpadu Gedung Serbaguna Kecamatan Sukajadi",
+      "lat": -6.8835,
+      "lng": 107.591,
+      "address": "Jl. Sukamaju No. 8, Sukajadi",
+      "capacity": "300 orang (Tersisa ~160 slot)",
+      "facilities": [
+        "Pos Medis Utama BPBD",
+        "2 Unit Armada Perahu Karet",
+        "Suplai Obat Lengkap",
+        "Dapur Umum BNPB"
+      ],
+      "contact": "022-203112 / Call Center 112",
+      "status": "active",
+      "verified_by": "Tim Reaksi Cepat BPBD Jabar",
+      "verified_at": "25 menit lalu",
+      "elevation": "+24m mdpl"
+    },
+    {
+      "id": "posko-3",
+      "name": "Posko Lapangan Terbuka Stadion Mini Timur",
+      "lat": -6.892,
+      "lng": 107.6045,
+      "address": "Jl. Karang Tineung Timur No. 45",
+      "capacity": "200 orang",
+      "facilities": [
+        "Tenda Pengungsi Darurat",
+        "Pos Komunikasi Radio Orari",
+        "Toilet Portabel"
+      ],
+      "contact": "0857-1122-3344",
+      "status": "active",
+      "verified_by": "PMI Wilayah",
+      "verified_at": "45 menit lalu",
+      "elevation": "+15m mdpl"
+    }
+  ],
+  "warga": [
+    {
+      "id": "warga-1",
+      "alias": "Pak Hendra (Ketua RT 02)",
+      "lat": -6.8858,
+      "lng": 107.5932,
+      "area": "Sukajadi Utara, RT 02",
+      "status": "safe",
+      "radius_km": 1,
+      "can_help": true,
+      "notes": "Rumah aman di lantai 2. Siaga genset dan 1 perahu karet warga jika tetangga butuh evakuasi.",
+      "updated_at": "4 menit lalu"
+    },
+    {
+      "id": "warga-2",
+      "alias": "Keluarga Bu Ratmi",
+      "lat": -6.8895,
+      "lng": 107.5978,
+      "area": "Gang Kenanga, RT 03",
+      "status": "checking",
+      "radius_km": 1,
+      "can_help": false,
+      "notes": "Sedang memindahkan perabotan ke lantai 2. Memantau ketinggian air selokan depan.",
+      "updated_at": "11 menit lalu"
+    },
+    {
+      "id": "warga-3",
+      "alias": "Relawan Siaga PMI Sukajadi",
+      "lat": -6.8865,
+      "lng": 107.5955,
+      "area": "Balai RW 04",
+      "status": "safe",
+      "radius_km": 1,
+      "can_help": true,
+      "notes": "Regu medis dan perahu karet siaga evakuasi warga prioritas.",
+      "updated_at": "7 menit lalu"
+    },
+    {
+      "id": "warga-4",
+      "alias": "Warga Anonim • Cempaka",
+      "lat": -6.8812,
+      "lng": 107.602,
+      "area": "Cempaka Barat",
+      "status": "safe",
+      "radius_km": 1,
+      "can_help": false,
+      "notes": "Jalur kering dapat dilalui, air belum naik.",
+      "updated_at": "18 menit lalu"
+    }
+  ],
+  "laporan_darurat": [
+    {
+      "id": "rep-sos-1",
+      "reporter_name": "Ibu Siti & Balita",
+      "lat": -6.8905,
+      "lng": 107.5965,
+      "address_detail": "Gang Melati No. 12, RT 04 / RW 04 Sukajadi",
+      "hazard_type": "banjir",
+      "urgency_level": "KRITIS",
+      "needs_description": "Air di dalam rumah sudah setinggi 65 cm dan terus mengalir deras. Terdapat 1 bayi usia 2 tahun dan ibu yang terjebak di atas meja. Butuh perahu karet segera!",
+      "vulnerable_members": "1 Bayi/Balita (2 tahun), 1 Lansia (68 tahun)",
+      "status": "waiting_rescue",
+      "contact": "0813-2233-4455 (Siti)",
+      "reported_at": "6 menit lalu",
+      "precision_consent": true,
+      "verified_status": "Laporan Warga Terverifikasi RT"
+    },
+    {
+      "id": "rep-sos-2",
+      "reporter_name": "Keluarga Bpk. Rahmat",
+      "lat": -6.8845,
+      "lng": 107.5925,
+      "address_detail": "Jl. Sukamulya No. 22, RT 01 / RW 03",
+      "hazard_type": "banjir",
+      "urgency_level": "TINGGI",
+      "needs_description": "Tanggul selokan perumahan meluap setinggi 45 cm. Terdapat orang tua lansia yang harus memakai kursi roda, tidak dapat dievakuasi sendiri tanpa bantuan tandu/perahu.",
+      "vulnerable_members": "1 Lansia (kursi roda / lumpuh sebagian)",
+      "status": "in_progress",
+      "contact": "0878-9900-1122",
+      "reported_at": "19 menit lalu",
+      "precision_consent": true,
+      "verified_status": "Dalam Penanganan Tim Relawan"
+    }
+  ],
+  "user_location": {
+    "lat": -5.985976060207582,
+    "lng": 106.03441606020759,
+    "accuracy": 187,
+    "precision_consent": false,
+    "status": "checking",
+    "display_mode": "radius_1km",
+    "updated_at": "2026-10-22T03:01:24.101Z"
+  }
+}

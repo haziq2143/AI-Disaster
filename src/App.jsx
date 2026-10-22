@@ -49,6 +49,7 @@ export default function App() {
   });
 
   const [familyMembers, setFamilyMembers] = useState(INITIAL_FAMILY);
+  const [navigationTarget, setNavigationTarget] = useState(null);
 
   // PRD Screen Index mapping for demo reviewer
   const screenList = [
@@ -199,6 +200,9 @@ export default function App() {
         {currentScreen === 'route' && (
           <SafeRoute
             hazardData={hazardData}
+            familyMembers={familyMembers}
+            navigationTarget={navigationTarget}
+            setNavigationTarget={setNavigationTarget}
             onBack={() => setCurrentScreen('home')}
             onNavigateScreen={(scr) => setCurrentScreen(scr)}
           />
@@ -224,8 +228,15 @@ export default function App() {
         {currentScreen === 'safety_map' && (
           <GlobalSafetyMap
             isShareActive={isSafetyShareActive}
+            setIsShareActive={setIsSafetyShareActive}
             safetyShareDetails={safetyShareDetails}
+            setSafetyShareDetails={setSafetyShareDetails}
+            hazardData={hazardData}
             onNavigateScreen={(scr) => setCurrentScreen(scr)}
+            onNavigateRoute={(target) => {
+              setNavigationTarget(target);
+              setCurrentScreen('route');
+            }}
           />
         )}
 

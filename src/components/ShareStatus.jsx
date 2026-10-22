@@ -146,27 +146,65 @@ export default function ShareStatus({
           <section className="glass-card p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="eyebrow">Pratinjau pin</p>
+                <p className="eyebrow">Pratinjau visual peta</p>
                 <h2 className="font-extrabold text-slate-900 mt-2">{selectedStatus.label}</h2>
               </div>
-              <div className={`w-12 h-12 rounded-2xl grid place-items-center ${status === 'help' ? 'bg-rose-100 text-rose-700' : status === 'safe' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>
-                <MapPin className="w-6 h-6" />
+              <div className={`w-12 h-12 rounded-2xl grid place-items-center ${
+                status === 'help' 
+                  ? 'bg-rose-100 text-rose-700 animate-pulse' 
+                  : status === 'safe' 
+                    ? 'bg-emerald-100 text-emerald-700' 
+                    : 'bg-blue-100 text-blue-700'
+              }`}>
+                {status === 'help' ? <TriangleAlert className="w-6 h-6" /> : <MapPin className="w-6 h-6" />}
               </div>
             </div>
-            <div className="rounded-2xl border border-white/80 bg-white/60 p-4">
-              <p className="font-bold text-sm text-slate-900">Pengguna • {area || 'Area belum ditentukan'}</p>
-              <p className="text-xs text-slate-600 mt-1">Baru saja · laporan belum diverifikasi</p>
-              <p className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-3"><Clock3 className="w-3.5 h-3.5" />Pin berakhir dalam {expiry}</p>
+
+            {/* Visual representation badge: PIN vs Radius 1km */}
+            <div className={`rounded-2xl border p-4 transition-all ${
+              status === 'help'
+                ? 'bg-rose-50/90 border-rose-200'
+                : 'bg-blue-50/80 border-blue-200'
+            }`}>
+              <div className="flex items-center gap-2 font-bold text-xs">
+                {status === 'help' ? (
+                  <span className="px-2 py-0.5 rounded bg-rose-600 text-white text-[10px] uppercase tracking-wider font-extrabold">
+                    🔴 PIN Presisi Darurat (SOS)
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded bg-blue-600 text-white text-[10px] uppercase tracking-wider font-extrabold">
+                    🔵 Lingkaran Radius 1 km
+                  </span>
+                )}
+              </div>
+
+              <p className="font-bold text-sm text-slate-900 mt-2">
+                {status === 'help' ? 'Titik Evakuasi Terbuka' : 'Area Perkiraan (~1 km)'} • {area || 'Sukajadi'}
+              </p>
+              
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                {status === 'help'
+                  ? 'Karena Anda butuh bantuan, lokasi presisi disiarkan sebagai PIN agar penolong dapat menemukan Anda secepatnya.'
+                  : 'Orang lain hanya melihat lingkaran radius perkiraan 1 km. Koordinat presisi rumah Anda dirahasiakan.'}
+              </p>
+
+              <p className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-3 pt-2 border-t border-slate-200/60">
+                <Clock3 className="w-3.5 h-3.5" />
+                Kedaluwarsa dalam {expiry} · Laporan belum diverifikasi
+              </p>
             </div>
-            <span className="demo-badge">DATA DEMO · TIDAK DIPUBLIKASIKAN</span>
+
+            <span className="demo-badge">DATA DEMO · SIMULASI LOMBA</span>
           </section>
 
           <section className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
             <div className="flex items-start gap-2">
               <TriangleAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-xs font-extrabold text-amber-950">Bagikan seperlunya</h3>
-                <p className="text-xs text-amber-900 mt-1 leading-relaxed">Jangan cantumkan alamat rumah, nomor telepon, nama lengkap, atau informasi sensitif. Hentikan berbagi kapan saja.</p>
+                <h3 className="text-xs font-extrabold text-amber-950">Prinsip Privasi Kebencanaan</h3>
+                <p className="text-xs text-amber-900 mt-1 leading-relaxed">
+                  Jangan pernah cantumkan nama lengkap anak, nomor telepon, atau data sensitif di deskripsi publik. Anda dapat mematikan sinyal atau mengembalikan ke radius 1 km kapan saja setelah kondisi aman.
+                </p>
               </div>
             </div>
           </section>

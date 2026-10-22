@@ -349,19 +349,23 @@ Tampilkan hanya identitas minimum pada pin publik, misalnya nama panggilan/pseud
 
 Jangan pernah menampilkan alamat rumah, nomor telepon, email, tanggal lahir lengkap, atau identitas sensitif pada pin publik. Data profil harus dapat diedit dan dihapus, dengan penjelasan singkat tentang konsekuensi berbagi informasi.
 
-## 4.11 Global Safety Map
+## 4.11 Global Safety Map & Radar Komunitas (Radius 1 km & Pin SOS)
 
-Menampilkan peta global/berdasarkan area dengan pin pengguna yang memilih membagikan status saat bencana; fitur ini melengkapi Family Safety dan tidak terbatas pada daftar keluarga.
+Menampilkan peta global/berdasarkan area dengan pin dan zona radius pengguna yang memilih membagikan status saat bencana; fitur ini melengkapi Family Safety dan tidak terbatas pada daftar keluarga.
 
-Setiap pin menggunakan status yang jelas: “Butuh bantuan”, “Sedang memeriksa kondisi”, “Sudah mengonfirmasi aman”, atau “Belum ada konfirmasi”. Status berasal dari laporan pengguna dan harus menampilkan waktu pembaruan.
+Prinsip Tampilan Bertingkat (Radius 1 km vs PIN Presisi):
+- **Kondisi Normal / Siaga (Privasi Terjaga):** Saat pengguna dalam status aman (“Sudah mengonfirmasi aman”) atau sedang siaga (“Sedang memeriksa kondisi”), pengguna lain di peta komunitas HANYA dapat melihat **lingkaran area perkiraan radius 1 km** (bukan titik rumah atau pin presisi). Hal ini melindungi privasi pengguna dari pelacakan presisi yang tidak diinginkan sesuai prinsip minimisasi data.
+- **Kondisi Bahaya / Butuh Bantuan (Transformasi ke PIN Presisi):** Jika pengguna berada dalam kondisi darurat atau butuh bantuan (“Butuh bantuan” / sinyal SOS aktif), lingkaran radius 1 km seketika berkurang dan bertransformasi menjadi **PIN Titik Presisi (SOS Beacon)** berdenyut merah. Titik presisi ini membuka informasi koordinat, jumlah anggota keluarga rentan, dan kebutuhan mendesak agar tim SAR serta warga sekitar dapat segera melakukan evakuasi.
+- **Radar Warga Sekitar untuk Korban Bahaya:** Pengguna yang sedang memerlukan bantuan/bahaya dapat melihat keberadaan warga lain di sekitarnya dalam radius 1 km (walaupun warga lain tersebut hanya ditampilkan dengan **tanda lingkaran radius 1 km** demi privasi mereka). Dengan demikian, korban mengetahui estimasi jarak penolong terdekat (misal: 280 m, 520 m, 750 m), memiliki harapan pertolongan, dan dapat mengirimkan sinyal peluit darurat digital ke warga terdekat.
+- **Simulasi Perspektif Ganda (Dual Perspective):** Prototype menyediakan tombol switcher perspektif: (1) “Sudut Pandang Saya (Korban/Warga)” untuk melihat status diri dan radar sekitar; serta (2) “Sudut Pandang Warga Lain (Publik)” untuk menguji bagaimana warga lain melihat kita dalam format radius 1km vs PIN presisi.
+
+Setiap pin dan zona radius menggunakan status yang jelas: “Butuh bantuan”, “Sedang memeriksa kondisi”, “Sudah mengonfirmasi aman”, atau “Belum ada konfirmasi”. Status berasal dari laporan pengguna dan harus menampilkan waktu pembaruan.
 
 Berbagi lokasi bersifat opt-in. Sebelum pin dipublikasikan, jelaskan siapa yang dapat melihatnya, jenis informasi yang dibagikan, dan berapa lama pin akan aktif. Sediakan tombol berhenti berbagi dan hapus laporan.
 
-Default peta komunitas menggunakan area perkiraan atau pin yang digeneralisasi, bukan koordinat rumah yang presisi. Lokasi presisi hanya dibagikan melalui alur khusus yang disetujui pengguna kepada kontak tepercaya atau petugas/mitra resmi jika integrasi tersebut benar-benar tersedia.
-
 Pin kedaluwarsa otomatis setelah periode yang ditetapkan produk atau ketika pengguna menghentikan berbagi. Pengguna dapat memperbarui status secara manual; sistem tidak boleh menyimpulkan “terjebak” hanya dari diam/tidak aktif.
 
-Sediakan filter berdasarkan area dan status, legenda pin, alternatif daftar teks, serta penanda “laporan pengguna—belum diverifikasi” untuk menghindari kesan bahwa seluruh pin adalah data resmi.
+Sediakan filter berdasarkan area dan status, legenda pin/radius, alternatif daftar teks, serta penanda “laporan pengguna—belum diverifikasi” untuk menghindari kesan bahwa seluruh pin adalah data resmi.
 
 Jika lokasi perangkat tidak tersedia atau izin ditolak, pengguna dapat memasukkan area secara manual atau memilih lokasi perkiraan. Peta tidak boleh memblokir akses ke panduan darurat.
 

@@ -68,3 +68,122 @@ export const OFFICIAL_SOURCES = [
   { name: 'BPBD / SAR Posko Terpadu', update: '15 menit lalu', verified: true, contact: '112 / 115' },
   { name: 'PMI (Palang Merah Indonesia)', update: '28 menit lalu', verified: true, contact: '021-7992325' }
 ];
+
+export const COMMUNITY_SAFETY_PINS = [
+  {
+    id: 'user-me',
+    isCurrentUser: true,
+    alias: 'Anda (Dina)',
+    area: 'Kelurahan Sukajadi, RT 02 / RW 04',
+    x: 48,
+    y: 52,
+    status: 'checking', // 'safe', 'checking', 'help'
+    displayMode: 'radius_1km', // 'radius_1km' or 'pin_sos'
+    radiusKm: 1.0,
+    updated: 'Baru saja',
+    expiresIn: '5 jam 58 menit',
+    distanceMeters: 0,
+    estWalkTime: '0 menit',
+    notes: 'Posisi perangkat Anda saat ini. Privasi terlindungi dengan radius perkiraan 1 km kecuali mode darurat aktif.',
+    familySummary: '3 orang (termasuk lansia berkursi roda & balita)'
+  },
+  {
+    id: 'p-hendra',
+    alias: 'Pak Hendra (Ketua RT 02)',
+    area: 'Sukajadi Utara, RT 02',
+    x: 46,
+    y: 36,
+    status: 'safe',
+    displayMode: 'radius_1km',
+    radiusKm: 1.0,
+    updated: '4 menit lalu',
+    expiresIn: '56 menit',
+    distanceMeters: 280,
+    estWalkTime: '3-4 menit',
+    notes: 'Rumah di dataran aman. Tersedia genset darurat dan perahu karet warga. Siap bantu warga butuh evakuasi.',
+    canHelp: true,
+    contactHint: 'Kontak RT tersedia di posko balai warga'
+  },
+  {
+    id: 'p-ratmi',
+    alias: 'Keluarga Bu Ratmi',
+    area: 'Gang Kenanga, RT 03',
+    x: 62,
+    y: 44,
+    status: 'checking',
+    displayMode: 'radius_1km',
+    radiusKm: 1.0,
+    updated: '11 menit lalu',
+    expiresIn: '49 menit',
+    distanceMeters: 520,
+    estWalkTime: '6-7 menit',
+    notes: 'Sedang memindahkan perabotan ke lantai 2. Kondisi air di jalan depan 20 cm.',
+    canHelp: false
+  },
+  {
+    id: 'p-pmi',
+    alias: 'Posko Relawan Siaga PMI Sukajadi',
+    area: 'Balai Warga RW 04',
+    x: 36,
+    y: 65,
+    status: 'safe',
+    displayMode: 'radius_1km',
+    radiusKm: 1.0,
+    updated: '7 menit lalu',
+    expiresIn: '3 jam',
+    distanceMeters: 750,
+    estWalkTime: '8-10 menit',
+    notes: 'Posko resmi siaga evakuasi. Tersedia tenaga medis darurat, obat-obatan, dan tim evakuasi.',
+    isVolunteerPost: true,
+    canHelp: true,
+    contactHint: 'Hotline Posko: 0812-9988-PMI'
+  },
+  {
+    id: 'p-siti',
+    alias: 'Ibu Siti & Balita (Butuh Bantuan)',
+    area: 'Sukajadi Selatan, Gang Melati RT 04',
+    x: 58,
+    y: 69,
+    status: 'help',
+    displayMode: 'pin_sos', // SOS: PIN Presisi!
+    radiusKm: 1.0,
+    updated: '2 menit lalu',
+    expiresIn: '28 menit',
+    distanceMeters: 890,
+    estWalkTime: '11-13 menit',
+    notes: 'Air genangan di rumah mencapai 60 cm dan terus naik. Butuh perahu karet segera untuk evakuasi balita dan lansia!',
+    urgent: true
+  },
+  {
+    id: 'p-cempaka',
+    alias: 'Warga Anonim • Cempaka',
+    area: 'Cempaka Barat, Bandung',
+    x: 78,
+    y: 28,
+    status: 'safe',
+    displayMode: 'radius_1km',
+    radiusKm: 1.0,
+    updated: '18 menit lalu',
+    expiresIn: '42 menit',
+    distanceMeters: 1450,
+    estWalkTime: '18-20 menit',
+    notes: 'Wilayah Cempaka cerah dan kering, jalan utama tidak tergenang.',
+    canHelp: false
+  },
+  {
+    id: 'p-sukawarna',
+    alias: 'Warga Anonim • Bandung Utara',
+    area: 'Bandung Utara',
+    x: 24,
+    y: 22,
+    status: 'unknown',
+    displayMode: 'radius_1km',
+    radiusKm: 1.0,
+    updated: '32 menit lalu',
+    expiresIn: '28 menit',
+    distanceMeters: 1950,
+    estWalkTime: '25 menit',
+    notes: 'Laporan awal tanpa keterangan detail status.',
+    canHelp: false
+  }
+];
