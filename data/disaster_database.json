@@ -158,12 +158,75 @@
     }
   ],
   "user_location": {
-    "lat": -6.038706250000001,
-    "lng": 106.06418649999999,
-    "accuracy": 381,
+    "lat": -5.98597965587219,
+    "lng": 106.03442476373088,
+    "accuracy": 120,
     "precision_consent": false,
     "status": "checking",
     "display_mode": "radius_1km",
-    "updated_at": "2026-10-22T04:56:58.553Z"
-  }
+    "updated_at": "2026-10-22T07:57:53.630Z"
+  },
+  "road_hazards": [
+    {
+      "id": "hazard-cilegon-drangong",
+      "road_name": "Jl. Raya Cilegon Simpang Drangong",
+      "lat": -6.075,
+      "lng": 106.105,
+      "radius_meters": 250,
+      "hazard_type": "banjir",
+      "severity": "closed",
+      "water_depth": "65 cm",
+      "status": "verified",
+      "reported_by": "BPBD Posko Wilayah Serang-Banten",
+      "reported_at": "15 menit lalu",
+      "description": "Luapan tanggul sungai merendam jalan arteri hingga 65 cm dengan arus deras. Jalan ditutup total oleh petugas BPBD.",
+      "active": true
+    },
+    {
+      "id": "hazard-tol-merak-km74",
+      "road_name": "Tol Merak - Jakarta KM 74 (Serang Barat)",
+      "lat": -6.052,
+      "lng": 106.106,
+      "radius_meters": 250,
+      "hazard_type": "longsor",
+      "severity": "closed",
+      "water_depth": null,
+      "status": "verified",
+      "reported_by": "PJR Tol & BPBD Wilayah",
+      "reported_at": "25 menit lalu",
+      "description": "Material longsoran tebing menutup badan jalan tol. Akses dialihkan sementara.",
+      "active": false,
+      "updated_at": "2026-10-22T05:19:02.038Z"
+    },
+    {
+      "id": "hazard-sukamaju-genangan",
+      "road_name": "Jl. Sukamaju - Cilegon",
+      "lat": -5.989,
+      "lng": 106.037,
+      "radius_meters": 100,
+      "hazard_type": "banjir",
+      "severity": "passable_caution",
+      "water_depth": "35 cm",
+      "status": "verified",
+      "reported_by": "Relawan PMI Lapangan",
+      "reported_at": "8 menit lalu",
+      "description": "Genangan air 35 cm di bahu jalan. Kendaraan roda 2 disarankan sangat berhati-hati, arus sedang.",
+      "active": true
+    },
+    {
+      "id": "hazard-unverified-warga",
+      "road_name": "Jl. Kh. Wasyid Cilegon",
+      "lat": -5.982,
+      "lng": 106.04,
+      "radius_meters": 120,
+      "hazard_type": "pohon_tumbang",
+      "severity": "unverified_warning",
+      "water_depth": null,
+      "status": "unverified",
+      "reported_by": "Laporan Warga Anonim via Form",
+      "reported_at": "5 menit lalu",
+      "description": "Warga melaporkan pohon miring dan ranting patah menghalangi separuh bahu jalan. Belum diverifikasi petugas.",
+      "active": true
+    }
+  ]
 }

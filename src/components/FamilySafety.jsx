@@ -17,7 +17,11 @@ import {
   QrCode,
   ScanLine,
   Camera,
-  RefreshCw
+  RefreshCw,
+  UserCheck, 
+  HelpCircle,
+  Plus,
+  Navigation
 } from 'lucide-react';
 import { EMERGENCY_CONTACTS } from '../data/mockData';
 
@@ -38,7 +42,8 @@ export default function FamilySafety({
   onCreateFamilyInvite,
   onJoinFamilyInvite,
   onBack,
-  onNavigateScreen 
+  onNavigateScreen,
+  onNavigateRoute
 }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [addMode, setAddMode] = useState('invite');
@@ -366,7 +371,32 @@ export default function FamilySafety({
                   </div>
                 </div>
 
-                <div className="flex max-w-[13rem] flex-wrap justify-end gap-1.5">
+                <div className="flex max-w-[16rem] flex-wrap items-center justify-end gap-1.5">
+                  {member.id !== 'f1' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = {
+                          id: member.id,
+                          name: `${member.name} (${member.relationship})`,
+                          category: 'keluarga',
+                          itemType: 'warga',
+                          relationship: member.relationship,
+                          supportNeeds: member.supportNeeds
+                        };
+                        if (onNavigateRoute) {
+                          onNavigateRoute(target);
+                        } else {
+                          onNavigateScreen('route');
+                        }
+                      }}
+                      className="min-h-9 rounded-lg border border-blue-200 bg-blue-50 px-2 text-[11px] font-bold text-blue-700 hover:bg-blue-100 flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+                      title="Arahkan rute evakuasi ke anggota keluarga ini"
+                    >
+                      <Navigation className="w-3.5 h-3.5" />
+                      <span>Rute</span>
+                    </button>
+                  )}
                   <button type="button" onClick={() => handleCheckIn(member.id, 'safe')} className="min-h-9 rounded-lg border border-emerald-200 bg-white px-2 text-[11px] font-bold text-emerald-800 hover:bg-emerald-50">
                     Aman
                   </button>

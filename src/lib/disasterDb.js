@@ -145,7 +145,69 @@ const INITIAL_DATABASE = {
     status: 'checking',
     display_mode: 'radius_1km',
     updated_at: new Date().toISOString()
-  }
+  },
+  road_hazards: [
+    {
+      id: 'hazard-cilegon-drangong',
+      road_name: 'Jl. Raya Cilegon Simpang Drangong',
+      lat: -6.0750,
+      lng: 106.1050,
+      radius_meters: 250,
+      hazard_type: 'banjir',
+      severity: 'closed', // 'closed' = ditutup total
+      water_depth: '65 cm',
+      status: 'verified', // 'verified' = terverifikasi petugas
+      reported_by: 'BPBD Posko Wilayah Serang-Banten',
+      reported_at: '15 menit lalu',
+      description: 'Luapan tanggul sungai merendam jalan arteri hingga 65 cm dengan arus deras. Jalan ditutup total oleh petugas BPBD.',
+      active: true
+    },
+    {
+      id: 'hazard-tol-merak-km74',
+      road_name: 'Tol Merak - Jakarta KM 74 (Serang Barat)',
+      lat: -6.0520,
+      lng: 106.1060,
+      radius_meters: 250,
+      hazard_type: 'longsor',
+      severity: 'closed',
+      water_depth: null,
+      status: 'verified',
+      reported_by: 'PJR Tol & BPBD Wilayah',
+      reported_at: '25 menit lalu',
+      description: 'Material longsoran tebing menutup badan jalan tol. Akses dialihkan sementara.',
+      active: false // Dinonaktifkan default; dapat diaktifkan untuk uji Skenario 4: Semua Rute Terhalang
+    },
+    {
+      id: 'hazard-sukamaju-genangan',
+      road_name: 'Jl. Sukamaju - Cilegon',
+      lat: -5.9890,
+      lng: 106.0370,
+      radius_meters: 100,
+      hazard_type: 'banjir',
+      severity: 'passable_caution', // 'passable_caution' = terdampak, dapat dilewati dengan waspada & penalti
+      water_depth: '35 cm',
+      status: 'verified',
+      reported_by: 'Relawan PMI Lapangan',
+      reported_at: '8 menit lalu',
+      description: 'Genangan air 35 cm di bahu jalan. Kendaraan roda 2 disarankan sangat berhati-hati, arus sedang.',
+      active: true
+    },
+    {
+      id: 'hazard-unverified-warga',
+      road_name: 'Jl. Kh. Wasyid Cilegon',
+      lat: -5.9820,
+      lng: 106.0400,
+      radius_meters: 120,
+      hazard_type: 'pohon_tumbang',
+      severity: 'unverified_warning',
+      water_depth: null,
+      status: 'unverified', // 'unverified' = laporan warga belum diverifikasi, tidak menutup jalan tapi beri peringatan
+      reported_by: 'Laporan Warga Anonim via Form',
+      reported_at: '5 menit lalu',
+      description: 'Warga melaporkan pohon miring dan ranting patah menghalangi separuh bahu jalan. Belum diverifikasi petugas.',
+      active: true
+    }
+  ]
 };
 
 // Calculate Haversine distance in meters
@@ -181,11 +243,38 @@ export function readDb() {
   ensureDb();
   try {
     const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(raw);
+    const data = JSON.parse(raw);
+    if (!data.road_hazards) {
+      data.road_hazards = INITIAL_DATABASE.road_hazards;
+      writeDb(data);
+    }
+    return data;
   } catch (err) {
     console.error('Error reading disaster database, resetting to seed:', err);
     return INITIAL_DATABASE;
   }
+}
+
+// Get all road disaster hazards & closures
+export function getRoadHazards() {
+  const db = readDb();
+  return db.road_hazards || INITIAL_DATABASE.road_hazards;
+}
+
+// Toggle or update active status of a road hazard
+export function toggleRoadHazard(id, activeState = null) {
+  const db = readDb();
+  if (!db.road_hazards) {
+    db.road_hazards = [...INITIAL_DATABASE.road_hazards];
+  }
+  const hazard = db.road_hazards.find(h => h.id === id);
+  if (hazard) {
+    hazard.active = activeState !== null ? Boolean(activeState) : !hazard.active;
+    hazard.updated_at = new Date().toISOString();
+    writeDb(db);
+    return hazard;
+  }
+  return null;
 }
 
 // Write database atomically

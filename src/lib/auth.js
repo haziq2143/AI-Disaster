@@ -55,10 +55,9 @@ export function sessionCookie(token, maxAge = getSessionDurationSeconds()) {
     `${authCookieName}=${encodeURIComponent(token)}`,
     'Path=/',
     'HttpOnly',
-    'SameSite=Strict',
+    'SameSite=Lax',
     `Max-Age=${maxAge}`
   ];
-  if (process.env.NODE_ENV === 'production') attributes.push('Secure');
   return attributes.join('; ');
 }
 
@@ -70,7 +69,21 @@ export function hasSameOrigin(request) {
   const origin = request.headers.get('origin');
   if (!origin) return true;
   try {
-    return new URL(origin).origin === new URL(request.url).origin;
+    const reqUrl = new URL(request.url);
+    const originUrl = new URL(origin);
+    if (reqUrl.origin === originUrl.origin) return true;
+
+    // Izinkan localhost dan 127.0.0.1 saling bertukar selama port-nya sama (lingkungan dev lokal)
+    const isLocalReq = reqUrl.hostname === 'localhost' || reqUrl.hostname === '127.0.0.1';
+    const isLocalOrigin = originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1';
+    const reqPort = reqUrl.port || (reqUrl.protocol === 'https:' ? '443' : '80');
+    const originPort = originUrl.port || (originUrl.protocol === 'https:' ? '443' : '80');
+
+    if (isLocalReq && isLocalOrigin && reqPort === originPort) {
+      return true;
+    }
+
+    return false;
   } catch {
     return false;
   }

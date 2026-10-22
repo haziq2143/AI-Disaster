@@ -84,6 +84,36 @@ export const api = {
   },
 
   // --- Real Database Geolocation & Leaflet + OpenStreetMap API Endpoints ---
+  // Get real road network polyline & navigation route via OSRM / OpenStreetMap
+  getRoute: async (startLat, startLng, endLat, endLng, mode = 'driving') => {
+    const res = await fetchWithFallback(
+      `/api/map/routing?startLat=${startLat}&startLng=${startLng}&endLat=${endLat}&endLng=${endLng}&mode=${mode}`
+    );
+    return res?.data || null;
+  },
+
+  // Smart Routing & Alternative Evacuation Routes API
+  getSmartRoutes: async (startLat, startLng, endLat, endLng, mode = 'driving') => {
+    const res = await fetchWithFallback(
+      `/api/map/routing?startLat=${startLat}&startLng=${startLng}&endLat=${endLat}&endLng=${endLng}&mode=${mode}`
+    );
+    return res?.data || null;
+  },
+
+  // Road disaster hazards & verified road closures API
+  getRoadHazards: async () => {
+    const res = await fetchWithFallback('/api/map/road-hazards');
+    return res?.data || [];
+  },
+
+  toggleRoadHazard: async (id, active) => {
+    return await fetchWithFallback('/api/map/road-hazards', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, active })
+    });
+  },
+
   // Get all markers (Posko, Warga, Laporan Darurat) with distance to user's real GPS
   getMapMarkers: async (lat = null, lng = null) => {
     const query = lat !== null && lng !== null ? `?lat=${lat}&lng=${lng}` : '';

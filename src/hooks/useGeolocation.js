@@ -13,6 +13,7 @@ export function useGeolocation(options) {
   const watchIdRef = useRef(null);
   const optionsRef = useRef(options);
   optionsRef.current = options;
+  const hasTriedFallbackRef = useRef(false);
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('id-ID', {
@@ -33,7 +34,7 @@ export function useGeolocation(options) {
         prev.lng === longitude &&
         prev.accuracy === accRound
       ) {
-        return prev; // Same values, retain reference to prevent re-render loop
+        return prev;
       }
       return {
         lat: latitude,
@@ -45,49 +46,22 @@ export function useGeolocation(options) {
       };
     });
 
-    setPermissionStatus(prev => (prev === 'granted' ? prev : 'granted'));
-    setErrorMessage(prev => (prev === null ? prev : null));
+    setPermissionStatus('granted');
+    setErrorMessage(null);
     setAccuracyText(`± ${accRound} m`);
 
     if (accRound <= 25) {
-      setAccuracyLevel(prev => (prev === 'high' ? prev : 'high'));
-    } else if (accRound <= 80) {
-      setAccuracyLevel(prev => (prev === 'medium' ? prev : 'medium'));
+      setAccuracyLevel('high');
+    } else if (accRound <= 120) {
+      setAccuracyLevel('medium');
     } else {
-      setAccuracyLevel(prev => (prev === 'low' ? prev : 'low'));
+      setAccuracyLevel('low');
     }
 
     setLastUpdated(formatTime(new Date(position.timestamp)));
   }, []);
 
-  const handleError = useCallback((error) => {
-    console.warn('Geolocation error:', error.code, error.message);
-    let msg = 'Gagal mendeteksi lokasi GPS.';
-
-    switch (error.code) {
-      case error.PERMISSION_DENIED:
-        setPermissionStatus('denied');
-        msg = 'Izin lokasi GPS ditolak oleh browser/perangkat. Aktifkan izin lokasi pada browser untuk melihat posisi Anda.';
-        break;
-      case error.POSITION_UNAVAILABLE:
-        setPermissionStatus('unavailable');
-        msg = 'Sinyal lokasi atau sensor GPS perangkat tidak tersedia saat ini.';
-        break;
-      case error.TIMEOUT:
-        setPermissionStatus('timeout');
-        msg = 'Waktu permintaan lokasi GPS habis (timeout). Silakan coba lagi.';
-        break;
-      default:
-        setPermissionStatus('unavailable');
-        msg = error.message || 'Terjadi kesalahan saat membaca koordinat GPS perangkat.';
-        break;
-    }
-
-    setErrorMessage(msg);
-  }, []);
-
-  // Stable callback: never changes reference, uses optionsRef.current
-  const requestLocation = useCallback(() => {
+  const requestWithFallback = useCallback((useHighAccuracy = true) => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
       setPermissionStatus('unavailable');
       setErrorMessage('Browser tidak mendukung Geolocation API.');
@@ -95,25 +69,101 @@ export function useGeolocation(options) {
     }
 
     const geoOptions = {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 10000,
+      enableHighAccuracy: useHighAccuracy,
+      timeout: useHighAccuracy ? 8000 : 12000,
+      maximumAge: useHighAccuracy ? 5000 : 60000,
       ...(optionsRef.current || {})
     };
 
-    // Clean up previous watch if any
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
 
-    // Start watchPosition for continuous tracking
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      handleSuccess,
-      handleError,
+    // Call getCurrentPosition first to trigger the permission prompt immediately in desktop browsers
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        handleSuccess(pos);
+        // Start watchPosition for continuous tracking
+        if (watchIdRef.current === null) {
+          watchIdRef.current = navigator.geolocation.watchPosition(
+            handleSuccess,
+            () => {},
+            geoOptions
+          );
+        }
+      },
+      (error) => {
+        console.warn('Geolocation initial attempt error:', error.code, error.message, 'highAccuracy:', useHighAccuracy);
+
+        // If high accuracy failed on PC/laptop due to lack of satellite chip, fallback to Wi-Fi/IP location
+        if (useHighAccuracy && !hasTriedFallbackRef.current && (error.code === error.POSITION_UNAVAILABLE || error.code === error.TIMEOUT)) {
+          console.info('Switching to network/low-accuracy geolocation fallback for desktop compatibility...');
+          hasTriedFallbackRef.current = true;
+          requestWithFallback(false);
+          return;
+        }
+
+        let msg = 'Gagal mendeteksi lokasi GPS.';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setPermissionStatus('denied');
+            msg = 'Izin lokasi GPS ditolak oleh browser/perangkat. Klik tombol "Use your location?" atau ikon di sebelah kiri URL browser, ubah menjadi "Allow/Izinkan", dan pastikan Location Services di Windows Settings aktif.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setPermissionStatus('unavailable');
+            msg = 'Sensor lokasi perangkat tidak merespons. Pastikan "Location Services" aktif di Windows Settings (Privacy & Security -> Location).';
+            break;
+          case error.TIMEOUT:
+            setPermissionStatus('timeout');
+            msg = 'Permintaan lokasi GPS timeout. Coba klik "Perbarui GPS" atau izinkan akses lokasi.';
+            break;
+          default:
+            setPermissionStatus('unavailable');
+            msg = error.message || 'Terjadi kesalahan saat membaca koordinat GPS perangkat.';
+            break;
+        }
+        setErrorMessage(msg);
+      },
       geoOptions
     );
-  }, [handleSuccess, handleError]);
+  }, [handleSuccess]);
+
+  const requestLocation = useCallback(() => {
+    hasTriedFallbackRef.current = false;
+    setPermissionStatus('requesting');
+    requestWithFallback(true);
+  }, [requestWithFallback]);
+
+  // Listen to browser permission state changes if supported
+  useEffect(() => {
+    if (typeof window === 'undefined' || !navigator.permissions || !navigator.permissions.query) return;
+
+    let permissionObj = null;
+    const updateStatus = () => {
+      if (permissionObj) {
+        if (permissionObj.state === 'granted') {
+          setPermissionStatus('granted');
+          requestLocation();
+        } else if (permissionObj.state === 'denied') {
+          setPermissionStatus('denied');
+        }
+      }
+    };
+
+    navigator.permissions.query({ name: 'geolocation' })
+      .then(p => {
+        permissionObj = p;
+        permissionObj.addEventListener('change', updateStatus);
+      })
+      .catch(() => {});
+
+    return () => {
+      if (permissionObj) {
+        permissionObj.removeEventListener('change', updateStatus);
+      }
+    };
+  }, [requestLocation]);
 
   // Run exactly once on mount, cleanup on unmount
   useEffect(() => {

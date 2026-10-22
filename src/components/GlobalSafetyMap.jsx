@@ -436,19 +436,19 @@ export default function GlobalSafetyMap({
           {gpsErrorMessage && (
             <span className="text-[11px] text-rose-700 font-semibold" role="status">
               {permissionStatus === 'denied'
-                ? 'Aktifkan izin lokasi dari pengaturan situs/browser, lalu coba lagi.'
+                ? 'Izin lokasi belum diaktifkan. Klik tombol "Use your location?" atau ikon gembok di sebelah kiri URL browser, ubah ke "Allow", lalu klik "Perbarui GPS".'
                 : permissionStatus === 'timeout'
-                  ? 'GPS belum merespons. Coba lagi di area terbuka.'
+                  ? 'GPS timeout. Pastikan Location Services aktif di Windows Settings.'
                   : gpsErrorMessage}
             </span>
           )}
           <button
             type="button"
             onClick={retryGps}
-            className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs flex items-center gap-1 border border-blue-200 cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95"
           >
-            <RefreshCw className="w-3 h-3" />
-            <span>Perbarui GPS</span>
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Hubungkan GPS</span>
           </button>
         </div>
       </section>
@@ -710,7 +710,33 @@ export default function GlobalSafetyMap({
               onNavigateRoute={onNavigateRoute}
               onTileError={setMapTileError}
               mapControlRef={mapControlRef}
+              perspective={perspective}
             />
+          </div>
+
+          {/* Perspective Active Indicator Banner on top of Map */}
+          <div className="absolute top-14 left-3 right-3 z-10 pointer-events-none">
+            {perspective === 'public' ? (
+              <div className="p-2.5 rounded-2xl bg-indigo-950/90 text-indigo-100 border border-indigo-400/60 shadow-xl backdrop-blur-md flex items-center justify-between gap-2 text-xs font-bold animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-indigo-300 shrink-0" />
+                  <span>Mode Publik Aktif: Lokasi rumah Anda disamarkan dalam radius privasi 1 km (PRD 4.5).</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-md bg-indigo-700 text-white text-[9px] font-extrabold uppercase shrink-0">
+                  Tampilan Warga Lain
+                </span>
+              </div>
+            ) : (
+              <div className="p-2.5 rounded-2xl bg-blue-950/90 text-blue-100 border border-blue-400/60 shadow-xl backdrop-blur-md flex items-center justify-between gap-2 text-xs font-bold animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <Radio className="w-4 h-4 text-blue-300 animate-pulse shrink-0" />
+                  <span>Mode Pribadi: Menampilkan lokasi presisi GPS Anda & radar fasilitas evakuasi terdekat.</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-md bg-blue-700 text-white text-[9px] font-extrabold uppercase shrink-0">
+                  Tampilan Saya
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Bottom Card: Selected Pin Details */}

@@ -80,13 +80,47 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
           <label className="block text-sm font-semibold text-slate-700">
             Kata sandi
             <input required type="password" minLength={mode === 'register' ? 10 : undefined} maxLength={128} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} value={password} onChange={event => setPassword(event.target.value)} className="form-control mt-1.5" placeholder={mode === 'register' ? 'Minimal 10 karakter' : 'Kata sandi akun'} />
+            {mode === 'register' && (
+              <span className={`text-[11px] block mt-1 font-bold ${password.length >= 10 ? 'text-emerald-700' : 'text-slate-500'}`}>
+                {password.length >= 10 ? '✓ Panjang kata sandi memenuhi syarat' : 'Wajib minimal 10 karakter'}
+              </span>
+            )}
           </label>
-          {error && <p role="alert" className="flex items-start gap-2 rounded-xl bg-rose-50 p-3 text-sm text-rose-800"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</p>}
-          <button type="submit" disabled={busy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0D47A1] px-4 py-3 font-bold text-white hover:bg-[#1565C0] disabled:opacity-60">
+          {error && (
+            <div role="alert" className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-900 space-y-1">
+              <div className="flex items-start gap-2 font-bold">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+                <span>{error}</span>
+              </div>
+              {mode === 'login' && error.includes('tidak cocok') && (
+                <p className="text-[11px] text-slate-600 pl-6">
+                  Belum punya akun? Klik tab <strong>"Buat akun"</strong> di atas atau gunakan tombol <strong>"Lanjut sebagai tamu"</strong> di bawah.
+                </p>
+              )}
+            </div>
+          )}
+          <button type="submit" disabled={busy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0D47A1] px-4 py-3 font-bold text-white hover:bg-[#1565C0] disabled:opacity-60 cursor-pointer">
             {busy ? 'Memproses…' : mode === 'register' ? 'Buat akun' : 'Masuk'}
             {!busy && <ArrowRight className="h-4 w-4" />}
           </button>
         </form>
+
+        {mode === 'login' && (
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="text-slate-500">Uji coba cepat:</span>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('demo@disaster.id');
+                setPassword('rahasia12345');
+                setError('');
+              }}
+              className="text-blue-700 font-bold hover:underline cursor-pointer"
+            >
+              Isi data akun demo siap pakai
+            </button>
+          </div>
+        )}
 
         <p className="mt-5 text-xs leading-relaxed text-slate-500">
           Nama akun digunakan pada profil dan laporan. Akun baru otomatis menjadi pengguna biasa. Role Tim SAR hanya dapat diubah oleh admin.
