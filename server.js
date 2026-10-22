@@ -2,17 +2,42 @@ import express from 'express';
 import cors from 'cors';
 import { 
   getAllMarkers, 
-  saveUserLocation, 
   addEmergencyReport, 
+  addPosko,
   getReportById, 
   updateReportStatus 
 } from './src/lib/disasterDb.js';
+import { getUserForSession } from './src/lib/authStore.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+function sessionUser(req) {
+  const cookie = (req.headers.cookie || '').split(';').map(part => part.trim())
+    .find(part => part.startsWith('disaster_session='));
+  if (!cookie) return null;
+  try {
+    return getUserForSession(decodeURIComponent(cookie.slice('disaster_session='.length)));
+  } catch (error) {
+    console.error('Gagal memeriksa sesi pada Express API:', error);
+    return null;
+  }
+}
+
+function requireRole(role) {
+  return (req, res, next) => {
+    const user = sessionUser(req);
+    if (!user) return res.status(401).json({ success: false, error: 'Silakan masuk untuk melanjutkan.' });
+    if (role === 'sar' && user.role !== 'sar') {
+      return res.status(403).json({ success: false, error: 'Fitur ini khusus akun Tim SAR.' });
+    }
+    req.authUser = user;
+    next();
+  };
+}
 
 // In-Memory Database for Prototype Demo
 let situationReports = [];
@@ -404,6 +429,8 @@ app.get('/api/map/markers', (req, res) => {
   const lng = req.query.lng ? parseFloat(req.query.lng) : null;
   const userCoords = lat && lng ? { lat, lng } : null;
   const markers = getAllMarkers(userCoords);
+  markers.laporan_darurat = [];
+  markers.user_location = null;
   res.json({
     success: true,
     source: 'database',
@@ -414,27 +441,10 @@ app.get('/api/map/markers', (req, res) => {
 });
 
 app.post('/api/map/user-location', (req, res) => {
-  const { lat, lng, accuracy, precision_consent, status } = req.body;
-  if (typeof lat !== 'number' || typeof lng !== 'number') {
-    return res.status(400).json({ success: false, error: 'Koordinat GPS aktual (lat, lng) diperlukan.' });
-  }
-  const saved = saveUserLocation({
-    lat,
-    lng,
-    accuracy: accuracy || 10,
-    precision_consent: Boolean(precision_consent),
-    status: status || 'checking'
-  });
-  res.json({
-    success: true,
-    message: precision_consent
-      ? 'Koordinat GPS aktual presisi diaktifkan untuk mode darurat.'
-      : 'Koordinat GPS disimpan. Tampilan publik dilindungi radius perkiraan 1 km.',
-    data: saved
-  });
+  res.status(410).json({ success: false, error: 'Lokasi live tidak disimpan sebagai lokasi global. Gunakan laporan SOS dengan persetujuan eksplisit.' });
 });
 
-app.get('/api/map/emergency-reports', (req, res) => {
+app.get('/api/map/emergency-reports', requireRole('sar'), (req, res) => {
   const markers = getAllMarkers();
   res.json({
     success: true,
@@ -444,14 +454,16 @@ app.get('/api/map/emergency-reports', (req, res) => {
 });
 
 app.post('/api/map/emergency-reports', (req, res) => {
-  const { lat, lng, needs_description, reporter_name, hazard_type, vulnerable_members, urgency_level, precision_consent } = req.body;
-  if (typeof lat !== 'number' || typeof lng !== 'number') {
-    return res.status(400).json({ success: false, error: 'Koordinat GPS aktual laporan diperlukan.' });
+  const user = sessionUser(req);
+  const { lat, lng, needs_description, hazard_type, vulnerable_members, urgency_level, precision_consent } = req.body;
+  if (typeof lat !== 'number' || typeof lng !== 'number' || precision_consent !== true) {
+    return res.status(400).json({ success: false, error: 'Koordinat GPS dan persetujuan berbagi lokasi presisi diperlukan untuk laporan SOS.' });
   }
   const report = addEmergencyReport({
     lat,
     lng,
-    reporter_name,
+    reporter_name: user?.name || 'Pengguna anonim',
+    reporter_user_id: user?.id,
     hazard_type,
     urgency_level: urgency_level || 'KRITIS',
     needs_description,
@@ -465,7 +477,7 @@ app.post('/api/map/emergency-reports', (req, res) => {
   });
 });
 
-app.get('/api/map/emergency-reports/:id', (req, res) => {
+app.get('/api/map/emergency-reports/:id', requireRole('sar'), (req, res) => {
   const report = getReportById(req.params.id);
   if (!report) {
     return res.status(404).json({ success: false, error: 'Laporan darurat tidak ditemukan.' });
@@ -473,12 +485,26 @@ app.get('/api/map/emergency-reports/:id', (req, res) => {
   res.json({ success: true, data: report });
 });
 
-app.patch('/api/map/emergency-reports/:id', (req, res) => {
+app.patch('/api/map/emergency-reports/:id', requireRole('sar'), (req, res) => {
   const updated = updateReportStatus(req.params.id, req.body.status);
   if (!updated) {
     return res.status(404).json({ success: false, error: 'Laporan darurat tidak ditemukan.' });
   }
   res.json({ success: true, message: 'Status laporan darurat diperbarui.', data: updated });
+});
+
+app.post('/api/map/markers', requireRole('sar'), (req, res) => {
+  const { name, address, lat, lng, contact } = req.body;
+  if (
+    typeof name !== 'string' || name.trim().length < 2 || name.length > 120 ||
+    typeof address !== 'string' || address.trim().length < 2 || address.length > 200 ||
+    typeof lat !== 'number' || !Number.isFinite(lat) || lat < -90 || lat > 90 ||
+    typeof lng !== 'number' || !Number.isFinite(lng) || lng < -180 || lng > 180
+  ) {
+    return res.status(400).json({ success: false, error: 'Data posko tidak valid.' });
+  }
+  const data = addPosko({ name: name.trim(), address: address.trim(), lat, lng, contact, created_by: req.authUser.name });
+  return res.status(201).json({ success: true, data });
 });
 
 app.listen(PORT, () => {

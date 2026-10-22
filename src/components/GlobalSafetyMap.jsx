@@ -16,7 +16,6 @@ import {
   ArrowRight,
   X,
   Filter,
-  List,
   Navigation,
   Volume2,
   Bell,
@@ -94,13 +93,17 @@ export default function GlobalSafetyMap({
     laporan_darurat: []
   });
   const [isLoadingDb, setIsLoadingDb] = useState(true);
+  const [mapDataError, setMapDataError] = useState(null);
+  const [mapDataUpdatedAt, setMapDataUpdatedAt] = useState(null);
+  const [mapTileError, setMapTileError] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
 
   // 5. Leaflet Map Control Ref
   const mapControlRef = useRef(null);
 
   // 6. Audio/Visual Distress Broadcast Toast
   const [broadcastFeedback, setBroadcastFeedback] = useState(null);
-  const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [distressStatus, setDistressStatus] = useState('idle');
 
   // 7. Anti-Abuse Report Modal
   const [reportTarget, setReportTarget] = useState(null);
@@ -109,24 +112,42 @@ export default function GlobalSafetyMap({
 
   const isUserInDanger = userStatus === 'help' && precisionConsent;
 
+  useEffect(() => {
+    const updateOnlineStatus = () => setIsOnline(navigator.onLine);
+    updateOnlineStatus();
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, []);
+
   // Load database markers (with threshold check to prevent excessive fetches)
   const lastFetchedRef = useRef(null);
   const loadDatabaseMarkers = useCallback(async (lat, lng) => {
+    setIsLoadingDb(true);
+    setMapDataError(null);
     try {
-      const data = await api.getMapMarkers(lat, lng);
-      if (data) {
-        setDbMarkers({
-          posko: data.posko || [],
-          warga: data.warga || [],
-          laporan_darurat: data.laporan_darurat || []
-        });
-      }
+      const response = await api.getMapMarkers(lat, lng);
+      setDbMarkers({
+        posko: response.data.posko || [],
+        warga: response.data.warga || [],
+        laporan_darurat: response.data.laporan_darurat || []
+      });
+      setMapDataUpdatedAt(response.timestamp);
     } catch (err) {
       console.warn('Gagal memuat marker dari database:', err);
+      setMapDataError(err instanceof Error ? err.message : 'Data peta gagal dimuat.');
     } finally {
       setIsLoadingDb(false);
     }
   }, []);
+
+  const handleRefreshMapData = () => {
+    lastFetchedRef.current = { lat: userLat, lng: userLng };
+    loadDatabaseMarkers(userLat, userLng);
+  };
 
   useEffect(() => {
     const prev = lastFetchedRef.current;
@@ -139,35 +160,6 @@ export default function GlobalSafetyMap({
       loadDatabaseMarkers(userLat, userLng);
     }
   }, [userLat, userLng, loadDatabaseMarkers]);
-
-  // Sync user location to backend (only when coordinates or status actually change)
-  const lastSyncedRef = useRef(null);
-  useEffect(() => {
-    if (isRealGpsActive && gpsCoords) {
-      const prev = lastSyncedRef.current;
-      if (
-        !prev ||
-        prev.lat !== gpsCoords.lat ||
-        prev.lng !== gpsCoords.lng ||
-        prev.precision_consent !== precisionConsent ||
-        prev.status !== userStatus
-      ) {
-        lastSyncedRef.current = {
-          lat: gpsCoords.lat,
-          lng: gpsCoords.lng,
-          precision_consent: precisionConsent,
-          status: userStatus
-        };
-        api.syncUserLocation({
-          lat: gpsCoords.lat,
-          lng: gpsCoords.lng,
-          accuracy: gpsCoords.accuracy,
-          precision_consent: precisionConsent,
-          status: userStatus
-        });
-      }
-    }
-  }, [isRealGpsActive, gpsCoords, precisionConsent, userStatus]);
 
   // "Gunakan Lokasi Saya" Button Handler
   const handleUseMyLocation = () => {
@@ -188,6 +180,7 @@ export default function GlobalSafetyMap({
       setUserStatus('checking');
       setPrecisionConsent(false);
       setConsentCheckbox(false);
+      setDistressStatus('idle');
       if (setSafetyShareDetails) {
         setSafetyShareDetails(prev => ({
           ...prev,
@@ -198,6 +191,10 @@ export default function GlobalSafetyMap({
       setBroadcastFeedback('🛡️ Mode Normal Aktif: Koordinat presisi ditutup. Lokasi Anda kini kembali dilindungi lingkaran radius 1 km.');
       setTimeout(() => setBroadcastFeedback(null), 6000);
     } else {
+      if (!isRealGpsActive) {
+        setBroadcastFeedback('GPS belum tersedia, jadi PIN SOS presisi tidak dapat dibuat. Jika dalam bahaya, hubungi 112 secara langsung.');
+        return;
+      }
       // Require explicit consent before revealing precision GPS
       setShowConsentModal(true);
     }
@@ -208,6 +205,7 @@ export default function GlobalSafetyMap({
     if (!consentCheckbox) return;
     setUserStatus('help');
     setPrecisionConsent(true);
+    setDistressStatus('idle');
     setShowConsentModal(false);
 
     if (setSafetyShareDetails) {
@@ -227,22 +225,38 @@ export default function GlobalSafetyMap({
       lat: userLat,
       lng: userLng,
       status: 'help',
-      notes: 'PIN Presisi dibuka untuk penyelamatan dan SAR.',
+      notes: 'PIN presisi hanya ditampilkan pada prototipe dan tidak dikirim ke petugas.',
       accuracy: accuracyText
     });
 
-    setBroadcastFeedback('🚨 Persetujuan Diterima: Lokasi presisi GPS aktual Anda kini dibuka sebagai PIN DARURAT (SOS) kepada tim penyelamat & posko terdekat.');
+    setBroadcastFeedback('PIN SOS ditampilkan pada peta prototipe. Ini tidak mengirim notifikasi atau meminta petugas datang; hubungi 112 jika membutuhkan bantuan segera.');
     setTimeout(() => setBroadcastFeedback(null), 7000);
   };
 
-  // Broadcast SOS distress audio/visual signal
-  const handleSendDistressSignal = () => {
-    setIsBroadcasting(true);
-    setBroadcastFeedback('📢 Sinyal Bantuan Terkirim! Notifikasi darurat dan alarm suara digital telah disiarkan ke posko dan warga terdekat.');
-    setTimeout(() => {
-      setIsBroadcasting(false);
-      setTimeout(() => setBroadcastFeedback(null), 5000);
-    }, 1500);
+  const handleSendDistressSignal = async () => {
+    if (!gpsCoords) {
+      setDistressStatus('location-required');
+      return;
+    }
+
+    setDistressStatus('sending');
+    try {
+      await api.submitEmergencyReport({
+        lat: gpsCoords.lat,
+        lng: gpsCoords.lng,
+        reporter_name: 'Pengguna aplikasi',
+        hazard_type: hazardData?.type || 'darurat',
+        urgency_level: 'KRITIS',
+        needs_description: 'Pengguna mengaktifkan SOS dan meminta bantuan.',
+        vulnerable_members: 'Belum diinformasikan',
+        precision_consent: true
+      });
+      setDistressStatus('saved');
+      await loadDatabaseMarkers(userLat, userLng);
+    } catch (err) {
+      console.error('Gagal mencatat status SOS:', err);
+      setDistressStatus('failed');
+    }
   };
 
   // Filtered list based on active filter
@@ -269,30 +283,36 @@ export default function GlobalSafetyMap({
 
   const activeSelected = selectedItem || {
     type: 'user',
-    name: isUserInDanger ? 'Lokasi Anda (PIN SOS Presisi)' : 'Lokasi Anda (Radius 1 km Privasi)',
+    name: !isRealGpsActive
+      ? 'Lokasi contoh (Sukajadi)'
+      : isUserInDanger
+        ? 'Lokasi Anda (PIN SOS Presisi)'
+        : 'Lokasi Anda (Radius 1 km Privasi)',
     lat: userLat,
     lng: userLng,
     status: userStatus,
     notes: isUserInDanger
       ? 'Lokasi presisi aktif untuk evakuasi darurat.'
-      : 'Privasi terlindungi dengan lingkaran radius perkiraan 1 km.',
+      : isRealGpsActive
+        ? 'Lokasi terlindungi dengan lingkaran radius perkiraan 1 km.'
+        : 'GPS belum tersedia. Peta menampilkan area contoh Sukajadi, bukan lokasi perangkat Anda.',
     accuracy: accuracyText
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-fadeIn pb-16">
+    <div className="max-w-6xl mx-auto space-y-6 animate-fadeIn pb-28 sm:pb-16">
       {/* 1. Header with GPS & Leaflet OpenStreetMap Live Indicator */}
       <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="eyebrow">Layar 11 · Peta Leaflet + OpenStreetMap & GPS Aktual</span>
+            <span className="eyebrow">Peta Leaflet + OpenStreetMap</span>
             <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider flex items-center gap-1.5 ${
               isRealGpsActive
                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                 : 'bg-amber-100 text-amber-900 border border-amber-300'
             }`}>
               <Compass className={`w-3 h-3 ${isRealGpsActive ? 'text-emerald-600 animate-spin' : 'text-amber-600'}`} />
-              <span>{isRealGpsActive ? 'GPS AKTIF PERANGKAT' : 'MENUNGGU IZIN GPS'}</span>
+              <span>{isRealGpsActive ? 'LOKASI GPS TERSEDIA' : 'LOKASI GPS BELUM TERSEDIA'}</span>
             </span>
           </div>
 
@@ -300,12 +320,19 @@ export default function GlobalSafetyMap({
             Peta Keselamatan Leaflet & OpenStreetMap
           </h1>
           <p className="text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
-            Didukung <strong>OpenStreetMap & Leaflet</strong> tanpa ketergantungan Google Maps API. Posisi Anda berasal dari <strong>GPS riil perangkat</strong> dengan proteksi <strong>radius perkiraan 1 km</strong> saat aman dan <strong>PIN Presisi darurat</strong> saat butuh bantuan.
+            Peta menggunakan OpenStreetMap. Data posko dan laporan pada prototipe ini bukan feed resmi real-time. SOS hanya mencatat laporan di prototipe dan tidak menghubungi petugas; untuk keadaan darurat, hubungi 112.
           </p>
         </div>
 
         {/* Header Action Buttons */}
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <a
+            href="tel:112"
+            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-extrabold text-rose-700 shadow-sm transition-colors hover:bg-rose-50"
+          >
+            <PhoneCall className="w-3.5 h-3.5" />
+            Telepon 112
+          </a>
           <button
             type="button"
             onClick={handleUseMyLocation}
@@ -358,27 +385,39 @@ export default function GlobalSafetyMap({
                   ? 'Izin Diberikan'
                   : permissionStatus === 'denied'
                     ? 'Izin Ditolak Browser'
-                    : 'Meminta Koordinat...'}
-              </span>
+                    : permissionStatus === 'unavailable'
+                      ? 'Lokasi Tidak Tersedia'
+                      : permissionStatus === 'timeout'
+                        ? 'GPS Timeout'
+                        : 'Meminta Koordinat...'}
+                </span>
             </span>
           </div>
 
           <span className="text-slate-300 hidden sm:inline">|</span>
 
-          <span className="text-slate-600">
-            Akurasi:{' '}
-            <strong className={`font-semibold ${accuracyLevel === 'high' ? 'text-emerald-700' : 'text-slate-800'}`}>
-              {accuracyText}
-            </strong>
-          </span>
+          {isRealGpsActive && (
+            <span className="text-slate-600">
+              Akurasi:{' '}
+              <strong className={`font-semibold ${accuracyLevel === 'high' ? 'text-emerald-700' : 'text-slate-800'}`}>
+                {accuracyText}
+              </strong>
+            </span>
+          )}
 
           <span className="text-slate-300 hidden sm:inline">|</span>
 
           <span className="text-slate-600">
-            Koordinat:{' '}
-            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono text-slate-800">
-              {userLat.toFixed(5)}, {userLng.toFixed(5)}
-            </code>
+            {isRealGpsActive ? (
+              <>
+                Koordinat:{' '}
+                <code className="bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono text-slate-800">
+                  {userLat.toFixed(5)}, {userLng.toFixed(5)}
+                </code>
+              </>
+            ) : (
+              <strong className="font-semibold text-amber-800">Lokasi contoh Sukajadi — bukan posisi Anda</strong>
+            )}
           </span>
 
           {gpsLastUpdated && (
@@ -393,10 +432,14 @@ export default function GlobalSafetyMap({
         </div>
 
         {/* Retry GPS Button */}
-        <div className="flex items-center gap-2">
-          {permissionStatus === 'denied' && (
-            <span className="text-[11px] text-rose-700 font-semibold">
-              Izinkan lokasi di pengaturan browser.
+        <div className="flex flex-wrap items-center gap-2">
+          {gpsErrorMessage && (
+            <span className="text-[11px] text-rose-700 font-semibold" role="status">
+              {permissionStatus === 'denied'
+                ? 'Aktifkan izin lokasi dari pengaturan situs/browser, lalu coba lagi.'
+                : permissionStatus === 'timeout'
+                  ? 'GPS belum merespons. Coba lagi di area terbuka.'
+                  : gpsErrorMessage}
             </span>
           )}
           <button
@@ -409,6 +452,29 @@ export default function GlobalSafetyMap({
           </button>
         </div>
       </section>
+
+      {!isOnline && (
+        <div className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-xs leading-relaxed text-rose-950" role="alert">
+          <strong>Koneksi terputus.</strong> Data terbaru dan peta online mungkin tidak tersedia. Data yang masih terlihat bisa sudah lama; jangan mengandalkannya untuk keputusan evakuasi.
+        </div>
+      )}
+
+      {isOnline && mapTileError && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950" role="alert">
+          Peta dasar gagal dimuat. Periksa koneksi; lokasi dan data di peta mungkin tidak lengkap.
+        </div>
+      )}
+
+      {isOnline && mapDataError && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950" role="alert">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span><strong>Data peta gagal diperbarui.</strong> {mapDataError} {mapDataUpdatedAt ? 'Data yang terlihat mungkin sudah lama.' : ''}</span>
+            <button type="button" onClick={handleRefreshMapData} className="rounded-lg border border-amber-400 px-3 py-1.5 font-bold hover:bg-amber-100">
+              Coba lagi
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Broadcast Alert Toast */}
       {broadcastFeedback && (
@@ -437,6 +503,18 @@ export default function GlobalSafetyMap({
 
       {/* Dual Perspective Banner & Controls */}
       <section className="glass-card p-4 sm:p-5 space-y-4">
+        <div className="rounded-xl border border-blue-200 bg-blue-50/90 p-3 text-xs leading-relaxed text-blue-950 flex items-start gap-2">
+          <Info className="w-4 h-4 shrink-0 mt-0.5 text-blue-700" />
+          <p>
+            <strong>Data prototipe lokal</strong> · Contoh posko dan laporan ini tidak terhubung ke feed resmi real-time. Waktu di bawah menunjukkan waktu data diambil dari prototipe, bukan waktu verifikasi lapangan. {!isRealGpsActive && 'Jarak dihitung dari area contoh Sukajadi, bukan lokasi Anda.'}
+            {mapDataUpdatedAt && (
+              <span className="block mt-1 text-blue-800">
+                Data diambil: {new Date(mapDataUpdatedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+              </span>
+            )}
+          </p>
+        </div>
+
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
           {/* Switcher A: Sudut Pandang (Perspective) */}
           <div className="space-y-1.5">
@@ -485,6 +563,7 @@ export default function GlobalSafetyMap({
                   setUserStatus('checking');
                   setPrecisionConsent(false);
                   setConsentCheckbox(false);
+                  setDistressStatus('idle');
                   if (setSafetyShareDetails) {
                     setSafetyShareDetails(prev => ({ ...prev, status: 'checking', displayMode: 'radius_1km' }));
                   }
@@ -518,16 +597,36 @@ export default function GlobalSafetyMap({
         <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3 text-xs leading-relaxed text-amber-950 flex items-start gap-2.5">
           <AlertOctagon className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
           <div>
-            <strong>Pemberitahuan Verifikasi Kebencanaan:</strong> Koordinat GPS aktual perangkat dan indikator <strong>radius privasi 1 km</strong> adalah mekanisme privasi tampilan (*obfuscation*), <strong>BUKAN jaminan mutlak bahwa laporan bencana pasti benar</strong>. Seluruh laporan berlabel <em>“Laporan Pengguna — Perlu Verifikasi Lapangan”</em>. Status terverifikasi hanya diberikan setelah konfirmasi posko resmi BPBD/SAR atau peninjauan tim lapangan.
+            <strong>Batasan data:</strong> Koordinat dan radius pada peta adalah visualisasi prototipe. Data contoh tidak terhubung ke sumber resmi atau verifikasi petugas secara real-time. PIN SOS juga tidak mengirim notifikasi; untuk bantuan nyata, telepon 112.
           </div>
         </div>
       </section>
 
       {/* 3. Main Interactive Map & Vicinity Layout */}
+      <div className="grid grid-cols-2 gap-2 rounded-xl border border-blue-100 bg-white/70 p-1.5 lg:hidden" role="tablist" aria-label="Tampilan peta dan data">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={!showList}
+          onClick={() => setShowList(false)}
+          className={`min-h-11 rounded-lg px-3 text-sm font-bold transition-colors ${!showList ? 'bg-blue-700 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
+        >
+          Peta
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={showList}
+          onClick={() => setShowList(true)}
+          className={`min-h-11 rounded-lg px-3 text-sm font-bold transition-colors ${showList ? 'bg-blue-700 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
+        >
+          Data & bantuan
+        </button>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5 items-start">
         {/* Map Section Container */}
         <section 
-          className="glass-card relative min-h-[500px] sm:min-h-[560px] overflow-hidden p-4 rounded-3xl border border-white/80 shadow-xl flex flex-col justify-between"
+          className={`${showList ? 'hidden lg:flex' : 'flex'} glass-card relative min-h-[420px] sm:min-h-[560px] overflow-hidden p-4 rounded-3xl border border-white/80 shadow-xl flex-col justify-between`}
           aria-label="Peta Leaflet OpenStreetMap keselamatan bencana"
         >
           {/* Top Over-Map Toolbar */}
@@ -536,7 +635,7 @@ export default function GlobalSafetyMap({
               <span className="rounded-xl border border-white/80 bg-white/95 backdrop-blur-md px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-blue-600" />
                 <span>
-                  {isRealGpsActive ? 'Lokasi GPS Anda' : 'Sukajadi, Bandung (Fallback)'}
+                  {isRealGpsActive ? 'Lokasi GPS Anda' : 'Lokasi contoh: Sukajadi, Bandung'}
                 </span>
               </span>
 
@@ -545,10 +644,15 @@ export default function GlobalSafetyMap({
                   <ShieldAlert className="w-3.5 h-3.5" />
                   <span>PIN Presisi Darurat Aktif</span>
                 </span>
-              ) : (
+              ) : isRealGpsActive ? (
                 <span className="rounded-xl border border-blue-200 bg-blue-50/95 text-blue-900 px-3 py-1.5 text-xs font-bold shadow-sm flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
                   <span>Lingkaran Radius 1 km (Privasi)</span>
+                </span>
+              ) : (
+                <span className="rounded-xl border border-amber-200 bg-amber-50/95 text-amber-900 px-3 py-1.5 text-xs font-bold shadow-sm flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5" />
+                  <span>Tidak menampilkan titik GPS pengguna</span>
                 </span>
               )}
 
@@ -586,14 +690,6 @@ export default function GlobalSafetyMap({
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
-              <button
-                type="button"
-                onClick={() => setShowList(!showList)}
-                className="lg:hidden px-2 h-7 rounded-lg bg-blue-50 text-blue-800 text-xs font-bold flex items-center gap-1 cursor-pointer"
-              >
-                <List className="w-3.5 h-3.5" />
-                <span>Daftar</span>
-              </button>
             </div>
           </div>
 
@@ -612,6 +708,7 @@ export default function GlobalSafetyMap({
               selectedItem={activeSelected}
               onSelectItem={setSelectedItem}
               onNavigateRoute={onNavigateRoute}
+              onTileError={setMapTileError}
               mapControlRef={mapControlRef}
             />
           </div>
@@ -619,8 +716,8 @@ export default function GlobalSafetyMap({
           {/* Bottom Card: Selected Pin Details */}
           <div className="relative z-20 mt-auto pt-4 pointer-events-auto">
             <div className="rounded-2xl bg-white/95 backdrop-blur-xl border border-white/90 p-4 shadow-xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start gap-3">
+              <div className="space-y-4">
+                <div className="flex min-w-0 items-start gap-3">
                   <div className={`w-11 h-11 rounded-2xl grid place-items-center shrink-0 shadow-md ${
                     activeSelected?.itemType === 'laporan_darurat' || activeSelected?.status === 'help'
                       ? 'bg-rose-100 text-rose-700 border border-rose-200'
@@ -637,9 +734,9 @@ export default function GlobalSafetyMap({
                     )}
                   </div>
 
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">
+                      <h3 className="min-w-0 break-words font-extrabold text-sm sm:text-base text-slate-900 leading-tight">
                         {activeSelected?.name || activeSelected?.alias || activeSelected?.reporter_name}
                       </h3>
                       <span className={`px-2 py-0.2 text-[10px] font-bold rounded-md ${
@@ -650,15 +747,19 @@ export default function GlobalSafetyMap({
                             : 'bg-blue-600 text-white'
                       }`}>
                         {activeSelected?.itemType === 'laporan_darurat'
-                          ? `🚨 LAPORAN DARURAT (${activeSelected?.urgency_level || 'KRITIS'})`
+                          ? `🚨 LAPORAN DEMO (${activeSelected?.urgency_level || 'KRITIS'})`
                           : activeSelected?.itemType === 'posko'
-                            ? 'POSKO TERVERIFIKASI'
-                            : 'WARGA SEKITAR'}
+                            ? 'POSKO CONTOH'
+                            : activeSelected?.type === 'user' && !isRealGpsActive
+                              ? 'LOKASI CONTOH'
+                              : activeSelected?.type === 'user'
+                                ? 'LOKASI SAYA'
+                                : 'WARGA CONTOH'}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-600 mt-1">
-                      {activeSelected?.needs_description || activeSelected?.notes || activeSelected?.address || 'Terdata dalam database geospasial.'}
+                    <p className="break-words text-xs text-slate-600 mt-1">
+                      {activeSelected?.needs_description || activeSelected?.notes || activeSelected?.address || (!isRealGpsActive && activeSelected?.type === 'user' ? 'GPS belum tersedia. Peta menampilkan area contoh Sukajadi, bukan lokasi perangkat Anda.' : 'Terdata dalam database prototipe lokal.')}
                     </p>
 
                     {activeSelected?.vulnerable_members && (
@@ -670,11 +771,13 @@ export default function GlobalSafetyMap({
                     <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1.5 flex-wrap">
                       <span className="flex items-center gap-1 font-semibold text-slate-700">
                         <Clock className="w-3 h-3 text-blue-600" />
-                        {activeSelected?.updated_at || activeSelected?.reported_at || 'Baru saja'}
+                        {activeSelected?.reported_at || activeSelected?.updated_at || activeSelected?.verified_at || 'Waktu pada data tidak tersedia'}
                       </span>
                       <span>•</span>
                       <span className="font-medium">
-                        Format Tampilan: {activeSelected?.status === 'help' ? '🔴 PIN Presisi' : '🔵 Radius Perkiraan 1 km'}
+                        {activeSelected?.type === 'user' && !isRealGpsActive
+                          ? 'GPS belum tersedia'
+                          : `Format Tampilan: ${activeSelected?.status === 'help' ? '🔴 PIN Presisi' : '🔵 Radius Perkiraan 1 km'}`}
                       </span>
                       {activeSelected?.distanceFormatted && (
                         <>
@@ -688,15 +791,14 @@ export default function GlobalSafetyMap({
                   </div>
                 </div>
 
-                {/* Right Action Buttons on Selected Item */}
-                <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap sm:flex-nowrap">
+                <div className="flex flex-wrap items-center gap-2 border-t border-slate-200/70 pt-3">
                   {activeSelected?.itemType === 'laporan_darurat' && (
                     <a
-                      href={`tel:${activeSelected.contact || '112'}`}
-                      className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow"
+                      href="tel:112"
+                      className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white shadow transition-colors hover:bg-rose-700 sm:w-auto"
                     >
                       <PhoneCall className="w-3.5 h-3.5" />
-                      <span>Hubungi ({activeSelected.contact || '112'})</span>
+                      <span>Hubungi layanan darurat 112</span>
                     </a>
                   )}
 
@@ -710,7 +812,7 @@ export default function GlobalSafetyMap({
                           onNavigateScreen('route');
                         }
                       }}
-                      className={`text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer ${
+                      className={`w-full justify-center text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer sm:w-auto ${
                         activeSelected?.itemType === 'laporan_darurat'
                           ? 'bg-rose-600 hover:bg-rose-700 text-white'
                           : 'primary-action'
@@ -731,7 +833,7 @@ export default function GlobalSafetyMap({
                     <button
                       type="button"
                       onClick={() => { setReportTarget(activeSelected); setReportSubmitted(false); }}
-                      className="text-xs text-slate-500 hover:text-rose-700 font-semibold px-2 py-1.5 rounded-lg border border-slate-200 hover:border-rose-300 cursor-pointer"
+                      className="inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-rose-300 hover:text-rose-700 cursor-pointer sm:w-auto"
                     >
                       Laporkan
                     </button>
@@ -742,8 +844,8 @@ export default function GlobalSafetyMap({
           </div>
         </section>
 
-        {/* Right Sidebar: Data Aktual Database (Posko, Warga, Laporan Darurat) */}
-        <aside className="space-y-4">
+        {/* Prototype data and emergency actions */}
+        <aside className={`${showList ? 'block' : 'hidden lg:block'} space-y-4`}>
           {/* SPECIAL DISTRESS RADAR CARD: When user is in danger or needs help */}
           <div className={`rounded-3xl p-5 border shadow-lg transition-all ${
             isUserInDanger
@@ -757,17 +859,21 @@ export default function GlobalSafetyMap({
                     ? 'bg-rose-500 text-white'
                     : 'bg-blue-100 text-blue-800'
                 }`}>
-                  {isUserInDanger ? '🚨 RADAR EVAKUASI AKTIF' : '📡 RADAR RADIUS 1 KM'}
+                  {isUserInDanger ? '🚨 STATUS SOS PROTOTIPE' : '📡 DATA SEKITAR'}
                 </span>
                 <h2 className="text-base font-extrabold tracking-tight">
                   {isUserInDanger
-                    ? `${nearbyItems.length} Titik Terdeteksi di Sekitar Anda`
-                    : 'Entitas Sekitar (Radius 1 km)'}
+                    ? `${nearbyItems.length} Contoh titik dalam radius 1 km`
+                    : isRealGpsActive
+                      ? 'Data sekitar (Radius 1 km)'
+                      : 'Data sekitar lokasi contoh'}
                 </h2>
                 <p className={`text-xs ${isUserInDanger ? 'text-rose-200' : 'text-slate-600'}`}>
                   {isUserInDanger
-                    ? 'Posisi presisi GPS Anda telah dibuka kepada tim penyelamat. Anda dapat memantau posko dan warga terdekat.'
-                    : 'Menampilkan data aktual dari database untuk posko dan warga dalam radius perkiraan 1 km.'}
+                    ? 'PIN presisi hanya aktif pada peta prototipe. Lokasi tidak dikirim ke petugas.'
+                    : isRealGpsActive
+                      ? 'Jarak dihitung dari GPS perangkat; isi peta bukan data resmi real-time.'
+                      : 'GPS belum tersedia. Jarak memakai area contoh Sukajadi.'}
                 </p>
               </div>
 
@@ -778,18 +884,42 @@ export default function GlobalSafetyMap({
               </div>
             </div>
 
-            {/* Quick Action Button for User in Distress */}
+            {/* Prototype report and direct emergency contact */}
             {isUserInDanger && (
               <div className="mt-4 pt-4 border-t border-rose-800/70 space-y-2">
                 <button
                   type="button"
                   onClick={handleSendDistressSignal}
-                  disabled={isBroadcasting}
-                  className="w-full py-3 px-4 rounded-xl bg-white text-rose-900 font-extrabold text-xs shadow-lg hover:bg-rose-50 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                  disabled={distressStatus === 'sending' || distressStatus === 'saved'}
+                  className="w-full py-3 px-4 rounded-xl bg-white text-rose-900 font-extrabold text-xs shadow-lg hover:bg-rose-50 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  <Volume2 className="w-4 h-4 text-rose-600" />
-                  <span>{isBroadcasting ? 'Menyiarkan Sinyal...' : '📢 Bunyikan Sinyal Darurat ke Sekitar'}</span>
+                  <ShieldAlert className="w-4 h-4 text-rose-600" />
+                  <span>
+                    {distressStatus === 'sending'
+                      ? 'Mencatat laporan...'
+                      : distressStatus === 'saved'
+                        ? 'Laporan tercatat di prototipe'
+                        : distressStatus === 'failed'
+                          ? 'Coba catat laporan lagi'
+                          : 'Catat status SOS (prototipe)'}
+                  </span>
                 </button>
+                <p className="text-[11px] leading-relaxed text-rose-100" role={distressStatus === 'failed' || distressStatus === 'location-required' ? 'alert' : 'status'}>
+                  {distressStatus === 'saved'
+                    ? 'Laporan tersimpan di database prototipe lokal. Tidak ada notifikasi atau dispatch petugas yang dikirim.'
+                    : distressStatus === 'failed'
+                      ? 'Laporan gagal dicatat. Belum ada bantuan yang dihubungi; coba lagi atau telepon layanan darurat.'
+                      : distressStatus === 'location-required'
+                        ? 'Lokasi GPS belum tersedia sehingga laporan tidak dicatat. Hubungi 112 secara langsung.'
+                        : 'Tombol ini hanya mencatat laporan pada prototipe; tidak menghubungi tim SAR atau petugas.'}
+                </p>
+                <a
+                  href="tel:112"
+                  className="w-full py-3 px-4 rounded-xl bg-rose-600 text-white font-extrabold text-xs shadow-lg hover:bg-rose-500 flex items-center justify-center gap-2 transition-colors"
+                >
+                  <PhoneCall className="w-4 h-4" />
+                  Hubungi layanan darurat 112
+                </a>
               </div>
             )}
           </div>
@@ -799,11 +929,23 @@ export default function GlobalSafetyMap({
             <div className="flex items-center justify-between">
               <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-blue-600" />
-                <span>Data Aktual Database</span>
+                <span>Data Peta Prototipe</span>
               </h3>
-              <span className="text-[11px] font-bold text-slate-500">
-                {filteredList.length} Entitas
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-500">
+                  {isLoadingDb ? 'Memuat…' : `${filteredList.length} entitas`}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRefreshMapData}
+                  disabled={isLoadingDb}
+                  className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-blue-200 bg-white/80 px-2 text-[11px] font-bold text-blue-800 hover:bg-blue-50 disabled:opacity-60"
+                  aria-label="Perbarui data peta"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isLoadingDb ? 'animate-spin' : ''}`} />
+                  Perbarui
+                </button>
+              </div>
             </div>
 
             {/* Filter Chips */}
@@ -869,13 +1011,10 @@ export default function GlobalSafetyMap({
 
                   <div className="mt-1.5 flex items-center justify-between text-[10px]">
                     <span className="text-slate-500">
-                      Tipe:{' '}
-                      <strong className={item.itemType === 'laporan_darurat' ? 'text-rose-600' : 'text-blue-700'}>
-                        {item.itemType === 'laporan_darurat' ? '🚨 Darurat' : item.itemType === 'posko' ? 'Posko' : 'Radius 1 km'}
-                      </strong>
+                      Sampel prototipe
                     </span>
-                    <span className="text-slate-500">
-                      {item.estWalkTime ? `~${item.estWalkTime}` : ''}
+                    <span className="text-slate-500 text-right">
+                      {item.reported_at || item.updated_at || item.verified_at || item.estWalkTime || ''}
                     </span>
                   </div>
                 </button>
@@ -883,21 +1022,21 @@ export default function GlobalSafetyMap({
 
               {filteredList.length === 0 && (
                 <p className="text-xs text-slate-500 text-center py-4">
-                  Tidak ada data untuk filter ini di database.
+                  {isLoadingDb ? 'Memuat data peta…' : 'Tidak ada data untuk filter ini pada prototipe.'}
                 </p>
               )}
             </div>
 
             {/* Emergency Hotline Direct Bar */}
             <div className="pt-3 border-t border-slate-200/80 flex items-center justify-between text-xs text-slate-600">
-              <span className="font-bold flex items-center gap-1.5">
+              <a href="tel:115" className="font-bold flex items-center gap-1.5 hover:text-blue-800">
                 <PhoneCall className="w-3.5 h-3.5 text-blue-600" />
                 SAR 115
-              </span>
-              <span className="font-bold flex items-center gap-1.5">
+              </a>
+              <a href="tel:112" className="font-bold flex items-center gap-1.5 hover:text-rose-700">
                 <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
                 Darurat 112
-              </span>
+              </a>
             </div>
           </div>
         </aside>
@@ -946,10 +1085,11 @@ export default function GlobalSafetyMap({
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 space-y-1">
-                <p className="font-semibold text-slate-800">Apa yang terjadi setelah Anda setuju:</p>
+                  <p className="font-semibold text-slate-800">Batasan prototipe ini:</p>
                 <ul className="list-disc pl-4 space-y-1">
                   <li>Radius 1 km akan dinonaktifkan sementara dan digantikan <strong>PIN Presisi Darurat</strong>.</li>
-                  <li>Koordinat GPS aktual ({userLat.toFixed(5)}, {userLng.toFixed(5)}) akan disiarkan ke posko SAR dan warga penolong terdekat.</li>
+                  <li>PIN presisi hanya ditampilkan di prototipe lokal. Koordinat tidak disiarkan dan tidak dikirim ke petugas.</li>
+                  <li>Untuk meminta bantuan nyata, hubungi layanan darurat 112 secara langsung.</li>
                   <li>Anda dapat mematikan mode darurat dan mengembalikan radius 1 km kapan saja setelah kondisi aman.</li>
                 </ul>
               </div>
@@ -962,7 +1102,7 @@ export default function GlobalSafetyMap({
                   className="mt-0.5 accent-rose-600 w-4 h-4"
                 />
                 <span className="text-xs font-semibold text-rose-950">
-                  Saya menyatakan bahwa saya sedang berada dalam kondisi darurat dan <strong>secara sadar menyetujui pembagian titik GPS presisi saya</strong> demi kebutuhan pertolongan dan evakuasi.
+                  Saya menyatakan sedang dalam kondisi darurat dan setuju menampilkan titik GPS presisi pada prototipe ini. Saya memahami bahwa persetujuan ini <strong>tidak menghubungi petugas</strong>.
                 </span>
               </label>
             </div>
@@ -1018,10 +1158,10 @@ export default function GlobalSafetyMap({
               <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-900 space-y-1">
                 <p className="font-bold flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  Laporan berhasil dicatat ke antrean moderasi
+                  Simulasi laporan selesai
                 </p>
                 <p className="text-xs text-emerald-800">
-                  Sistem telah menandai titik ini untuk peninjauan verifikasi anomali koordinat perangkat. Identitas pelapor dirahasiakan.
+                  Pada prototipe ini laporan tidak dikirim atau disimpan dan tidak masuk ke antrean moderator.
                 </p>
               </div>
             ) : (
@@ -1040,7 +1180,7 @@ export default function GlobalSafetyMap({
                   </select>
                 </label>
                 <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900">
-                  Laporan ini akan ditinjau bersama data telemetri GPS dan pemeriksaan petugas lapangan.
+                  Ini hanya simulasi antarmuka; tidak ada data yang dikirim ke moderator atau petugas lapangan.
                 </div>
               </>
             )}
@@ -1055,7 +1195,7 @@ export default function GlobalSafetyMap({
                   onClick={() => setReportSubmitted(true)} 
                   className="danger-action text-xs"
                 >
-                  Kirim Laporan
+                  Simulasikan Laporan
                 </button>
               )}
             </div>

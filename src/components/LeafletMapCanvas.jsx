@@ -2,6 +2,20 @@
 
 import React, { useEffect, useRef } from 'react';
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
+}
+
+function encodeRoutePayload(value) {
+  return encodeURIComponent(JSON.stringify(value)).replace(/'/g, '%27');
+}
+
 export default function LeafletMapCanvas({
   userLat,
   userLng,
@@ -15,6 +29,7 @@ export default function LeafletMapCanvas({
   selectedItem,
   onSelectItem,
   onNavigateRoute,
+  onTileError,
   mapControlRef
 }) {
   const containerRef = useRef(null);
@@ -50,10 +65,13 @@ export default function LeafletMapCanvas({
       });
 
       // Add OpenStreetMap Tile Layer with proper attribution & policy compliance
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      const tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> kontributor'
-      }).addTo(map);
+      });
+      tileLayer.on('tileerror', () => onTileError?.(true));
+      tileLayer.on('load', () => onTileError?.(false));
+      tileLayer.addTo(map);
 
       // Create a layer group for dynamic markers & circles
       const layerGroup = L.layerGroup().addTo(map);
@@ -139,7 +157,7 @@ export default function LeafletMapCanvas({
           <div class="text-xs space-y-1">
             <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-extrabold text-[10px]">🚨 LOKASI PRESISI AKTIF</span>
             <p class="font-bold text-slate-900 mt-1">Titik Darurat Anda (GPS Aktual)</p>
-            <p class="text-slate-600 text-[11px]">Koordinat presisi terbuka untuk tim SAR dan posko terdekat.</p>
+            <p class="text-slate-600 text-[11px]">Titik presisi hanya ditampilkan pada prototipe ini; tidak dikirim ke tim SAR atau posko.</p>
             <p class="text-[10px] font-mono text-slate-500">${userLat.toFixed(5)}, ${userLng.toFixed(5)} (${accuracyText})</p>
           </div>
         `);
@@ -150,12 +168,12 @@ export default function LeafletMapCanvas({
             lat: userLat,
             lng: userLng,
             status: 'help',
-            notes: 'PIN Presisi aktif dibuka untuk penyelamatan dan evakuasi darurat.',
+            notes: 'PIN presisi hanya ditampilkan pada prototipe dan tidak dikirim ke petugas.',
             accuracy: accuracyText
           });
         });
         layerGroup.addLayer(userSosMarker);
-      } else {
+      } else if (isRealGpsActive) {
         // NORMAL / SAFE MODE: 1 km Approximate Privacy Circle + Soft Navigation Dot
         const privacyCircle = L.circle([userLat, userLng], {
           radius: 1000, // 1 km in meters
@@ -169,7 +187,7 @@ export default function LeafletMapCanvas({
           <div class="text-xs space-y-1">
             <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">🔵 RADIUS PRIVASI 1 KM</span>
             <p class="font-bold text-slate-900 mt-1">Area Perkiraan Lokasi Anda</p>
-            <p class="text-slate-600 text-[11px]">Orang lain hanya melihat lingkaran radius perkiraan 1 km ini. Koordinat rumah Anda dirahasiakan.</p>
+            <p class="text-slate-600 text-[11px]">Visualisasi privasi prototipe; koordinat presisi perangkat tidak ditampilkan pada peta ini.</p>
           </div>
         `);
         privacyCircle.on('click', () => {
@@ -179,7 +197,7 @@ export default function LeafletMapCanvas({
             lat: userLat,
             lng: userLng,
             status: 'safe',
-            notes: 'Warga lain hanya melihat area perkiraan radius 1 km ini untuk menjaga privasi rumah Anda.',
+            notes: 'Visualisasi perkiraan radius 1 km pada prototipe ini.',
             accuracy: accuracyText
           });
         });
@@ -218,11 +236,16 @@ export default function LeafletMapCanvas({
 
       // 2. RENDER DATABASE POSKO MARKERS (Shelters)
       poskoList.forEach(posko => {
+        const isUnverifiedContribution = posko.source_type === 'sar_contribution' || posko.status === 'unverified';
+        const poskoLabel = posko.source_type === 'sar_contribution'
+          ? 'KONTRIBUSI TIM SAR • BELUM DIVERIFIKASI'
+          : 'CONTOH POSKO • BELUM DIVERIFIKASI';
+        const iconColor = isUnverifiedContribution ? 'bg-amber-600 ring-amber-300' : 'bg-emerald-600 ring-emerald-300';
         const poskoIcon = L.divIcon({
           className: 'custom-leaflet-marker',
           html: `
             <div class="relative flex flex-col items-center" style="transform: translate(-50%, -100%);">
-              <div class="w-8 h-8 rounded-2xl bg-emerald-600 text-white shadow-md flex items-center justify-center border-2 border-white ring-2 ring-emerald-300 hover:scale-110 transition-transform">
+              <div class="w-8 h-8 rounded-2xl ${iconColor} text-white shadow-md flex items-center justify-center border-2 border-white ring-2 hover:scale-110 transition-transform">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
               </div>
               <span class="mt-0.5 whitespace-nowrap px-1.5 py-0.5 rounded bg-emerald-950 text-white text-[9px] font-bold shadow-sm">
@@ -237,13 +260,15 @@ export default function LeafletMapCanvas({
         const marker = L.marker([posko.lat, posko.lng], { icon: poskoIcon });
         marker.bindPopup(`
           <div class="text-xs space-y-1">
-            <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">POSKO EVAKUASI RESMI</span>
-            <p class="font-extrabold text-slate-900 mt-1">${posko.name}</p>
-            <p class="text-slate-600 text-[11px]">${posko.address}</p>
-            <p class="text-[11px] text-emerald-800 font-semibold">Kapasitas: ${posko.capacity}</p>
-            <p class="text-[10px] text-slate-500">Fasilitas: ${posko.facilities?.join(', ')}</p>
-            <p class="text-[10px] font-bold text-blue-700">Jarak: ${posko.distanceFormatted} (${posko.estWalkTime} jalan kaki)</p>
-            <button onclick="window.__leafNavigateRoute('${encodeURIComponent(JSON.stringify(posko))}')" class="w-full mt-2 py-1 px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer">🧭 Arahkan Rute ke Posko Ini</button>
+            <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[10px]">${poskoLabel}</span>
+            <p class="font-extrabold text-slate-900 mt-1">${escapeHtml(posko.name)}</p>
+            <p class="text-slate-600 text-[11px]">${escapeHtml(posko.address)}</p>
+            <p class="text-[11px] text-emerald-800 font-semibold">Kapasitas: ${escapeHtml(posko.capacity)}</p>
+            <p class="text-[10px] text-slate-500">Fasilitas: ${escapeHtml(posko.facilities?.join(', '))}</p>
+            <p class="text-[10px] text-slate-500">Kontak: ${escapeHtml(posko.contact)}</p>
+            <p class="text-[10px] text-slate-500">Dicatat: ${escapeHtml(posko.verified_at || 'tidak tersedia')}</p>
+            <p class="text-[10px] font-bold text-blue-700">Jarak: ${escapeHtml(posko.distanceFormatted)} (${escapeHtml(posko.estWalkTime)} jalan kaki)</p>
+            <button onclick="window.__leafNavigateRoute('${encodeRoutePayload(posko)}')" class="w-full mt-2 py-1 px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer">🧭 Arahkan Rute ke Posko Ini</button>
           </div>
         `);
         marker.on('click', () => onSelectItem({ ...posko, itemType: 'posko' }));
@@ -273,7 +298,7 @@ export default function LeafletMapCanvas({
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
               </div>
               <span class="mt-0.5 whitespace-nowrap px-1.5 py-0.5 rounded bg-white/95 text-slate-800 text-[8px] font-bold border border-slate-200 shadow-xs">
-                ${warga.alias.split(' ')[0]} • 1km
+                ${escapeHtml(warga.alias.split(' ')[0])} • 1km
               </span>
             </div>
           `,
@@ -284,12 +309,13 @@ export default function LeafletMapCanvas({
         const wargaMarker = L.marker([warga.lat, warga.lng], { icon: wargaIcon });
         wargaMarker.bindPopup(`
           <div class="text-xs space-y-1">
-            <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">WARGA • RADIUS 1 KM</span>
-            <p class="font-extrabold text-slate-900 mt-1">${warga.alias}</p>
-            <p class="text-slate-600 text-[11px]">${warga.area}</p>
-            <p class="text-[11px] text-slate-700">${warga.notes}</p>
-            <p class="text-[10px] font-semibold text-blue-700">Jarak: ${warga.distanceFormatted} (${warga.estWalkTime})</p>
-            <button onclick="window.__leafNavigateRoute('${encodeURIComponent(JSON.stringify(warga))}')" class="w-full mt-2 py-1 px-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer">🧭 Arahkan Rute ke Lokasi Ini</button>
+            <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[10px]">DATA WARGA CONTOH • RADIUS 1 KM</span>
+            <p class="font-extrabold text-slate-900 mt-1">${escapeHtml(warga.alias)}</p>
+            <p class="text-slate-600 text-[11px]">${escapeHtml(warga.area)}</p>
+            <p class="text-[11px] text-slate-700">${escapeHtml(warga.notes)}</p>
+            <p class="text-[10px] text-slate-500">Waktu pada data contoh: ${escapeHtml(warga.updated_at || 'tidak tersedia')}</p>
+            <p class="text-[10px] font-semibold text-blue-700">Jarak: ${escapeHtml(warga.distanceFormatted)} (${escapeHtml(warga.estWalkTime)})</p>
+            <button onclick="window.__leafNavigateRoute('${encodeRoutePayload(warga)}')" class="w-full mt-2 py-1 px-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer">🧭 Arahkan Rute ke Lokasi Ini</button>
           </div>
         `);
         wargaMarker.on('click', () => onSelectItem({ ...warga, itemType: 'warga' }));
@@ -308,7 +334,7 @@ export default function LeafletMapCanvas({
               </div>
               <span class="mt-0.5 whitespace-nowrap px-1.5 py-0.5 rounded bg-rose-950 text-white text-[9px] font-extrabold shadow flex items-center gap-1">
                 <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                ${report.urgency_level || 'DARURAT'}
+                ${escapeHtml(report.urgency_level || 'DARURAT')}
               </span>
             </div>
           `,
@@ -320,17 +346,17 @@ export default function LeafletMapCanvas({
         reportMarker.bindPopup(`
           <div class="text-xs space-y-1.5 max-w-[240px]">
             <div class="flex items-center gap-1">
-              <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-extrabold text-[10px]">🚨 BUTUH BANTUAN SEGERA</span>
-              <span class="text-[10px] text-slate-500">• ${report.reported_at}</span>
+              <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-extrabold text-[10px]">🚨 ${report.source_type === 'user_report' ? 'LAPORAN AKUN' : 'LAPORAN CONTOH'} • BELUM DIVERIFIKASI</span>
+              <span class="text-[10px] text-slate-500">• ${escapeHtml(report.reported_at)}</span>
             </div>
-            <p class="font-extrabold text-slate-900 text-sm leading-tight">${report.reporter_name}</p>
-            <p class="text-slate-600 text-[11px] leading-relaxed">${report.needs_description}</p>
-            ${report.vulnerable_members ? `<p class="text-[11px] text-rose-700 font-bold">Keluarga: ${report.vulnerable_members}</p>` : ''}
+            <p class="font-extrabold text-slate-900 text-sm leading-tight">${escapeHtml(report.reporter_name)}</p>
+            <p class="text-slate-600 text-[11px] leading-relaxed">${escapeHtml(report.needs_description)}</p>
+            ${report.vulnerable_members ? `<p class="text-[11px] text-rose-700 font-bold">Keluarga: ${escapeHtml(report.vulnerable_members)}</p>` : ''}
             <div class="pt-1 flex items-center justify-between text-[11px] border-t border-slate-200">
-              <span class="font-semibold text-blue-700">${report.distanceFormatted}</span>
-              <a href="tel:${report.contact || '112'}" class="px-2 py-0.5 rounded bg-rose-600 text-white font-bold text-[10px]">Hubungi</a>
+              <span class="font-semibold text-blue-700">${escapeHtml(report.distanceFormatted)}</span>
+              <a href="tel:112" class="px-2 py-0.5 rounded bg-rose-600 text-white font-bold text-[10px]">Hubungi 112</a>
             </div>
-            <button onclick="window.__leafNavigateRoute('${encodeURIComponent(JSON.stringify(report))}')" class="w-full mt-1.5 py-1 px-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-lg text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer">🧭 Arahkan Rute Penyelamatan</button>
+            <button onclick="window.__leafNavigateRoute('${encodeRoutePayload(report)}')" class="w-full mt-1.5 py-1 px-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-lg text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer">🧭 Arahkan Rute Penyelamatan</button>
           </div>
         `);
         reportMarker.on('click', () => onSelectItem({ ...report, itemType: 'laporan_darurat' }));
@@ -343,7 +369,7 @@ export default function LeafletMapCanvas({
     return () => {
       isCancelled = true;
     };
-  }, [userLat, userLng, isUserInDanger, accuracyText, poskoList, wargaList, laporanDaruratList, onSelectItem]);
+  }, [userLat, userLng, isRealGpsActive, isUserInDanger, accuracyText, poskoList, wargaList, laporanDaruratList, onSelectItem]);
 
   return (
     <div className="w-full h-full relative">

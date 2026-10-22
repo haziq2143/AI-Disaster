@@ -19,9 +19,17 @@ export const INITIAL_CHECKLIST = [
 ];
 
 export const INITIAL_FAMILY = [
-  { id: 'f1', name: 'Dina (Anda)', relationship: 'Kepala Keluarga', supportNeeds: 'Tidak ada kebutuhan khusus', status: 'together' },
-  { id: 'f2', name: 'Ibu Ratna', relationship: 'Orang Tua / Lansia', supportNeeds: 'Bantuan mobilitas (kursi roda / dipapah), obat hipertensi', status: 'together' },
-  { id: 'f3', name: 'Arka', relationship: 'Anak (5 tahun)', supportNeeds: 'Perlu digandeng / digendong, susu formula balita', status: 'unconfirmed' },
+  { id: 'f1', name: 'Dina (Anda)', relationship: 'Kepala Keluarga', supportNeeds: 'Tidak ada kebutuhan khusus', status: 'together', checkInStatus: 'safe' },
+  { id: 'f2', name: 'Ibu Ratna', relationship: 'Orang Tua / Lansia', supportNeeds: 'Bantuan mobilitas (kursi roda / dipapah), obat hipertensi', status: 'together', checkInStatus: 'safe' },
+  { id: 'f3', name: 'Arka', relationship: 'Anak (5 tahun)', supportNeeds: 'Perlu digandeng / digendong, susu formula balita', status: 'unconfirmed', checkInStatus: 'unconfirmed' },
+];
+
+export const EMERGENCY_CONTACTS = [
+  { name: 'Nomor darurat terpadu', number: '112', source: 'Komdigi — layanan 112', url: 'https://www.komdigi.go.id/' },
+  { name: 'Kepolisian', number: '110', source: 'Polri', url: 'https://polri.go.id/' },
+  { name: 'Pemadam kebakaran', number: '113', source: 'Dinas Damkar setempat — cek nomor daerah', url: null },
+  { name: 'Basarnas / SAR', number: '115', source: 'Basarnas', url: 'https://www.basarnas.go.id/' },
+  { name: 'Layanan medis', number: '119', source: 'Kementerian Kesehatan', url: 'https://kemkes.go.id/' },
 ];
 
 export const INITIAL_EVACUATION_POINTS = [
@@ -64,9 +72,9 @@ export const INITIAL_EVACUATION_POINTS = [
 ];
 
 export const OFFICIAL_SOURCES = [
-  { name: 'BMKG Early Warning System', update: '10 menit lalu', verified: true, contact: '196' },
-  { name: 'BPBD / SAR Posko Terpadu', update: '15 menit lalu', verified: true, contact: '112 / 115' },
-  { name: 'PMI (Palang Merah Indonesia)', update: '28 menit lalu', verified: true, contact: '021-7992325' }
+  { name: 'BMKG Early Warning System', update: 'Rujukan contoh · bukan feed live', verified: false, contact: '196' },
+  { name: 'BPBD / SAR Posko Terpadu', update: 'Rujukan contoh · cek daerah', verified: false, contact: '112 / 115' },
+  { name: 'PMI (Palang Merah Indonesia)', update: 'Rujukan contoh · cek daerah', verified: false, contact: '021-7992325' }
 ];
 
 export const COMMUNITY_SAFETY_PINS = [

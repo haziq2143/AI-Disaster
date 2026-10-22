@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getReportById, updateReportStatus } from '../../../../../src/lib/disasterDb.js';
+import { requireSarUser } from '../../../../../src/lib/auth.js';
 
 export async function GET(request, { params }) {
+  const { response } = requireSarUser(request);
+  if (response) return response;
   try {
     const { id } = await params;
     const report = getReportById(id);
@@ -16,7 +19,7 @@ export async function GET(request, { params }) {
     return NextResponse.json({
       success: true,
       data: report
-    });
+    }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: 'Gagal mengambil detail laporan darurat.' },
@@ -26,6 +29,8 @@ export async function GET(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
+  const { response } = requireSarUser(request);
+  if (response) return response;
   try {
     const { id } = await params;
     const body = await request.json();
@@ -46,6 +51,9 @@ export async function PATCH(request, { params }) {
       data: updated
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Status laporan tidak valid.') {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
     return NextResponse.json(
       { success: false, error: 'Gagal memperbarui status laporan darurat.' },
       { status: 500 }

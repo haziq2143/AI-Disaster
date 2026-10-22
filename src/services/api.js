@@ -3,27 +3,22 @@ const getApiBase = () => {
 };
 
 async function fetchWithFallback(urlPath, options = {}) {
+  let response;
   // 1. Try relative URL (Next.js App Router Route Handler)
   try {
-    const res = await fetch(urlPath, options);
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (e) {
+    response = await fetch(urlPath, options);
+  } catch {
     // Relative request failed, try Express port 5000
   }
+  if (response) return response.json();
 
   // 2. Try Express server on port 5000
   try {
-    const res = await fetch(`http://localhost:5000${urlPath}`, options);
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (e) {
-    // Both failed
+    response = await fetch(`http://localhost:5000${urlPath}`, options);
+    return await response.json();
+  } catch {
+    return null;
   }
-
-  return null;
 }
 
 export const api = {
@@ -93,25 +88,23 @@ export const api = {
   getMapMarkers: async (lat = null, lng = null) => {
     const query = lat !== null && lng !== null ? `?lat=${lat}&lng=${lng}` : '';
     const res = await fetchWithFallback(`/api/map/markers${query}`);
-    return res?.data || null;
-  },
-
-  // Save actual user GPS location and precision consent status to database
-  syncUserLocation: async (locationPayload) => {
-    return await fetchWithFallback('/api/map/user-location', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(locationPayload)
-    });
+    if (!res?.success || !res.data) {
+      throw new Error('Data peta tidak dapat dimuat. Periksa koneksi lalu coba lagi.');
+    }
+    return res;
   },
 
   // Submit actual emergency distress report
   submitEmergencyReport: async (reportPayload) => {
-    return await fetchWithFallback('/api/map/emergency-reports', {
+    const res = await fetchWithFallback('/api/map/emergency-reports', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(reportPayload)
     });
+    if (!res?.success || !res.data) {
+      throw new Error(res?.error || 'Laporan belum berhasil dicatat. Periksa koneksi lalu coba lagi.');
+    }
+    return res;
   },
 
   // Get single emergency report details

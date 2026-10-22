@@ -23,6 +23,11 @@ export default function SafeConfirmation({
   const [confirmedSafe, setConfirmedSafe] = useState(false);
   const [locationReached, setLocationReached] = useState('Balai Warga RW 04 (Posko Utama)');
   const [registeredWithOfficer, setRegisteredWithOfficer] = useState(false);
+  const familyCheckIns = familyMembers.reduce((counts, member) => {
+    const status = member.checkInStatus || (member.status === 'together' ? 'safe' : 'unconfirmed');
+    counts[status] = (counts[status] || 0) + 1;
+    return counts;
+  }, {});
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fadeIn pb-12">
@@ -53,6 +58,21 @@ export default function SafeConfirmation({
             <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
               Pastikan Anda telah bertemu petugas atau relawan lapangan dan berada di zona aman bebas risiko bencana susulan.
             </p>
+          </div>
+
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-left">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-bold text-blue-950">Check-in keluarga (manual, di perangkat ini)</p>
+              <button type="button" onClick={() => onNavigateScreen('family')} className="text-xs font-bold text-blue-800 underline">
+                Perbarui check-in
+              </button>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold">
+              <span className="rounded-lg bg-emerald-100 px-2 py-1 text-emerald-900">Aman: {familyCheckIns.safe || 0}</span>
+              <span className="rounded-lg bg-rose-100 px-2 py-1 text-rose-900">Butuh bantuan: {familyCheckIns.help || 0}</span>
+              <span className="rounded-lg bg-amber-100 px-2 py-1 text-amber-900">Belum diketahui: {familyCheckIns.unconfirmed || 0}</span>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-blue-900">Check-in adalah input manual dan tidak mengirim pesan atau meminta bantuan petugas. Pastikan anggota yang berstatus butuh bantuan sudah mendapat pertolongan secara langsung atau melalui kanal resmi.</p>
           </div>
 
           {/* Form checkpoint */}
@@ -104,8 +124,9 @@ export default function SafeConfirmation({
               Alhamdulillah, Anda Telah di Tempat Aman
             </h3>
             <p className="text-sm text-emerald-100 leading-relaxed font-normal">
-              Lokasi: <strong>{locationReached}</strong>. Tetap bersama keluarga dan jangan kembali ke rumah sampai petugas resmi BPBD menyatakan status bencana dicabut.
+              Anda mengonfirmasi berada di <strong>{locationReached}</strong>. Ini bukan konfirmasi otomatis untuk semua anggota keluarga. Tetap bersama keluarga dan jangan kembali ke rumah sampai petugas resmi menyatakan aman.
             </p>
+            <p className="text-xs text-emerald-100">Status ini hanya tersimpan pada alur demo dan tidak dikirim ke petugas atau keluarga.</p>
           </div>
 
           {/* Step Follow-ups (PRD 4.8 Langkah lanjutan yang relevan) */}
@@ -145,8 +166,8 @@ export default function SafeConfirmation({
           {/* Official Verification Channels */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-800">Kanal Peringatan Resmi Aktif</span>
-              <span className="text-[11px] text-slate-400">Verifikasi Terakhir</span>
+              <span className="text-xs font-bold text-slate-800">Rujukan sumber resmi (tidak terhubung)</span>
+              <span className="text-[11px] text-slate-400">Data prototipe</span>
             </div>
             <div className="space-y-2">
               {OFFICIAL_SOURCES.map((s, idx) => (

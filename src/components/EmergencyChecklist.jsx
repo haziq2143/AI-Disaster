@@ -1,25 +1,18 @@
 import React, { useState } from 'react';
 import { 
-  CheckSquare, 
-  Square, 
   AlertTriangle, 
   ArrowLeft, 
-  ArrowRight, 
-  ShieldAlert, 
-  Sparkles, 
-  HelpCircle,
-  PackageCheck,
-  CheckCircle2,
-  Info
+  ArrowRight
 } from 'lucide-react';
 import { INITIAL_CHECKLIST } from '../data/mockData';
 
 export default function EmergencyChecklist({ 
-  hazardData, 
+  items: savedItems = INITIAL_CHECKLIST,
+  setItems,
   onBack, 
   onNavigateScreen 
 }) {
-  const [items, setItems] = useState(INITIAL_CHECKLIST);
+  const items = savedItems;
   const [activeCategory, setActiveCategory] = useState('Semua');
 
   const handleToggle = (id) => {
@@ -77,6 +70,10 @@ export default function EmergencyChecklist({
           <span className="font-mono font-bold text-[#0D47A1]">{completedCount} dari {items.length} Barang Siap ({progressPercent}%)</span>
         </div>
 
+        <div className="rounded-xl border border-blue-200 bg-blue-50/80 p-3 text-xs leading-relaxed text-blue-950">
+          Checklist ini tersimpan di penyimpanan lokal browser pada perangkat ini. Browser dapat menghapus penyimpanan situs; catat kebutuhan penting secara terpisah bila perlu.
+        </div>
+
         {/* Progress Bar */}
         <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
           <div 
@@ -111,24 +108,21 @@ export default function EmergencyChecklist({
       <div className="space-y-2.5">
         {filteredItems.map(item => {
           return (
-            <div
+            <label
               key={item.id}
-              onClick={() => handleToggle(item.id)}
               className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 ${
                 item.completed
                   ? 'bg-emerald-50/40 border-emerald-300 text-slate-700'
                   : 'bg-white border-slate-200 hover:border-[#2196F3]'
               }`}
             >
-              <div className="mt-0.5 shrink-0">
-                {item.completed ? (
-                  <div className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center">
-                    <CheckCircle2 className="w-4 h-4 text-white" />
-                  </div>
-                ) : (
-                  <div className="w-5 h-5 rounded-md border-2 border-slate-300 hover:border-[#2196F3]"></div>
-                )}
-              </div>
+              <input
+                type="checkbox"
+                checked={item.completed}
+                onChange={() => handleToggle(item.id)}
+                className="mt-1 h-5 w-5 shrink-0 accent-emerald-600"
+                aria-label={item.label}
+              />
 
               <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between">
@@ -145,7 +139,7 @@ export default function EmergencyChecklist({
                   <span className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">{item.category}</span>
                 </div>
               </div>
-            </div>
+            </label>
           );
         })}
       </div>

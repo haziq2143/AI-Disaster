@@ -109,6 +109,22 @@
   ],
   "laporan_darurat": [
     {
+      "id": "rep-1792641867426",
+      "reporter_name": "Pengguna aplikasi",
+      "lat": -6.0386915000000005,
+      "lng": 106.06423333333332,
+      "address_detail": "Lokasi GPS Pengguna",
+      "hazard_type": "banjir",
+      "urgency_level": "KRITIS",
+      "needs_description": "Pengguna mengaktifkan SOS dan meminta bantuan.",
+      "vulnerable_members": "Belum diinformasikan",
+      "status": "in_progress",
+      "contact": "Layanan Darurat 112",
+      "reported_at": "Baru saja",
+      "precision_consent": true,
+      "verified_status": "Laporan Baru (Sedang Diverifikasi)"
+    },
+    {
       "id": "rep-sos-1",
       "reporter_name": "Ibu Siti & Balita",
       "lat": -6.8905,
@@ -142,12 +158,12 @@
     }
   ],
   "user_location": {
-    "lat": -5.98598158180506,
-    "lng": 106.0344274600369,
-    "accuracy": 120,
+    "lat": -6.038706250000001,
+    "lng": 106.06418649999999,
+    "accuracy": 381,
     "precision_consent": false,
     "status": "checking",
     "display_mode": "radius_1km",
-    "updated_at": "2026-10-22T03:14:30.179Z"
+    "updated_at": "2026-10-22T04:56:58.553Z"
   }
 }

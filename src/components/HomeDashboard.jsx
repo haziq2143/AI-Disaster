@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   ShieldAlert, 
   Flame, 
@@ -24,7 +24,73 @@ import { HAZARD_TYPES, OFFICIAL_SOURCES } from '../data/mockData';
 
 export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardData, setHazardData }) {
   const [selectedQuickHazard, setSelectedQuickHazard] = useState(hazardData.type || 'banjir');
+  const [offlineState, setOfflineState] = useState('checking');
+  const [offlineMessage, setOfflineMessage] = useState('');
   const selectedHazard = HAZARD_TYPES.find(hazard => hazard.id === selectedQuickHazard) || HAZARD_TYPES[0];
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkOfflineSupport() {
+      if (!('serviceWorker' in navigator)) {
+        if (isMounted) setOfflineState('unsupported');
+        return;
+      }
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        if (isMounted) setOfflineState(registration.active ? 'available' : 'unavailable');
+      } catch {
+        if (isMounted) setOfflineState('unavailable');
+      }
+    }
+    checkOfflineSupport();
+    const handleMessage = event => {
+      if (event.data?.type !== 'OFFLINE_READY') return;
+      setOfflineState(event.data.failedCount === 0 ? 'saved' : 'partial');
+      setOfflineMessage(`${event.data.cachedCount} materi tersimpan${event.data.failedCount ? `, ${event.data.failedCount} gagal dimuat` : ''}.`);
+    };
+    navigator.serviceWorker?.addEventListener('message', handleMessage);
+    return () => {
+      isMounted = false;
+      navigator.serviceWorker?.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+  const handlePrepareOffline = async () => {
+    if (!('serviceWorker' in navigator)) {
+      setOfflineState('unsupported');
+      return;
+    }
+    setOfflineState('saving');
+    setOfflineMessage('');
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const worker = registration.active;
+      if (!worker) throw new Error('Dukungan offline belum siap. Muat ulang halaman dan coba lagi.');
+
+      const urls = performance.getEntriesByType('resource')
+        .map(entry => new URL(entry.name, window.location.origin))
+        .filter(url => url.origin === window.location.origin && url.pathname.startsWith('/_next/static/'))
+        .map(url => url.href);
+      const channel = new MessageChannel();
+      const timeout = window.setTimeout(() => {
+        channel.port1.close();
+        setOfflineState('unavailable');
+        setOfflineMessage('Penyimpanan offline terlalu lama. Periksa koneksi dan coba lagi.');
+      }, 15000);
+      channel.port1.onmessage = event => {
+        window.clearTimeout(timeout);
+        channel.port1.close();
+        if (event.data?.type === 'OFFLINE_READY') {
+          setOfflineState(event.data.failedCount === 0 ? 'saved' : 'partial');
+          setOfflineMessage(`${event.data.cachedCount} materi tersimpan${event.data.failedCount ? `, ${event.data.failedCount} gagal dimuat` : ''}.`);
+        }
+      };
+      worker.postMessage({ type: 'PREPARE_OFFLINE', urls }, [channel.port2]);
+    } catch (error) {
+      setOfflineState('unavailable');
+      setOfflineMessage(error instanceof Error ? error.message : 'Materi offline gagal disiapkan.');
+    }
+  };
 
   const handleHazardClick = (hazard) => {
     setSelectedQuickHazard(hazard.id);
@@ -54,6 +120,26 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
           <span className="flex items-center gap-1 font-semibold text-[#0D47A1]"><PhoneCall className="w-3.5 h-3.5 text-[#2196F3]" /> Darurat: 112 / 115</span>
         </div>
       </div>
+
+      <section className="rounded-2xl border border-blue-200 bg-white/85 p-4 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <span className="demo-badge">Akses offline</span>
+          <h2 className="mt-2 text-sm font-extrabold text-slate-900">Simpan aplikasi & materi penting di perangkat</h2>
+          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+            Halaman yang sudah dibuka dan checklist tersimpan bisa dicoba saat offline. Peta tile, panggilan, data baru, dan pengiriman laporan tetap memerlukan jaringan.
+          </p>
+          {offlineMessage && <p role="status" className="mt-1 text-xs font-semibold text-blue-800">{offlineMessage}</p>}
+          {offlineState === 'unsupported' && <p role="status" className="mt-1 text-xs text-amber-800">Browser ini tidak mendukung penyimpanan offline otomatis.</p>}
+        </div>
+        <button
+          type="button"
+          onClick={handlePrepareOffline}
+          disabled={offlineState === 'saving' || offlineState === 'checking'}
+          className="mt-3 inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[#0D47A1] px-4 py-2 text-xs font-bold text-white hover:bg-[#1565C0] disabled:cursor-wait disabled:opacity-60 sm:mt-0 sm:w-auto"
+        >
+          {offlineState === 'saving' ? 'Menyimpan…' : offlineState === 'saved' ? 'Perbarui materi offline' : 'Siapkan akses offline'}
+        </button>
+      </section>
 
       {/* Hero Primary Section */}
       <div className="home-hero relative overflow-hidden rounded-[2rem] p-6 sm:p-10 text-white">
@@ -280,7 +366,7 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
             <Info className="w-4 h-4 text-[#2196F3]" />
-            <span>Kanal Informasi Resmi Terhubung (Simulasi)</span>
+            <span>Rujukan Sumber Resmi (Tidak Terhubung)</span>
           </div>
           <span className="demo-badge">Contoh informasi · tidak real-time</span>
         </div>
@@ -289,7 +375,7 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
             <div key={idx} className="p-3 bg-[#E3F2FD]/50 rounded-xl border border-[#90CAF9]/40 flex items-center justify-between text-xs">
               <div>
                 <p className="font-semibold text-[#0D47A1]">{src.name}</p>
-                <p className="text-[11px] text-slate-500">Update {src.update}</p>
+                <p className="text-[11px] text-slate-500">{src.update}</p>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
               DEMO

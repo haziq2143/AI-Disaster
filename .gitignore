@@ -5,3 +5,5 @@ dist/
 *.log
 .env*.local
 Error/
+/data/family_groups.json
+data/accounts.json

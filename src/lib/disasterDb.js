@@ -1,8 +1,11 @@
 import fs from 'fs';
+import { randomUUID } from 'node:crypto';
 import path from 'path';
 
 // Location of persistent JSON database
-const DB_FILE = path.join(process.cwd(), 'data', 'disaster_database.json');
+const DB_FILE = process.env.DISASTER_DB_FILE
+  ? path.resolve(process.env.DISASTER_DB_FILE)
+  : path.join(process.cwd(), 'data', 'disaster_database.json');
 
 // Initial seed data with realistic geographic coordinates (Bandung / Sukajadi cluster)
 const INITIAL_DATABASE = {
@@ -197,8 +200,8 @@ export function writeDb(data) {
 // Get all markers with distances from user location
 export function getAllMarkers(userCoords = null) {
   const db = readDb();
-  const userLat = userCoords?.lat || db.user_location?.lat || -6.8880;
-  const userLng = userCoords?.lng || db.user_location?.lng || 107.5940;
+  const userLat = userCoords?.lat ?? -6.8880;
+  const userLng = userCoords?.lng ?? 107.5940;
 
   // If user GPS is detected in another area (e.g., > 20km from Bandung Sukajadi),
   // dynamically generate realistic regional shelters & context markers near user GPS
@@ -327,8 +330,10 @@ export function getReportById(id) {
 export function addEmergencyReport(report) {
   const db = readDb();
   const newReport = {
-    id: 'rep-' + Date.now(),
+    id: `rep-${randomUUID()}`,
     reporter_name: report.reporter_name || 'Pengguna (Laporan Mandiri)',
+    reporter_user_id: report.reporter_user_id,
+    source_type: 'user_report',
     lat: report.lat,
     lng: report.lng,
     address_detail: report.address_detail || 'Lokasi GPS Pengguna',
@@ -348,8 +353,32 @@ export function addEmergencyReport(report) {
   return newReport;
 }
 
+export function addPosko(posko) {
+  const db = readDb();
+  const newPosko = {
+    id: `posko-${randomUUID()}`,
+    name: posko.name,
+    lat: posko.lat,
+    lng: posko.lng,
+    address: posko.address,
+    capacity: 'Belum diinformasikan',
+    facilities: [],
+    contact: posko.contact || 'Belum diinformasikan',
+    status: 'unverified',
+    verified_by: `Kontribusi akun SAR: ${posko.created_by}`,
+    verified_at: new Date().toISOString(),
+    source_type: 'sar_contribution'
+  };
+  db.posko.unshift(newPosko);
+  writeDb(db);
+  return newPosko;
+}
+
 // Update report status
 export function updateReportStatus(id, status) {
+  if (!['waiting_rescue', 'in_progress', 'resolved'].includes(status)) {
+    throw new Error('Status laporan tidak valid.');
+  }
   const db = readDb();
   const report = db.laporan_darurat.find(r => r.id === id);
   if (report) {
@@ -358,21 +387,4 @@ export function updateReportStatus(id, status) {
     return report;
   }
   return null;
-}
-
-// Save user location & precision consent
-export function saveUserLocation(locationData) {
-  const db = readDb();
-  db.user_location = {
-    ...db.user_location,
-    lat: locationData.lat,
-    lng: locationData.lng,
-    accuracy: locationData.accuracy || 10,
-    precision_consent: Boolean(locationData.precision_consent),
-    status: locationData.status || db.user_location?.status || 'checking',
-    display_mode: locationData.precision_consent ? 'pin_sos' : 'radius_1km',
-    updated_at: new Date().toISOString()
-  };
-  writeDb(db);
-  return db.user_location;
 }
