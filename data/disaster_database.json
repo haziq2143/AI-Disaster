@@ -142,12 +142,12 @@
     }
   ],
   "user_location": {
-    "lat": -5.985976060207582,
-    "lng": 106.03441606020759,
-    "accuracy": 187,
+    "lat": -5.98598158180506,
+    "lng": 106.0344274600369,
+    "accuracy": 120,
     "precision_consent": false,
     "status": "checking",
     "display_mode": "radius_1km",
-    "updated_at": "2026-10-22T03:01:24.101Z"
+    "updated_at": "2026-10-22T03:14:30.179Z"
   }
 }
