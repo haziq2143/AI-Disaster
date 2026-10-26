@@ -12,6 +12,41 @@ export const api = {
     body: JSON.stringify(payload)
   }),
 
+  getSmartRoutes: async (startLat, startLng, endLat, endLng, mode = 'driving') => {
+    const query = new URLSearchParams({
+      startLat: String(startLat),
+      startLng: String(startLng),
+      endLat: String(endLat),
+      endLng: String(endLng),
+      mode
+    });
+    const result = await requestJson(`/api/map/routing?${query}`);
+    if (!result.success || !result.data) {
+      throw new Error('Rute tidak dapat dihitung. Periksa koneksi lalu coba lagi.');
+    }
+    return result.data;
+  },
+
+  getRoadHazards: async () => {
+    const result = await requestJson('/api/map/road-hazards');
+    if (!result.success || !Array.isArray(result.data)) {
+      throw new Error('Status bahaya jalan tidak dapat dimuat.');
+    }
+    return result.data;
+  },
+
+  toggleRoadHazard: async (id, active) => {
+    const result = await requestJson('/api/map/road-hazards', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, active })
+    });
+    if (!result.success) {
+      throw new Error('Status bahaya jalan gagal diperbarui.');
+    }
+    return result;
+  },
+
   getMapMarkers: async (lat = null, lng = null) => {
     const query = lat !== null && lng !== null
       ? `?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`

@@ -141,7 +141,8 @@ export const INITIAL_DATABASE = {
     status: 'checking',
     display_mode: 'radius_1km',
     updated_at: new Date().toISOString()
-  }
+  },
+  road_hazards: []
 };
 
 // Calculate Haversine distance in meters
@@ -170,6 +171,23 @@ export function writeDb(data) {
     for (const key of Object.keys(current)) delete current[key];
     Object.assign(current, data);
     return current;
+  });
+}
+
+export async function getRoadHazards() {
+  const db = await readDb();
+  return (Array.isArray(db.road_hazards) ? db.road_hazards : [])
+    .filter(hazard => hazard.data_status === 'live' && hazard.status === 'verified');
+}
+
+export async function toggleRoadHazard(id, activeState = null) {
+  return mutateDocument(STORE_KEY, INITIAL_DATABASE, db => {
+    const hazard = (Array.isArray(db.road_hazards) ? db.road_hazards : [])
+      .find(item => item.id === id && item.data_status === 'live' && item.status === 'verified');
+    if (!hazard) return null;
+    hazard.active = activeState !== null ? Boolean(activeState) : !hazard.active;
+    hazard.updated_at = new Date().toISOString();
+    return hazard;
   });
 }
 

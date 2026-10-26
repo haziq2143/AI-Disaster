@@ -30,7 +30,8 @@ export default function LeafletMapCanvas({
   onSelectItem,
   onNavigateRoute,
   onTileError,
-  mapControlRef
+  mapControlRef,
+  perspective = 'me'
 }) {
   const containerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -173,65 +174,99 @@ export default function LeafletMapCanvas({
           });
         });
         layerGroup.addLayer(userSosMarker);
-      } else if (isRealGpsActive) {
-        // NORMAL / SAFE MODE: 1 km Approximate Privacy Circle + Soft Navigation Dot
+      } else {
+        // NORMAL / SAFE MODE:
+        // When in 'public' perspective, the exact pinpoint is HIDDEN to simulate how the public only sees a 1km circle.
+        // When in 'me' perspective, both the exact pinpoint dot and privacy circle are visible.
         const privacyCircle = L.circle([userLat, userLng], {
           radius: 1000, // 1 km in meters
-          color: '#0D47A1',
-          fillColor: '#2196F3',
-          fillOpacity: 0.16,
-          weight: 2,
+          color: perspective === 'public' ? '#4F46E5' : '#0D47A1',
+          fillColor: perspective === 'public' ? '#6366F1' : '#2196F3',
+          fillOpacity: perspective === 'public' ? 0.22 : 0.14,
+          weight: perspective === 'public' ? 2.5 : 2,
           dashArray: '6, 6'
         });
         privacyCircle.bindPopup(`
           <div class="text-xs space-y-1">
-            <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">🔵 RADIUS PRIVASI 1 KM</span>
+            <span class="px-2 py-0.5 rounded ${
+              perspective === 'public' ? 'bg-indigo-100 text-indigo-900' : 'bg-blue-100 text-blue-800'
+            } font-bold text-[10px]">
+              ${perspective === 'public' ? '👥 SUDUT PANDANG PUBLIK • RADIUS 1 KM' : '🔵 SUDUT PANDANG SAYA • RADIUS 1 KM'}
+            </span>
             <p class="font-bold text-slate-900 mt-1">Area Perkiraan Lokasi Anda</p>
-            <p class="text-slate-600 text-[11px]">Visualisasi privasi prototipe; koordinat presisi perangkat tidak ditampilkan pada peta ini.</p>
+            <p class="text-slate-600 text-[11px]">
+              ${
+                perspective === 'public'
+                  ? 'Dalam sudut pandang publik, pin presisi rumah Anda disembunyikan. Warga lain hanya melihat lingkaran 1 km ini.'
+                  : 'Orang lain hanya melihat lingkaran radius perkiraan 1 km ini. Koordinat rumah Anda dirahasiakan.'
+              }
+            </p>
           </div>
         `);
         privacyCircle.on('click', () => {
           onSelectItem({
             type: 'user',
-            name: 'Lokasi Anda (Radius 1 km Privasi)',
+            name: perspective === 'public' ? 'Warga Sekitar (Radius 1 km Privasi)' : 'Lokasi Anda (Radius 1 km Privasi)',
             lat: userLat,
             lng: userLng,
             status: 'safe',
-            notes: 'Visualisasi perkiraan radius 1 km pada prototipe ini.',
+            notes: perspective === 'public'
+              ? 'Tampilan publik: Pin presisi disembunyikan untuk menjaga privasi rumah warga.'
+              : 'Warga lain hanya melihat area perkiraan radius 1 km ini untuk menjaga privasi rumah Anda.',
             accuracy: accuracyText
           });
         });
         layerGroup.addLayer(privacyCircle);
 
-        const normalIcon = L.divIcon({
-          className: 'custom-leaflet-marker',
-          html: `
-            <div class="relative flex flex-col items-center" style="transform: translate(-50%, -50%);">
-              <div class="w-8 h-8 rounded-full bg-[#0D47A1] text-white shadow-lg flex items-center justify-center border-2 border-white ring-2 ring-blue-300">
-                <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        // Only show the pinpoint marker when in 'me' perspective!
+        if (perspective === 'me') {
+          const normalIcon = L.divIcon({
+            className: 'custom-leaflet-marker',
+            html: `
+              <div class="relative flex flex-col items-center" style="transform: translate(-50%, -50%);">
+                <span class="absolute w-8 h-8 rounded-full bg-blue-500/30 animate-ping"></span>
+                <div class="w-8 h-8 rounded-full bg-[#0D47A1] text-white shadow-lg flex items-center justify-center border-2 border-white ring-2 ring-blue-300">
+                  <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                </div>
+                <span class="mt-1 whitespace-nowrap px-2 py-0.5 rounded-md bg-blue-900/90 text-white text-[9px] font-bold shadow-md">
+                  Lokasi Anda (GPS Presisi)
+                </span>
               </div>
-              <span class="mt-1 whitespace-nowrap px-2 py-0.5 rounded-md bg-blue-900/90 text-white text-[9px] font-bold shadow-md">
-                Anda (Privasi 1km)
-              </span>
-            </div>
-          `,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16]
-        });
-
-        const userNormalMarker = L.marker([userLat, userLng], { icon: normalIcon, zIndexOffset: 900 });
-        userNormalMarker.on('click', () => {
-          onSelectItem({
-            type: 'user',
-            name: 'Lokasi Anda (Radius 1 km Privasi)',
-            lat: userLat,
-            lng: userLng,
-            status: 'safe',
-            notes: 'Koordinat GPS aktual perangkat Anda terlindungi oleh radius privasi 1 km.',
-            accuracy: accuracyText
+            `,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
           });
-        });
-        layerGroup.addLayer(userNormalMarker);
+
+          const userNormalMarker = L.marker([userLat, userLng], { icon: normalIcon, zIndexOffset: 900 });
+          userNormalMarker.on('click', () => {
+            onSelectItem({
+              type: 'user',
+              name: 'Lokasi Anda (GPS Presisi)',
+              lat: userLat,
+              lng: userLng,
+              status: 'safe',
+              notes: 'Koordinat GPS aktual perangkat Anda. Hanya terlihat di sudut pandang pribadi Anda.',
+              accuracy: accuracyText
+            });
+          });
+          layerGroup.addLayer(userNormalMarker);
+        } else {
+          // Public center label in middle of circle
+          const publicCenterIcon = L.divIcon({
+            className: 'custom-leaflet-marker',
+            html: `
+              <div class="relative flex flex-col items-center" style="transform: translate(-50%, -50%);">
+                <div class="px-2 py-0.5 rounded-md bg-indigo-900/90 text-indigo-100 text-[9px] font-extrabold shadow-md border border-indigo-400/50 whitespace-nowrap">
+                  Area Warga Sekitar (Privasi 1 km)
+                </div>
+              </div>
+            `,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+          });
+          const publicCenterMarker = L.marker([userLat, userLng], { icon: publicCenterIcon, zIndexOffset: 880 });
+          layerGroup.addLayer(publicCenterMarker);
+        }
       }
 
       // 2. RENDER DATABASE POSKO MARKERS (Shelters)
@@ -369,7 +404,7 @@ export default function LeafletMapCanvas({
     return () => {
       isCancelled = true;
     };
-  }, [userLat, userLng, isRealGpsActive, isUserInDanger, accuracyText, poskoList, wargaList, laporanDaruratList, onSelectItem]);
+  }, [userLat, userLng, isRealGpsActive, isUserInDanger, accuracyText, poskoList, wargaList, laporanDaruratList, onSelectItem, perspective]);
 
   return (
     <div className="w-full h-full relative">

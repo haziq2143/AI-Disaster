@@ -174,6 +174,11 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
             <label className="block text-sm font-semibold text-slate-700">
               {mode === 'reset' ? 'Password baru' : 'Kata sandi'}
               <input required type="password" minLength={mode === 'register' || mode === 'reset' ? 10 : undefined} maxLength={128} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={event => setPassword(event.target.value)} className="form-control mt-1.5" placeholder={mode === 'login' ? 'Kata sandi akun' : 'Minimal 10 karakter'} />
+              {mode === 'register' && (
+                <span className={`mt-1 block text-[11px] font-bold ${password.length >= 10 ? 'text-emerald-700' : 'text-slate-500'}`}>
+                  {password.length >= 10 ? 'Panjang kata sandi memenuhi syarat' : 'Wajib minimal 10 karakter'}
+                </span>
+              )}
             </label>
           )}
           {mode === 'reset' && (
@@ -183,6 +188,11 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
             </label>
           )}
           {error && <p role="alert" className="flex items-start gap-2 rounded-xl bg-rose-50 p-3 text-sm text-rose-800"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</p>}
+          {mode === 'login' && error.includes('tidak cocok') && (
+            <p className="pl-6 text-[11px] text-slate-600">
+              Belum punya akun? Pilih tab <strong>Buat akun</strong> di atas atau lanjut sebagai tamu.
+            </p>
+          )}
           {notice && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
           {resetUrl && (
             <a href={resetUrl} className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800">

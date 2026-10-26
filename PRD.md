@@ -295,7 +295,7 @@ Fitur pembeda utama produk. Setelah pengguna memilih mode darurat atau sistem me
 
 ## 4.6 Safe Route
 
-Status prototype saat ini: seluruh titik, jarak, dan detail tujuan adalah data demo. Tidak ada rute terverifikasi atau navigasi belokan; kontrol navigasi dinonaktifkan. Marker contoh tidak dibuat di sekitar GPS pengguna.
+Status prototype saat ini: seluruh titik, jarak, dan detail tujuan pada layar adalah data demo. Tidak ada rute terverifikasi atau navigasi belokan; kontrol navigasi dinonaktifkan. Endpoint routing peta nonaktif secara default dan hanya mengirim koordinat ke penyedia yang dikonfigurasi setelah operator mengaktifkan `ALLOW_EXTERNAL_ROUTING`; hasil peta bukan rekomendasi evakuasi. Feed hazard resmi belum terhubung dan marker contoh tidak dibuat di sekitar GPS pengguna.
 
 - Menampilkan lokasi awal dan titik evakuasi hanya dari data yang telah diverifikasi atau data demo berlabel.
 

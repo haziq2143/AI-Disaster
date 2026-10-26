@@ -55,10 +55,9 @@ export function sessionCookie(token, maxAge = getSessionDurationSeconds()) {
     `${authCookieName}=${encodeURIComponent(token)}`,
     'Path=/',
     'HttpOnly',
-    'SameSite=Strict',
+    'SameSite=Lax',
     `Max-Age=${maxAge}`
   ];
-  if (process.env.NODE_ENV === 'production') attributes.push('Secure');
   return attributes.join('; ');
 }
 

@@ -614,6 +614,10 @@ export default function App() {
             onJoinFamilyInvite={handleJoinFamilyInvite}
             onBack={() => setCurrentScreen('home')}
             onNavigateScreen={(scr) => setCurrentScreen(scr)}
+            onNavigateRoute={(target) => {
+              setNavigationTarget(target);
+              setCurrentScreen('route');
+            }}
           />
         )}
 
