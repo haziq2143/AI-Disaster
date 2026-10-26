@@ -103,7 +103,7 @@ export default function SituationInput({
 
       {/* Input Mode Toggle (Text vs Voice) */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
             Metode Penyampaian Kondisi:
           </span>

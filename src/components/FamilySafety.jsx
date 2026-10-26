@@ -344,15 +344,15 @@ export default function FamilySafety({
                   : 'border-amber-200 bg-amber-50/20'
               }`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
                     isTogether ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                   }`}>
                     {member.name.charAt(0)}
                   </div>
                   <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h4 className="font-bold text-slate-900 text-base">{member.name}</h4>
                       <span className="text-[11px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-medium">
                         {member.relationship}
@@ -371,7 +371,7 @@ export default function FamilySafety({
                   </div>
                 </div>
 
-                <div className="flex max-w-[16rem] flex-wrap items-center justify-end gap-1.5">
+                <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:max-w-[16rem] sm:justify-end">
                   {member.id !== 'f1' && (
                     <button
                       type="button"
@@ -574,7 +574,7 @@ export default function FamilySafety({
             role="dialog"
             aria-modal="true"
             aria-labelledby="family-invitation-title"
-            className="my-auto max-h-[calc(100vh-1.5rem)] w-full max-w-xl space-y-4 overflow-y-auto rounded-2xl border-2 border-[#2196F3] bg-white p-5 shadow-2xl animate-fadeIn"
+            className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-xl space-y-4 overflow-y-auto rounded-2xl border-2 border-[#2196F3] bg-white p-5 shadow-2xl animate-fadeIn"
           >
             <div className="flex items-center justify-between">
             <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">

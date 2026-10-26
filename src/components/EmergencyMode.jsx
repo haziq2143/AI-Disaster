@@ -191,13 +191,13 @@ export default function EmergencyMode({
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fadeIn pb-12">
       {/* High Urgency Contrast Header (PRD 4.4 & 7.4) */}
-      <div className="bg-[#0D47A1] text-white p-5 rounded-3xl shadow-xl flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+      <div className="bg-[#0D47A1] text-white p-5 rounded-3xl shadow-xl flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shrink-0">
             <ShieldAlert className="w-6 h-6 text-[#90CAF9] animate-pulse" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 bg-rose-600 text-white rounded">
                 EMERGENCY MODE AKTIF
               </span>
@@ -211,7 +211,7 @@ export default function EmergencyMode({
 
         <button
           onClick={onExitEmergencyMode}
-          className="flex items-center gap-1.5 text-xs text-blue-200 hover:text-white px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all cursor-pointer"
+          className="flex shrink-0 items-center gap-1.5 text-xs text-blue-200 hover:text-white px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all cursor-pointer"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Keluar Mode</span>
@@ -219,7 +219,7 @@ export default function EmergencyMode({
       </div>
 
       {/* Big Step Progress Indicator */}
-      <div className="flex items-center justify-between px-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-2">
         <span className="text-xs font-bold text-[#0D47A1] uppercase tracking-wider">
           Langkah {currentStepIndex + 1} dari {currentHazardSteps.length}
         </span>
@@ -340,14 +340,14 @@ export default function EmergencyMode({
       </div>
 
       {/* Emergency Hotline Direct Bar */}
-      <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2 text-rose-900 font-semibold">
+      <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="flex min-w-0 flex-1 items-center gap-2 text-rose-900 font-semibold">
           <PhoneCall className="w-4 h-4 text-rose-600 shrink-0" />
           <span>Kondisi darurat makin parah? Hubungi tim SAR / Posko</span>
         </div>
         <a 
           href="tel:112"
-          className="px-3 py-1 bg-rose-600 text-white font-bold rounded-lg hover:bg-rose-700 transition-colors"
+          className="shrink-0 px-3 py-1 bg-rose-600 text-white font-bold rounded-lg hover:bg-rose-700 transition-colors"
         >
           Panggil 112
         </a>

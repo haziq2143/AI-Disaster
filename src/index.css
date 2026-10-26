@@ -13,10 +13,13 @@
   html {
     min-width: 320px;
     scroll-behavior: smooth;
+    overflow-x: clip;
   }
 
   body {
     min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: clip;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     background: #eff6ff;
   }
@@ -157,6 +160,14 @@
 .emergency-header-action:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 24px rgba(190, 18, 60, 0.28);
+}
+
+@media (max-width: 420px) {
+  .emergency-header-action {
+    gap: 0.375rem;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.7rem;
+  }
 }
 
 .bottom-dock-wrap {

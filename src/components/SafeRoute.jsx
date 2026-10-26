@@ -184,7 +184,7 @@ export default function SafeRoute({
       {/* DYNAMIC VISUAL ROUTE MAP CANVAS */}
       <div className="relative rounded-3xl overflow-hidden border-2 border-[#2196F3] bg-slate-900 shadow-xl text-white">
         {/* Map Header Status Bar */}
-        <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between gap-2">
+        <div className="absolute top-3 left-3 right-3 z-10 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md rounded-xl border border-slate-700 text-xs font-medium">
             <span className={`px-2 py-0.5 text-white text-[10px] font-bold rounded ${
               selectedPoint.category === 'darurat'
@@ -254,7 +254,7 @@ export default function SafeRoute({
                 <MapPin className="w-5 h-5 text-white" />
               )}
             </div>
-            <span className={`mt-1 px-2.5 py-0.5 text-[10px] font-extrabold rounded-lg shadow whitespace-nowrap border ${
+            <span className={`mt-1 px-2.5 py-0.5 text-center text-[10px] font-extrabold rounded-lg shadow sm:whitespace-nowrap border ${
               selectedPoint.category === 'darurat'
                 ? 'bg-rose-950/95 text-rose-300 border-rose-500/60'
                 : selectedPoint.category === 'keluarga'
@@ -313,7 +313,7 @@ export default function SafeRoute({
 
       {/* CATEGORY TABS: Posko, Keluarga, Orang Butuh Bantuan */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-extrabold text-slate-900 text-sm">
             Pilih Tujuan Rute Evakuasi & Penyelamatan:
           </h3>

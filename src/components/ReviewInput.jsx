@@ -136,7 +136,7 @@ export default function ReviewInput({
             <p className="text-xs font-semibold text-slate-800">
               1. Apakah saklar listrik utama rumah sudah dimatikan atau masih menyala?
             </p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
               {[
                 { val: 'cut_off', label: 'Sudah Mati / Aman' },
                 { val: 'still_on', label: 'Masih Menyala' },
@@ -163,7 +163,7 @@ export default function ReviewInput({
             <p className="text-xs font-semibold text-slate-800">
               2. Apakah ada anggota keluarga dengan keterbatasan mobilitas (lansia, sakit, balita)?
             </p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
               {[
                 { val: 'yes', label: 'Ya, Ada' },
                 { val: 'no', label: 'Tidak Ada (Semua Mandiri)' },
@@ -190,7 +190,7 @@ export default function ReviewInput({
             <p className="text-xs font-semibold text-slate-800">
               3. Apakah jalur keluar depan rumah masih dapat dilalui kaki secara aman?
             </p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
               {[
                 { val: 'yes', label: 'Bisa Dilalui' },
                 { val: 'partial', label: 'Sulit / Berisiko' },

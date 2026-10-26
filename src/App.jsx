@@ -461,7 +461,7 @@ export default function App() {
     || currentScreen === 'emergency';
 
   if (!authReady) {
-    return <main className="flex min-h-screen items-center justify-center text-sm font-semibold text-slate-600">Memeriksa sesi akun…</main>;
+    return <main className="flex min-h-dvh items-center justify-center text-sm font-semibold text-slate-600">Memeriksa sesi akun…</main>;
   }
   if (!authUser) {
     return (
@@ -477,7 +477,7 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell min-h-screen text-slate-800 flex flex-col font-sans">
+    <div className="app-shell min-h-dvh text-slate-800 flex flex-col font-sans">
       {/* Top Demo Bar / Screen Switcher Pill for UI/UX Evaluation */}
       <div className="demo-bar text-white text-xs px-4 py-2 border-b border-[#2196F3]/30">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 flex-wrap">
@@ -498,17 +498,17 @@ export default function App() {
           {/* Brand */}
           <button 
             onClick={() => setCurrentScreen('home')}
-            className="flex items-center gap-3 text-left cursor-pointer group"
+            className="flex min-w-0 items-center gap-2.5 text-left cursor-pointer group sm:gap-3"
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0D47A1] to-[#2196F3] flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-[#0D47A1] to-[#2196F3] flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
               <ShieldAlert className="w-6 h-6 text-white" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-base sm:text-lg text-[#0D47A1] tracking-tight">
                   AI Disaster
                 </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 bg-[#E3F2FD] text-[#0D47A1] rounded border border-[#90CAF9]">
+                <span className="hidden text-[10px] font-bold px-1.5 py-0.2 bg-[#E3F2FD] text-[#0D47A1] rounded border border-[#90CAF9] min-[400px]:inline">
                   ASSISTANT
                 </span>
               </div>
@@ -516,7 +516,7 @@ export default function App() {
             </div>
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {authUser.role === 'sar' && (
               <button onClick={() => setCurrentScreen('sar_dashboard')} className="hidden rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-[#0D47A1] sm:block">
                 Panel SAR
@@ -526,7 +526,7 @@ export default function App() {
               <p className="max-w-36 truncate text-xs font-bold text-slate-800">{authUser.name}</p>
               <p className="text-[10px] text-slate-500">{authUser.role === 'sar' ? 'Tim SAR' : 'Pengguna'}</p>
             </div>
-            <button type="button" onClick={handleSignOut} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[11px] font-bold text-slate-600 hover:bg-slate-50">
+            <button type="button" onClick={handleSignOut} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] font-bold text-slate-600 hover:bg-slate-50 sm:px-2.5">
               {authUser.isGuest ? 'Masuk' : 'Keluar'}
             </button>
             <button
@@ -754,15 +754,15 @@ export default function App() {
             </p>
           </div>
 
-          <div className="flex items-center gap-4 text-slate-600 font-medium">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-center text-slate-600 font-medium sm:justify-end sm:text-left">
             <button onClick={() => setCurrentScreen('onboarding')} className="hover:text-[#0D47A1] cursor-pointer">
               PRD & Metrik
             </button>
-            <span>•</span>
+            <span className="hidden sm:inline">•</span>
             <button onClick={() => setCurrentScreen('family')} className="hover:text-[#0D47A1] cursor-pointer">
               Family Safety
             </button>
-            <span>•</span>
+            <span className="hidden sm:inline">•</span>
             <button onClick={() => setCurrentScreen('route')} className="hover:text-[#0D47A1] cursor-pointer">
               Safe Route
             </button>

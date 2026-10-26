@@ -718,7 +718,7 @@ export default function GlobalSafetyMap({
           <div className="absolute top-14 left-3 right-3 z-10 pointer-events-none">
             {perspective === 'public' ? (
               <div className="p-2.5 rounded-2xl bg-indigo-950/90 text-indigo-100 border border-indigo-400/60 shadow-xl backdrop-blur-md flex items-center justify-between gap-2 text-xs font-bold animate-fadeIn">
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                   <Users className="w-4 h-4 text-indigo-300 shrink-0" />
                   <span>Mode Publik Aktif: Lokasi rumah Anda disamarkan dalam radius privasi 1 km (PRD 4.5).</span>
                 </div>
@@ -728,7 +728,7 @@ export default function GlobalSafetyMap({
               </div>
             ) : (
               <div className="p-2.5 rounded-2xl bg-blue-950/90 text-blue-100 border border-blue-400/60 shadow-xl backdrop-blur-md flex items-center justify-between gap-2 text-xs font-bold animate-fadeIn">
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                   <Radio className="w-4 h-4 text-blue-300 animate-pulse shrink-0" />
                   <span>Mode Pribadi: Menampilkan lokasi presisi GPS Anda & radar fasilitas evakuasi terdekat.</span>
                 </div>
@@ -1075,7 +1075,7 @@ export default function GlobalSafetyMap({
           role="presentation"
           onMouseDown={e => { if (e.target === e.currentTarget) setShowConsentModal(false); }}
         >
-          <section className="glass-card w-full max-w-lg p-6 space-y-5 shadow-2xl bg-white" role="dialog" aria-modal="true">
+          <section className="glass-card max-h-[calc(100dvh-2rem)] w-full max-w-lg space-y-5 overflow-y-auto bg-white p-6 shadow-2xl" role="dialog" aria-modal="true">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 grid place-items-center shrink-0">
@@ -1166,7 +1166,7 @@ export default function GlobalSafetyMap({
           role="presentation" 
           onMouseDown={e => { if (e.target === e.currentTarget) setReportTarget(null); }}
         >
-          <section className="glass-card w-full max-w-md p-6 space-y-4 shadow-2xl bg-white" role="dialog" aria-modal="true">
+          <section className="glass-card max-h-[calc(100dvh-2rem)] w-full max-w-md space-y-4 overflow-y-auto bg-white p-6 shadow-2xl" role="dialog" aria-modal="true">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <span className="eyebrow">Anti-Abuse & Fake GPS Protection</span>

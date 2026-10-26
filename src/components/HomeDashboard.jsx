@@ -212,8 +212,8 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
 
       {/* Hazard Selector - Card Grid */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
             <h2 className="text-lg sm:text-xl font-bold text-[#0D47A1]">Pilih Skenario Bencana</h2>
             <p className="text-xs sm:text-sm text-slate-500">Pilih skenario untuk melihat panduan umum demo; aplikasi tidak menganalisis atau memverifikasi kondisi lapangan.</p>
           </div>
