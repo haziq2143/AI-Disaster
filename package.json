@@ -4,9 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
-    "server": "node server.js",
     "build": "next build",
-    "start": "next start --hostname 127.0.0.1"
+    "start": "next start --hostname 127.0.0.1",
+    "db:migrate": "node scripts/migrate-database.js",
+    "test": "node --import ./scripts/load-test-env.js --test",
+    "db:backup": "node scripts/backup-database.js",
+    "db:restore": "node scripts/restore-database.js"
   },
   "keywords": [],
   "author": "",
@@ -19,11 +22,11 @@
     "tailwindcss": "^3.4.17"
   },
   "dependencies": {
-    "cors": "^2.8.6",
     "dotenv": "^18.0.7",
-    "express": "^5.3.0",
     "leaflet": "^1.9.4",
     "next": "^16.1.0",
+    "nodemailer": "^10.2.1",
+    "pg": "^8.23.1",
     "qrcode": "^1.5.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

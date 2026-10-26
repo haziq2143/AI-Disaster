@@ -38,23 +38,23 @@ export const INITIAL_EVACUATION_POINTS = [
     name: 'Balai Warga RW 04 & Pos Pengungsian Mandiri',
     distance: '350 meter',
     estTime: '5-7 menit jalan kaki',
-    capacity: 'Kapasitas tersisa ~80 jiwa (Luas)',
-    status: 'TERVERIFIKASI',
-    verifiedAt: '12 menit lalu oleh BPBD Posko Wilayah',
-    elevation: 'Elevasi tinggi (+18m mdpl)',
-    notes: 'Akses melalui Jalan Mawar aman dari genangan air. Tersedia tenaga medis lapangan dan genset.',
-    isRecommended: true
+    capacity: 'Tidak tersedia · data demo',
+    status: 'DATA DEMO · BELUM DIVERIFIKASI',
+    verifiedAt: 'Contoh statis · bukan feed resmi',
+    elevation: 'Tidak diverifikasi',
+    notes: 'Contoh statis untuk demonstrasi antarmuka; akses, fasilitas, dan keamanan lokasi tidak diverifikasi.',
+    isRecommended: false
   },
   {
     id: 'ev-2',
     name: 'Gedung Serbaguna Kecamatan Utama',
     distance: '1.2 km',
     estTime: '15-20 menit',
-    capacity: 'Kapasitas besar, dapur umum aktif',
-    status: 'TERVERIFIKASI',
-    verifiedAt: '25 menit lalu oleh Tim Reaksi Cepat',
-    elevation: 'Elevasi tinggi (+24m mdpl)',
-    notes: 'Jalur via Jalan Protokol padat merayap, disarankan menggunakan jalur alternatif pejalan kaki.',
+    capacity: 'Kapasitas tidak tersedia · data demo',
+    status: 'DATA DEMO · BELUM DIVERIFIKASI',
+    verifiedAt: 'Contoh statis · bukan feed resmi',
+    elevation: 'Elevasi tidak diverifikasi',
+    notes: 'Contoh statis untuk demonstrasi antarmuka; akses, fasilitas, dan keamanan lokasi tidak diverifikasi.',
     isRecommended: false
   },
   {
@@ -64,9 +64,9 @@ export const INITIAL_EVACUATION_POINTS = [
     estTime: 'Status rute belum terverifikasi',
     capacity: 'Area terbuka luas',
     status: 'BELUM TERVERIFIKASI',
-    verifiedAt: 'Terakhir dicek 2 jam lalu',
+    verifiedAt: 'Contoh statis · bukan feed resmi',
     elevation: 'Dataran sedang',
-    notes: 'Peringatan: Terdapat laporan pohon tumbang di persimpangan timur. Hindari sebelum petugas memverifikasi.',
+    notes: 'Data contoh; tidak ada laporan kondisi jalan terkini yang terhubung.',
     isRecommended: false
   }
 ];

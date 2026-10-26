@@ -1,9 +1,18 @@
 import { authenticateAccount, createSession } from '../../../../src/lib/authStore.js';
 import { badOriginResponse, hasSameOrigin, sessionCookie } from '../../../../src/lib/auth.js';
+import {
+  checkRequestRateLimit,
+  rateLimitExceededResponse,
+  rateLimitUnavailableResponse
+} from '../../../../src/lib/requestRateLimit.js';
 
 export async function POST(request) {
   if (!hasSameOrigin(request)) return badOriginResponse();
   try {
+    const rateLimit = await checkRequestRateLimit(request, 'auth-login', 10, 15 * 60);
+    if (!rateLimit.available) return rateLimitUnavailableResponse();
+    if (!rateLimit.allowed) return rateLimitExceededResponse(rateLimit.retryAfterSeconds);
+
     const body = await request.json();
     const user = await authenticateAccount(body);
     const session = await createSession(user.id);
@@ -12,8 +21,19 @@ export async function POST(request) {
       { headers: { 'Set-Cookie': sessionCookie(session.token, session.maxAge), 'Cache-Control': 'no-store' } }
     );
   } catch (error) {
-    const status = /tidak cocok/.test(error.message) ? 401 : 500;
+    if (error instanceof SyntaxError) {
+      return Response.json({ success: false, error: 'Format permintaan tidak valid.' }, { status: 400 });
+    }
+    const status = /tidak cocok/.test(error.message) ? 401
+      : /Email belum diverifikasi/.test(error.message) ? 403
+        : 500;
     if (status === 500) console.error('API /api/auth/login error:', error);
-    return Response.json({ success: false, error: error.message }, { status });
+    return Response.json(
+      {
+        success: false,
+        error: status === 500 ? 'Layanan akun sedang bermasalah. Coba lagi.' : error.message
+      },
+      { status }
+    );
   }
 }

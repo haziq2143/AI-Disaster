@@ -1,18 +1,25 @@
 import { NextResponse } from 'next/server';
 import { addEmergencyReport, readDb } from '../../../../src/lib/disasterDb.js';
-import { getAuthenticatedUser, requireSarUser } from '../../../../src/lib/auth.js';
+import { badOriginResponse, getAuthenticatedUser, hasSameOrigin, requireSarUser } from '../../../../src/lib/auth.js';
+import { validateEmergencyReport } from '../../../../src/lib/emergencyReportValidation.js';
+import {
+  checkRequestRateLimit,
+  rateLimitExceededResponse,
+  rateLimitUnavailableResponse
+} from '../../../../src/lib/requestRateLimit.js';
 
 export async function GET(request) {
-  const { response } = requireSarUser(request);
+  const { response } = await requireSarUser(request);
   if (response) return response;
   try {
-    const db = readDb();
+    const db = await readDb();
     return NextResponse.json({
       success: true,
       count: db.laporan_darurat.length,
       data: db.laporan_darurat
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
+    console.error('API /api/map/emergency-reports GET error:', error);
     return NextResponse.json(
       { success: false, error: 'Gagal mengambil laporan darurat.' },
       { status: 500 }
@@ -21,28 +28,28 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const user = getAuthenticatedUser(request);
-  try {
-    const body = await request.json();
-    const { lat, lng, needs_description, reporter_name, hazard_type, vulnerable_members, urgency_level, precision_consent } = body;
+  if (!hasSameOrigin(request)) return badOriginResponse();
 
-    if (typeof lat !== 'number' || typeof lng !== 'number' || precision_consent !== true) {
-      return NextResponse.json(
-        { success: false, error: 'Koordinat GPS dan persetujuan berbagi lokasi presisi diperlukan untuk laporan SOS.' },
-        { status: 400 }
-      );
+  try {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ success: false, error: 'Format permintaan tidak valid.' }, { status: 400 });
+    }
+    const reportInput = validateEmergencyReport(body);
+    const rateLimit = await checkRequestRateLimit(request, 'sos', 3, 15 * 60);
+    if (!rateLimit.available) return rateLimitUnavailableResponse();
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(rateLimit.retryAfterSeconds);
     }
 
-    const report = addEmergencyReport({
-      lat,
-      lng,
+    const user = await getAuthenticatedUser(request);
+
+    const report = await addEmergencyReport({
+      ...reportInput,
       reporter_name: user?.name || 'Pengguna anonim',
-      reporter_user_id: user?.id,
-      hazard_type,
-      urgency_level: urgency_level || 'KRITIS',
-      needs_description,
-      vulnerable_members,
-      precision_consent: Boolean(precision_consent)
+      reporter_user_id: user?.id
     });
 
     return NextResponse.json({
@@ -51,6 +58,9 @@ export async function POST(request) {
       data: report
     }, { status: 201 });
   } catch (error) {
+    if (error.status === 400) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
     console.error('API /api/map/emergency-reports error:', error);
     return NextResponse.json(
       { success: false, error: 'Gagal mencatat laporan darurat.' },

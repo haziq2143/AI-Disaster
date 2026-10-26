@@ -96,7 +96,7 @@ export default function SarDashboard({ currentUser }) {
       <header className="rounded-2xl bg-[#0D47A1] p-5 text-white">
         <p className="text-xs font-bold uppercase tracking-wider text-blue-100">Panel Tim SAR · {currentUser.name}</p>
         <h1 className="mt-1 text-2xl font-extrabold">Laporan bantuan & posko</h1>
-        <p className="mt-2 text-xs leading-relaxed text-blue-100">Data operasional yang ditampilkan belum terhubung ke instansi dispatch resmi. Verifikasi lapangan tetap diperlukan.</p>
+        <p className="mt-2 text-xs leading-relaxed text-blue-100">Sebagian laporan awal adalah data demo, bukan permintaan bantuan nyata. Panel ini tidak terhubung ke dispatch resmi; jangan gunakan data atau nomor contoh untuk mengirim bantuan. Verifikasi setiap laporan secara mandiri.</p>
       </header>
 
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}

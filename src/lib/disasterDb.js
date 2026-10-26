@@ -1,14 +1,10 @@
-import fs from 'fs';
 import { randomUUID } from 'node:crypto';
-import path from 'path';
+import { mutateDocument, readDocument } from './database.js';
 
-// Location of persistent JSON database
-const DB_FILE = process.env.DISASTER_DB_FILE
-  ? path.resolve(process.env.DISASTER_DB_FILE)
-  : path.join(process.cwd(), 'data', 'disaster_database.json');
+const STORE_KEY = 'disaster_database';
 
-// Initial seed data with realistic geographic coordinates (Bandung / Sukajadi cluster)
-const INITIAL_DATABASE = {
+// Static demonstration data; values are not verified operational information.
+export const INITIAL_DATABASE = {
   posko: [
     {
       id: 'posko-1',
@@ -16,13 +12,13 @@ const INITIAL_DATABASE = {
       lat: -6.8872,
       lng: 107.5948,
       address: 'Jl. Sukajadi No. 142, RT 04 / RW 04',
-      capacity: '120 orang (Tersisa ~45 slot)',
-      facilities: ['Genset Darurat', 'Dapur Umum Mandiri', 'Tenaga Medis P3K', 'Air Bersih'],
-      contact: '0812-9988-RW04 (Bpk. Subagio)',
-      status: 'active',
-      verified_by: 'BPBD Posko Wilayah',
-      verified_at: '12 menit lalu',
-      elevation: '+18m mdpl (Dataran Tinggi Aman)'
+      capacity: 'Tidak tersedia · data demo',
+      facilities: [],
+      contact: 'Tidak tersedia · data demo',
+      status: 'unverified',
+      verified_by: 'DATA DEMO — bukan verifikasi instansi',
+      verified_at: 'Contoh statis — bukan waktu pembaruan',
+      elevation: 'Tidak diverifikasi'
     },
     {
       id: 'posko-2',
@@ -30,13 +26,13 @@ const INITIAL_DATABASE = {
       lat: -6.8835,
       lng: 107.5910,
       address: 'Jl. Sukamaju No. 8, Sukajadi',
-      capacity: '300 orang (Tersisa ~160 slot)',
-      facilities: ['Pos Medis Utama BPBD', '2 Unit Armada Perahu Karet', 'Suplai Obat Lengkap', 'Dapur Umum BNPB'],
-      contact: '022-203112 / Call Center 112',
-      status: 'active',
-      verified_by: 'Tim Reaksi Cepat BPBD Jabar',
-      verified_at: '25 menit lalu',
-      elevation: '+24m mdpl'
+      capacity: 'Tidak tersedia · data demo',
+      facilities: [],
+      contact: 'Tidak tersedia · data demo',
+      status: 'unverified',
+      verified_by: 'DATA DEMO — bukan verifikasi instansi',
+      verified_at: 'Contoh statis — bukan waktu pembaruan',
+      elevation: 'Tidak diverifikasi'
     },
     {
       id: 'posko-3',
@@ -44,13 +40,13 @@ const INITIAL_DATABASE = {
       lat: -6.8920,
       lng: 107.6045,
       address: 'Jl. Karang Tineung Timur No. 45',
-      capacity: '200 orang',
-      facilities: ['Tenda Pengungsi Darurat', 'Pos Komunikasi Radio Orari', 'Toilet Portabel'],
-      contact: '0857-1122-3344',
-      status: 'active',
-      verified_by: 'PMI Wilayah',
-      verified_at: '45 menit lalu',
-      elevation: '+15m mdpl'
+      capacity: 'Tidak tersedia · data demo',
+      facilities: [],
+      contact: 'Tidak tersedia · data demo',
+      status: 'unverified',
+      verified_by: 'DATA DEMO — bukan verifikasi instansi',
+      verified_at: 'Contoh statis — bukan waktu pembaruan',
+      elevation: 'Tidak diverifikasi'
     }
   ],
   warga: [
@@ -63,7 +59,7 @@ const INITIAL_DATABASE = {
       status: 'safe',
       radius_km: 1.0,
       can_help: true,
-      notes: 'Rumah aman di lantai 2. Siaga genset dan 1 perahu karet warga jika tetangga butuh evakuasi.',
+      notes: 'Profil warga contoh; lokasi, status, dan ketersediaan bantuan tidak diverifikasi.',
       updated_at: '4 menit lalu'
     },
     {
@@ -75,7 +71,7 @@ const INITIAL_DATABASE = {
       status: 'checking',
       radius_km: 1.0,
       can_help: false,
-      notes: 'Sedang memindahkan perabotan ke lantai 2. Memantau ketinggian air selokan depan.',
+      notes: 'Profil warga contoh; lokasi dan kondisi tidak diverifikasi.',
       updated_at: '11 menit lalu'
     },
     {
@@ -87,7 +83,7 @@ const INITIAL_DATABASE = {
       status: 'safe',
       radius_km: 1.0,
       can_help: true,
-      notes: 'Regu medis dan perahu karet siaga evakuasi warga prioritas.',
+      notes: 'Profil warga contoh; identitas, fasilitas, dan kesiapsiagaan tidak diverifikasi.',
       updated_at: '7 menit lalu'
     },
     {
@@ -99,7 +95,7 @@ const INITIAL_DATABASE = {
       status: 'safe',
       radius_km: 1.0,
       can_help: false,
-      notes: 'Jalur kering dapat dilalui, air belum naik.',
+      notes: 'Profil warga contoh; jalur dan kondisi tidak diverifikasi.',
       updated_at: '18 menit lalu'
     }
   ],
@@ -115,10 +111,10 @@ const INITIAL_DATABASE = {
       needs_description: 'Air di dalam rumah sudah setinggi 65 cm dan terus mengalir deras. Terdapat 1 bayi usia 2 tahun dan ibu yang terjebak di atas meja. Butuh perahu karet segera!',
       vulnerable_members: '1 Bayi/Balita (2 tahun), 1 Lansia (68 tahun)',
       status: 'waiting_rescue',
-      contact: '0813-2233-4455 (Siti)',
-      reported_at: '6 menit lalu',
+      contact: 'Tidak tersedia · data demo',
+      reported_at: 'Data contoh — bukan waktu laporan',
       precision_consent: true,
-      verified_status: 'Laporan Warga Terverifikasi RT'
+      verified_status: 'DATA DEMO — belum diverifikasi'
     },
     {
       id: 'rep-sos-2',
@@ -131,10 +127,10 @@ const INITIAL_DATABASE = {
       needs_description: 'Tanggul selokan perumahan meluap setinggi 45 cm. Terdapat orang tua lansia yang harus memakai kursi roda, tidak dapat dievakuasi sendiri tanpa bantuan tandu/perahu.',
       vulnerable_members: '1 Lansia (kursi roda / lumpuh sebagian)',
       status: 'in_progress',
-      contact: '0878-9900-1122',
-      reported_at: '19 menit lalu',
+      contact: 'Tidak tersedia · data demo',
+      reported_at: 'Data contoh — bukan waktu laporan',
       precision_consent: true,
-      verified_status: 'Dalam Penanganan Tim Relawan'
+      verified_status: 'DATA DEMO — status contoh'
     }
   ],
   user_location: {
@@ -165,136 +161,27 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
   return Math.round(R * c);
 }
 
-// Ensure database file exists
-function ensureDb() {
-  const dir = path.dirname(DB_FILE);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(INITIAL_DATABASE, null, 2), 'utf-8');
-  }
-}
-
-// Read database
 export function readDb() {
-  ensureDb();
-  try {
-    const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(raw);
-  } catch (err) {
-    console.error('Error reading disaster database, resetting to seed:', err);
-    return INITIAL_DATABASE;
-  }
+  return readDocument(STORE_KEY, INITIAL_DATABASE);
 }
 
-// Write database atomically
 export function writeDb(data) {
-  ensureDb();
-  const tempFile = `${DB_FILE}.tmp`;
-  fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf-8');
-  fs.renameSync(tempFile, DB_FILE);
-  return data;
+  return mutateDocument(STORE_KEY, INITIAL_DATABASE, current => {
+    for (const key of Object.keys(current)) delete current[key];
+    Object.assign(current, data);
+    return current;
+  });
 }
 
 // Get all markers with distances from user location
-export function getAllMarkers(userCoords = null) {
-  const db = readDb();
+export async function getAllMarkers(userCoords = null) {
+  const db = await readDb();
   const userLat = userCoords?.lat ?? -6.8880;
   const userLng = userCoords?.lng ?? 107.5940;
-
-  // If user GPS is detected in another area (e.g., > 20km from Bandung Sukajadi),
-  // dynamically generate realistic regional shelters & context markers near user GPS
-  // so the user sees real nearby shelters and reports wherever they test their actual GPS!
-  const isFarFromBandung = calculateDistance(userLat, userLng, -6.8880, 107.5940) > 20000;
 
   let poskoList = [...db.posko];
   let wargaList = [...db.warga];
   let reportsList = [...db.laporan_darurat];
-
-  if (isFarFromBandung && userCoords?.lat && userCoords?.lng) {
-    // Generate localized shelters around the user's real GPS
-    const localPosko = [
-      {
-        id: 'local-posko-1',
-        name: 'Posko Evakuasi Wilayah Terdekat',
-        lat: userLat + 0.0035,
-        lng: userLng + 0.0028,
-        address: 'Kantor Kelurahan / Balai Warga Terdekat',
-        capacity: '150 jiwa (Kapasitas Tersedia)',
-        facilities: ['Genset Darurat', 'Dapur Umum', 'P3K', 'Air Bersih'],
-        contact: 'Call Center 112 / Tim SAR 115',
-        status: 'active',
-        verified_by: 'BPBD Posko Wilayah',
-        verified_at: '10 menit lalu',
-        elevation: '+Dataran Aman'
-      },
-      {
-        id: 'local-posko-2',
-        name: 'Posko Kesehatan & Pengungsian Mandiri',
-        lat: userLat - 0.0042,
-        lng: userLng - 0.0030,
-        address: 'Puskesmas / Fasilitas Umum',
-        capacity: '100 jiwa',
-        facilities: ['Tenaga Medis', 'Obat Darurat', 'Ambulans Siaga'],
-        contact: '119 / PMI',
-        status: 'active',
-        verified_by: 'Dinas Kesehatan & PMI',
-        verified_at: '20 menit lalu',
-        elevation: '+Aman dari Bencana'
-      }
-    ];
-
-    const localWarga = [
-      {
-        id: 'local-warga-1',
-        alias: 'Warga Sekitar (Pak RT)',
-        lat: userLat + 0.0022,
-        lng: userLng - 0.0018,
-        area: 'Area Sekitar Anda (Radius 1 km)',
-        status: 'safe',
-        radius_km: 1.0,
-        can_help: true,
-        notes: 'Siaga di posko RT. Bersedia membantu koordinasi evakuasi tetangga.',
-        updated_at: '3 menit lalu'
-      },
-      {
-        id: 'local-warga-2',
-        alias: 'Warga Sekitar (Siaga)',
-        lat: userLat - 0.0028,
-        lng: userLng + 0.0035,
-        area: 'Area Sekitar Anda',
-        status: 'checking',
-        radius_km: 1.0,
-        can_help: false,
-        notes: 'Mengamankan barang-barang penting, situasi siaga.',
-        updated_at: '8 menit lalu'
-      }
-    ];
-
-    const localReport = [
-      {
-        id: 'local-rep-1',
-        reporter_name: 'Warga Butuh Bantuan Terdekat',
-        lat: userLat + 0.0048,
-        lng: userLng + 0.0040,
-        address_detail: 'Area Sekitar (Radius ~700m dari Anda)',
-        hazard_type: 'darurat',
-        urgency_level: 'TINGGI',
-        needs_description: 'Membutuhkan bantuan logistik dan evakuasi anggota keluarga lansia.',
-        vulnerable_members: '1 Lansia',
-        status: 'waiting_rescue',
-        contact: '112 / Kontak Lapangan',
-        reported_at: '5 menit lalu',
-        precision_consent: true,
-        verified_status: 'Laporan Belum Diverifikasi Penuh'
-      }
-    ];
-
-    poskoList = [...localPosko, ...poskoList];
-    wargaList = [...localWarga, ...wargaList];
-    reportsList = [...localReport, ...reportsList];
-  }
 
   // Calculate distance from user for each marker
   const withDistance = items =>
@@ -321,14 +208,13 @@ export function getAllMarkers(userCoords = null) {
 }
 
 // Get single emergency report
-export function getReportById(id) {
-  const db = readDb();
+export async function getReportById(id) {
+  const db = await readDb();
   return db.laporan_darurat.find(r => r.id === id) || null;
 }
 
 // Add new emergency report
 export function addEmergencyReport(report) {
-  const db = readDb();
   const newReport = {
     id: `rep-${randomUUID()}`,
     reporter_name: report.reporter_name || 'Pengguna (Laporan Mandiri)',
@@ -348,13 +234,13 @@ export function addEmergencyReport(report) {
     verified_status: 'Laporan Baru (Sedang Diverifikasi)'
   };
 
-  db.laporan_darurat.unshift(newReport);
-  writeDb(db);
-  return newReport;
+  return mutateDocument(STORE_KEY, INITIAL_DATABASE, db => {
+    db.laporan_darurat.unshift(newReport);
+    return newReport;
+  });
 }
 
 export function addPosko(posko) {
-  const db = readDb();
   const newPosko = {
     id: `posko-${randomUUID()}`,
     name: posko.name,
@@ -369,22 +255,21 @@ export function addPosko(posko) {
     verified_at: new Date().toISOString(),
     source_type: 'sar_contribution'
   };
-  db.posko.unshift(newPosko);
-  writeDb(db);
-  return newPosko;
+  return mutateDocument(STORE_KEY, INITIAL_DATABASE, db => {
+    db.posko.unshift(newPosko);
+    return newPosko;
+  });
 }
 
 // Update report status
-export function updateReportStatus(id, status) {
+export async function updateReportStatus(id, status) {
   if (!['waiting_rescue', 'in_progress', 'resolved'].includes(status)) {
     throw new Error('Status laporan tidak valid.');
   }
-  const db = readDb();
-  const report = db.laporan_darurat.find(r => r.id === id);
-  if (report) {
+  return mutateDocument(STORE_KEY, INITIAL_DATABASE, db => {
+    const report = db.laporan_darurat.find(r => r.id === id);
+    if (!report) return null;
     report.status = status;
-    writeDb(db);
     return report;
-  }
-  return null;
+  });
 }

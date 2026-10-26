@@ -215,7 +215,7 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-[#0D47A1]">Pilih Skenario Bencana</h2>
-            <p className="text-xs sm:text-sm text-slate-500">Pilih jenis peristiwa untuk mendapatkan arahan AI yang sesuai konteks lapangan</p>
+            <p className="text-xs sm:text-sm text-slate-500">Pilih skenario untuk melihat panduan umum demo; aplikasi tidak menganalisis atau memverifikasi kondisi lapangan.</p>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 bg-[#E3F2FD] text-[#0D47A1] rounded-lg border border-[#90CAF9]">
             6 Skenario Siaga
@@ -300,7 +300,7 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
                 Safe Route & Titik Evakuasi
               </h3>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Temukan posko terverifikasi dengan label status jelas. Rute tanpa kepastian akan ditandai secara transparan.
+                Jelajahi titik evakuasi contoh. Data rute dan kondisi lapangan belum terhubung atau terverifikasi.
               </p>
             </div>
           </div>

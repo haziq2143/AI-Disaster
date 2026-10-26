@@ -25,7 +25,6 @@ export default function SituationInput({
   const [inputMode, setInputMode] = useState('text'); // 'text' or 'voice'
   const [isRecording, setIsRecording] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState('');
-  const [audioPermissionGranted, setAudioPermissionGranted] = useState(false);
   const [hasSpecialNeeds, setHasSpecialNeeds] = useState(false);
   const [needsDetail, setNeedsDetail] = useState('');
 
@@ -37,10 +36,6 @@ export default function SituationInput({
   ];
 
   const handleToggleVoice = () => {
-    if (!audioPermissionGranted) {
-      setAudioPermissionGranted(true);
-    }
-
     if (!isRecording) {
       setIsRecording(true);
       // Simulate real-time streaming speech recognition
@@ -77,7 +72,7 @@ export default function SituationInput({
             Ceritakan Kondisi Darurat Anda
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Sistem AI akan menyusun tindakan prioritas tercepat berdasarkan kondisi nyata Anda.
+            Panduan statis demo tidak menganalisis atau memverifikasi kondisi lapangan.
           </p>
         </div>
       </div>
@@ -135,7 +130,7 @@ export default function SituationInput({
               }`}
             >
               <Mic className="w-3.5 h-3.5 text-[#2196F3]" />
-              <span>Input Suara</span>
+              <span>Contoh Transkrip</span>
             </button>
           </div>
         </div>
@@ -159,17 +154,17 @@ export default function SituationInput({
 
             <div>
               <p className="font-bold text-slate-800 text-sm">
-                {isRecording ? 'Mendengarkan suara Anda...' : 'Tekan Mikrofon & Bicara Bebas'}
+                {isRecording ? 'Menyiapkan contoh transkrip...' : 'Tampilkan Contoh Transkrip Suara'}
               </p>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-                Jelaskan apa yang Anda lihat, tinggi air/api, serta jika ada orang yang butuh bantuan. Izin audio dijamin privasinya dan tidak disimpan permanen.
+                Tombol ini hanya mengisi contoh teks otomatis. Mikrofon tidak diakses dan suara Anda tidak direkam.
               </p>
             </div>
 
             {/* Permission feedback badge */}
             <div className="inline-flex items-center gap-1.5 text-[11px] text-[#0D47A1] bg-[#E3F2FD] px-3 py-1 rounded-full">
               <CheckCircle2 className="w-3.5 h-3.5 text-[#2196F3]" />
-              <span>Mikrofon Aktif (Fallback Teks Selalu Tersedia)</span>
+              <span>Simulasi transkrip · mikrofon tidak diakses</span>
             </div>
           </div>
         )}

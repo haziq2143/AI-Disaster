@@ -53,7 +53,7 @@ export default function ReviewInput({
           Langkah 2 dari 4: Tinjau & Koreksi Input
         </span>
         <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mt-2">
-          Periksa Data Sebelum Dianalisis AI
+          Periksa Data Sebelum Melihat Panduan Demo
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
           Pastikan transkrip dan detail kondisi akurat untuk mencegah rekomendasi yang salah.
@@ -127,7 +127,7 @@ export default function ReviewInput({
           </h3>
         </div>
         <p className="text-xs text-slate-500">
-          Membantu AI menyaring bahaya tersembunyi (misal sengatan listrik / hambatan jalan keluar).
+          Pertanyaan ini hanya ditinjau secara manual oleh Anda; aplikasi tidak menganalisis jawabannya.
         </p>
 
         <div className="space-y-4 pt-1">
@@ -218,7 +218,7 @@ export default function ReviewInput({
       <div className="flex items-start gap-2.5 p-3.5 bg-[#E3F2FD] rounded-xl border border-[#90CAF9] text-xs text-[#0D47A1]">
         <ShieldCheck className="w-4 h-4 text-[#2196F3] shrink-0 mt-0.5" />
         <span>
-          <strong>Transparansi AI:</strong> Model tidak akan mengasumsikan fakta yang tidak Anda berikan. Rekomendasi disusun berdasarkan protokol keselamatan kebencanaan terstandarisasi.
+          <strong>Batasan demo:</strong> Jawaban dan uraian Anda tidak dianalisis otomatis. Panduan berikut adalah skenario statis, bukan fakta lapangan atau rekomendasi resmi.
         </span>
       </div>
 
@@ -239,7 +239,7 @@ export default function ReviewInput({
           className="flex items-center gap-2 px-7 py-3 bg-[#0D47A1] hover:bg-[#1565C0] text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all cursor-pointer"
         >
           <Sparkles className="w-4 h-4 text-[#90CAF9]" />
-          <span>Analisis Situasi dengan AI</span>
+          <span>Lihat Panduan Skenario</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

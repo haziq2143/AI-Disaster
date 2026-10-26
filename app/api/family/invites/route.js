@@ -7,7 +7,7 @@ import {
 import { requireAuthenticatedUser } from '../../../../src/lib/auth.js';
 
 export async function POST(request) {
-  const { response } = requireAuthenticatedUser(request);
+  const { response } = await requireAuthenticatedUser(request);
   if (response) return response;
   try {
     const body = await readFamilyRequestBody(request);

@@ -1,42 +1,27 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { randomBytes, scrypt, createHash, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
+import { mutateDocument, readDocument } from './database.js';
 
 const scryptAsync = promisify(scrypt);
-const STORE_FILE = process.env.AUTH_STORE_FILE
-  ? path.resolve(process.env.AUTH_STORE_FILE)
-  : path.join(process.cwd(), 'data', 'accounts.json');
+const STORE_KEY = 'accounts';
+const EMPTY_STORE = { users: [], sessions: [], passwordResets: [], emailVerifications: [] };
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
-let writeQueue = Promise.resolve();
 
-function withWriteLock(operation) {
-  const result = writeQueue.then(operation);
-  writeQueue = result.catch(() => {});
-  return result;
-}
-
-function emptyStore() {
-  return { users: [], sessions: [] };
-}
-
-function readStore() {
-  const directory = path.dirname(STORE_FILE);
-  if (!fs.existsSync(directory)) fs.mkdirSync(directory, { recursive: true });
-  if (!fs.existsSync(STORE_FILE)) {
-    fs.writeFileSync(STORE_FILE, JSON.stringify(emptyStore(), null, 2), 'utf8');
-  }
-  const store = JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'));
+function normalizeStore(store) {
   if (!Array.isArray(store.users) || !Array.isArray(store.sessions)) {
     throw new Error('Penyimpanan akun tidak valid.');
   }
+  if (!Array.isArray(store.passwordResets)) store.passwordResets = [];
+  if (!Array.isArray(store.emailVerifications)) store.emailVerifications = [];
   return store;
 }
 
-function writeStore(store) {
-  const temporaryFile = `${STORE_FILE}.${process.pid}.tmp`;
-  fs.writeFileSync(temporaryFile, JSON.stringify(store, null, 2), { encoding: 'utf8', mode: 0o600 });
-  fs.renameSync(temporaryFile, STORE_FILE);
+async function readStore() {
+  return normalizeStore(await readDocument(STORE_KEY, EMPTY_STORE));
+}
+
+function mutateStore(mutator) {
+  return mutateDocument(STORE_KEY, EMPTY_STORE, store => mutator(normalizeStore(store)));
 }
 
 function configuredAdminEmail() {
@@ -90,27 +75,35 @@ export async function registerAccount(input) {
     throw new Error('Kode bootstrap admin awal salah atau belum dikonfigurasi oleh server.');
   }
 
-  return withWriteLock(async () => {
-    const store = readStore();
-    if (store.users.some(user => user.email === normalizedEmail)) {
+  const salt = randomBytes(16);
+  const passwordHash = await scryptAsync(password, salt, 64);
+  const user = {
+    id: randomBytes(16).toString('hex'),
+    name: normalizedName,
+    email: normalizedEmail,
+    role: initialAdmin ? 'sar' : 'user',
+    isInitialAdmin: initialAdmin,
+    passwordSalt: salt.toString('hex'),
+    passwordHash: passwordHash.toString('hex'),
+    emailVerifiedAt: null,
+    createdAt: new Date().toISOString()
+  };
+  const verificationToken = randomBytes(32).toString('base64url');
+
+  return mutateStore(store => {
+    if (store.users.some(account => account.email === normalizedEmail)) {
       throw new Error('Email sudah terdaftar. Silakan masuk.');
     }
-
-    const salt = randomBytes(16);
-    const passwordHash = await scryptAsync(password, salt, 64);
-    const user = {
-      id: randomBytes(16).toString('hex'),
-      name: normalizedName,
-      email: normalizedEmail,
-      role: initialAdmin ? 'sar' : 'user',
-      isInitialAdmin: initialAdmin,
-      passwordSalt: salt.toString('hex'),
-      passwordHash: passwordHash.toString('hex'),
-      createdAt: new Date().toISOString()
-    };
     store.users.push(user);
-    writeStore(store);
-    return publicUser(user);
+    const now = Date.now();
+    store.emailVerifications = store.emailVerifications.filter(item => item.userId !== user.id);
+    store.emailVerifications.push({
+      tokenHash: createHash('sha256').update(verificationToken).digest('hex'),
+      userId: user.id,
+      createdAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + 24 * 60 * 60 * 1000).toISOString()
+    });
+    return { user: publicUser(user), verificationToken };
   });
 }
 
@@ -120,69 +113,168 @@ export async function authenticateAccount(input) {
   if (typeof password !== 'string' || password.length > 128) {
     throw new Error('Email atau kata sandi tidak cocok.');
   }
-  const store = readStore();
+  const store = await readStore();
   const user = store.users.find(account => account.email === normalizedEmail);
   const salt = user ? Buffer.from(user.passwordSalt, 'hex') : Buffer.alloc(16);
   const expected = user ? Buffer.from(user.passwordHash, 'hex') : Buffer.alloc(64);
-  const actual = await scryptAsync(typeof password === 'string' ? password : '', salt, 64);
+  const actual = await scryptAsync(password, salt, 64);
   if (!user || !timingSafeEqual(expected, actual)) {
     throw new Error('Email atau kata sandi tidak cocok.');
   }
+  if (!user.emailVerifiedAt) throw new Error('Email belum diverifikasi. Periksa inbox atau minta tautan verifikasi baru.');
   return publicUser(user);
 }
 
-export function createSession(userId) {
-  return withWriteLock(() => {
-    const store = readStore();
+export async function createEmailVerificationToken(email) {
+  const normalizedEmail = normalizeEmail(email);
+  return mutateStore(store => {
+    const user = store.users.find(account => account.email === normalizedEmail);
+    const now = Date.now();
+    store.emailVerifications = store.emailVerifications.filter(item => Date.parse(item.expiresAt) > now);
+    if (!user || user.emailVerifiedAt) return null;
+
+    const previous = store.emailVerifications.find(item => item.userId === user.id);
+    if (previous && now - Date.parse(previous.createdAt) < 60_000) return null;
+
     const token = randomBytes(32).toString('base64url');
-    const expiresAt = new Date(Date.now() + SESSION_DURATION_MS).toISOString();
+    store.emailVerifications = store.emailVerifications.filter(item => item.userId !== user.id);
+    store.emailVerifications.push({
+      tokenHash: createHash('sha256').update(token).digest('hex'),
+      userId: user.id,
+      createdAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + 24 * 60 * 60 * 1000).toISOString()
+    });
+    return token;
+  });
+}
+
+export async function verifyAccountEmail(token) {
+  if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
+    throw new Error('Tautan verifikasi tidak valid atau sudah kedaluwarsa.');
+  }
+
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  return mutateStore(store => {
+    const now = Date.now();
+    const verification = store.emailVerifications.find(item => safeEqual(item.tokenHash, tokenHash));
+    if (!verification || Date.parse(verification.expiresAt) <= now) {
+      throw new Error('Tautan verifikasi tidak valid atau sudah kedaluwarsa.');
+    }
+
+    const user = store.users.find(account => account.id === verification.userId);
+    if (!user) throw new Error('Akun untuk tautan verifikasi tidak ditemukan.');
+    user.emailVerifiedAt = new Date(now).toISOString();
+    store.emailVerifications = store.emailVerifications.filter(item => item.userId !== user.id);
+    return publicUser(user);
+  });
+}
+
+export async function createPasswordResetToken(email) {
+  const normalizedEmail = normalizeEmail(email);
+  return mutateStore(store => {
+    const user = store.users.find(account => account.email === normalizedEmail);
+    const now = Date.now();
+    store.passwordResets = store.passwordResets.filter(reset => Date.parse(reset.expiresAt) > now);
+    if (!user) return null;
+
+    const previousReset = store.passwordResets.find(reset => reset.userId === user.id);
+    if (previousReset && now - Date.parse(previousReset.createdAt) < 60_000) return null;
+
+    const token = randomBytes(32).toString('base64url');
+    store.passwordResets = store.passwordResets.filter(reset => reset.userId !== user.id);
+    store.passwordResets.push({
+      tokenHash: createHash('sha256').update(token).digest('hex'),
+      userId: user.id,
+      createdAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + 60 * 60 * 1000).toISOString()
+    });
+    return token;
+  });
+}
+
+export async function resetAccountPassword(token, password) {
+  if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
+    throw new Error('Tautan reset tidak valid atau sudah kedaluwarsa.');
+  }
+  if (typeof password !== 'string' || password.length < 10 || password.length > 128) {
+    throw new Error('Kata sandi harus terdiri dari 10–128 karakter.');
+  }
+
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  const candidate = (await readStore()).passwordResets
+    .find(item => safeEqual(item.tokenHash, tokenHash));
+  if (!candidate || Date.parse(candidate.expiresAt) <= Date.now()) {
+    throw new Error('Tautan reset tidak valid atau sudah kedaluwarsa.');
+  }
+
+  const salt = randomBytes(16);
+  const passwordHash = await scryptAsync(password, salt, 64);
+  return mutateStore(store => {
+    const now = Date.now();
+    const reset = store.passwordResets.find(item => safeEqual(item.tokenHash, tokenHash));
+    if (!reset || Date.parse(reset.expiresAt) <= now) {
+      throw new Error('Tautan reset tidak valid atau sudah kedaluwarsa.');
+    }
+
+    const user = store.users.find(account => account.id === reset.userId);
+    if (!user) throw new Error('Akun untuk tautan reset tidak ditemukan.');
+
+    user.passwordSalt = salt.toString('hex');
+    user.passwordHash = passwordHash.toString('hex');
+    store.passwordResets = store.passwordResets.filter(item => item.userId !== user.id);
+    store.emailVerifications = store.emailVerifications.filter(item => item.userId !== user.id);
+    store.sessions = store.sessions.filter(session => session.userId !== user.id);
+  });
+}
+
+export async function createSession(userId) {
+  const token = randomBytes(32).toString('base64url');
+  const expiresAt = new Date(Date.now() + SESSION_DURATION_MS).toISOString();
+  await mutateStore(store => {
+    const user = store.users.find(account => account.id === userId);
+    if (!user?.emailVerifiedAt) throw new Error('Email belum diverifikasi.');
     store.sessions = store.sessions.filter(session => Date.parse(session.expiresAt) > Date.now());
     store.sessions.push({
       tokenHash: createHash('sha256').update(token).digest('hex'),
       userId,
       expiresAt
     });
-    writeStore(store);
-    return { token, maxAge: Math.floor(SESSION_DURATION_MS / 1000) };
   });
+  return { token, maxAge: Math.floor(SESSION_DURATION_MS / 1000) };
 }
 
-export function getUserForSession(token) {
+export async function getUserForSession(token) {
   if (typeof token !== 'string' || token.length < 32) return null;
-  const store = readStore();
+  const store = await readStore();
   const tokenHash = createHash('sha256').update(token).digest('hex');
   const session = store.sessions.find(item => safeEqual(item.tokenHash, tokenHash));
   if (!session || Date.parse(session.expiresAt) <= Date.now()) return null;
   const user = store.users.find(account => account.id === session.userId);
-  return user ? publicUser(user) : null;
+  return user?.emailVerifiedAt ? publicUser(user) : null;
 }
 
-export function revokeSession(token) {
-  if (typeof token !== 'string') return Promise.resolve();
-  return withWriteLock(() => {
-    const store = readStore();
-    const tokenHash = createHash('sha256').update(token).digest('hex');
+export async function revokeSession(token) {
+  if (typeof token !== 'string') return;
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  await mutateStore(store => {
     store.sessions = store.sessions.filter(session => !safeEqual(session.tokenHash, tokenHash));
-    writeStore(store);
   });
 }
 
-export function listAccounts() {
-  const store = readStore();
+export async function listAccounts() {
+  const store = await readStore();
   return store.users.map(publicUser);
 }
 
-export function setAccountRole(userId, role) {
+export async function setAccountRole(userId, role) {
   if (!['user', 'sar'].includes(role)) throw new Error('Role tidak valid.');
-  return withWriteLock(() => {
-    const store = readStore();
+  return mutateStore(store => {
     const user = store.users.find(account => account.id === userId);
     if (!user) throw new Error('Akun tidak ditemukan.');
     if (user.isInitialAdmin === true && user.email === configuredAdminEmail() && role !== 'sar') {
       throw new Error('Role admin awal tidak dapat diturunkan.');
     }
     user.role = role;
-    writeStore(store);
     return publicUser(user);
   });
 }

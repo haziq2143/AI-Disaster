@@ -8,7 +8,7 @@ import {
 import { requireAuthenticatedUser } from '../../../../../src/lib/auth.js';
 
 export async function GET(request, { params }) {
-  const { response } = requireAuthenticatedUser(request);
+  const { response } = await requireAuthenticatedUser(request);
   if (response) return response;
   try {
     const { id } = await params;
@@ -20,7 +20,7 @@ export async function GET(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
-  const { response } = requireAuthenticatedUser(request);
+  const { response } = await requireAuthenticatedUser(request);
   if (response) return response;
   try {
     const { id } = await params;

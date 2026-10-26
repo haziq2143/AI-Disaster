@@ -251,7 +251,11 @@ Masyarakat umum dari berbagai rentang usia yang membutuhkan panduan awal ketika 
 
 - Sistem tidak boleh menganggap lokasi atau detail yang tidak diberikan pengguna sebagai fakta.
 
+Status prototype saat ini: input suara hanya mengisi contoh transkrip statis; mikrofon tidak diakses.
+
 ## 4.3 AI Situation Assessment
+
+Status prototype saat ini: belum ada model AI atau analisis otomatis. API hanya memilih panduan statis berdasarkan jenis bencana; deskripsi pengguna ditampilkan sebagai laporan yang belum diverifikasi. Tidak ada feed sumber resmi, penilaian urgensi otomatis, atau penentuan rute. Implementasi produksi memerlukan sumber panduan terverifikasi, evaluasi keselamatan, dan pengujian sebelum klaim AI digunakan.
 
 - Merangkum informasi yang diberikan pengguna dengan bahasa sederhana.
 
@@ -290,6 +294,8 @@ Fitur pembeda utama produk. Setelah pengguna memilih mode darurat atau sistem me
 - Data keluarga harus dapat dihapus dan tidak dikumpulkan melebihi kebutuhan fitur.
 
 ## 4.6 Safe Route
+
+Status prototype saat ini: seluruh titik, jarak, dan detail tujuan adalah data demo. Tidak ada rute terverifikasi atau navigasi belokan; kontrol navigasi dinonaktifkan. Marker contoh tidak dibuat di sekitar GPS pengguna.
 
 - Menampilkan lokasi awal dan titik evakuasi hanya dari data yang telah diverifikasi atau data demo berlabel.
 

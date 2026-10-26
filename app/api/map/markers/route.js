@@ -4,13 +4,25 @@ import { getAuthenticatedUser, requireSarUser } from '../../../../src/lib/auth.j
 
 export async function GET(request) {
   try {
-    const user = getAuthenticatedUser(request);
+    const user = await getAuthenticatedUser(request);
     const { searchParams } = new URL(request.url);
-    const lat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')) : null;
-    const lng = searchParams.get('lng') ? parseFloat(searchParams.get('lng')) : null;
+    const hasLat = searchParams.has('lat');
+    const hasLng = searchParams.has('lng');
+    if (hasLat !== hasLng) {
+      return NextResponse.json({ success: false, error: 'Koordinat peta tidak lengkap.' }, { status: 400 });
+    }
 
-    const userCoords = lat && lng ? { lat, lng } : null;
-    const data = getAllMarkers(userCoords);
+    const lat = hasLat ? Number(searchParams.get('lat')) : null;
+    const lng = hasLng ? Number(searchParams.get('lng')) : null;
+    if (hasLat && (
+      !Number.isFinite(lat) || lat < -90 || lat > 90
+      || !Number.isFinite(lng) || lng < -180 || lng > 180
+    )) {
+      return NextResponse.json({ success: false, error: 'Koordinat peta tidak valid.' }, { status: 400 });
+    }
+
+    const userCoords = hasLat ? { lat, lng } : null;
+    const data = await getAllMarkers(userCoords);
     if (user?.role !== 'sar') data.laporan_darurat = [];
     data.user_location = null;
 
@@ -32,7 +44,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const { user, response } = requireSarUser(request);
+  const { user, response } = await requireSarUser(request);
   if (response) return response;
   try {
     const body = await request.json();
@@ -45,7 +57,7 @@ export async function POST(request) {
     ) {
       return NextResponse.json({ success: false, error: 'Data posko tidak valid.' }, { status: 400 });
     }
-    const data = addPosko({
+    const data = await addPosko({
       name: body.name.trim(),
       address: body.address.trim(),
       lat: body.lat,

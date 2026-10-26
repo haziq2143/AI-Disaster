@@ -26,87 +26,148 @@ export default function EmergencyMode({
   const [completedSteps, setCompletedSteps] = useState([]);
   const [unableReason, setUnableReason] = useState(null);
 
-  // High stress, distraction-free steps tailored to hazard
   const stepsByHazard = {
     banjir: [
       {
         id: 's1',
-        title: 'Matikan Saklar Listrik Utama (MCB)',
-        instruction: 'Cari box MCB di dinding rumah. Tarik tuas ke posisi OFF (Mati). Jangan sentuh jika tangan basah kuyup, gunakan gagang sapu kayu atau lap kering.',
-        why: 'Mencegah sengatan listrik fatal di air tergenang.',
-        fallback: 'Jika box MCB sudah terendam air, JANGAN DIDEKATI! Langsung keluar menjauh.'
+        title: 'Jangan masuk atau menyeberangi air banjir',
+        instruction: 'Arus, kedalaman, lubang, kabel, dan kontaminasi air tidak dapat dipastikan dari aplikasi.',
+        why: 'Air banjir dapat menyembunyikan bahaya yang tidak terlihat.',
+        fallback: 'Jika terjebak, hubungi layanan darurat resmi setempat dan sampaikan lokasi Anda.'
       },
       {
         id: 's2',
-        title: 'Bantu Lansia & Gendong Balita',
-        instruction: 'Pastikan Ibu Ratna memakai sandal/sepatu tertutup dan dipapah. Pastikan anak balita digendong di pundak/dada agar aman dari arus.',
-        why: 'Arus 20 cm dapat merobohkan orang dewasa dan balita.',
-        fallback: 'Jika tidak sanggup memapah sendirian, teriak minta bantuan tetangga atau tiup peluit darurat.'
+        title: 'Jauhi sumber listrik dan area tergenang',
+        instruction: 'Jangan sentuh peralatan listrik atau panel yang basah atau terendam.',
+        why: 'Aplikasi tidak dapat memastikan listrik di lokasi Anda aman.',
+        fallback: 'Jaga jarak dari area basah dan minta arahan petugas setempat.'
       },
       {
         id: 's3',
-        title: 'Bawa Tas Siaga Darurat (P3K & Obat)',
-        instruction: 'Raih tas ransel siaga yang berisi obat rutin Ibu Ratna dan dokumen kedap air. Jangan kembali mengambil perabot atau barang lain.',
-        why: 'Kebutuhan medis lebih mendesak daripada barang materiel.',
-        fallback: 'Jika tas tertinggal di area banjir dalam, TINGGALKAN! Nyawa keluarga nomor satu.'
-      },
-      {
-        id: 's4',
-        title: 'Bergerak ke Posko RW 04 Melalui Jalur Kering',
-        instruction: 'Melangkah perlahan, gunakan tongkat untuk meraba lubang selokan. Ikuti rombongan warga menuju Balai Warga RW 04 (350 meter).',
-        why: 'Posko RW 04 terverifikasi berstatus aman dan berdataran tinggi.',
-        fallback: 'Jika jalan Mawar terendam lebih dari 1 meter, naik ke lantai 2 tetangga dan kibarkan kain penanda.'
+        title: 'Hubungi petugas bila Anda atau keluarga terancam',
+        instruction: 'Sampaikan lokasi, jumlah orang, dan kebutuhan melalui kanal darurat resmi setempat.',
+        why: 'Laporan lewat aplikasi ini tidak mengirim petugas.',
+        fallback: 'Jika panggilan tidak tersambung, coba kanal resmi lain di wilayah Anda atau minta bantuan langsung bila aman.'
       }
     ],
     gempa: [
       {
         id: 's1',
-        title: 'Lindungi Kepala & Keluar ke Ruang Terbuka',
-        instruction: 'Tutupi kepala dengan helm, bantal tebal, atau tas ransel. Berjalan cepat (jangan lari panik) menuju lapangan terbuka atau jalan lebar.',
-        why: 'Puing atap dan genteng dapat runtuh saat terjadi gempa susulan.',
-        fallback: 'Jika pintu macet terjepit kusen, berlindung di samping meja kokoh atau sudut pilar utama.'
+        title: 'Saat guncangan, lindungi diri di tempat',
+        instruction: 'Jika berada di dalam ruangan, merunduk, berlindung di bawah meja kokoh, dan berpegangan; jauhi kaca.',
+        why: 'Keluar saat guncangan dapat meningkatkan risiko terkena benda jatuh.',
+        fallback: 'Jika tidak ada meja, lindungi kepala dan leher, lalu jauhi kaca jika dapat dilakukan.'
       },
       {
         id: 's2',
-        title: 'Jauhi Tiang Listrik & Kaca Jendela',
-        instruction: 'Posisikan seluruh anggota keluarga di tengah tanah lapang. Pastikan jarak aman minimal sama dengan tinggi tiang listrik terdekat.',
-        why: 'Kabel listrik tegangan tinggi rentan putus.',
-        fallback: 'Jika di area sempit, lindungi diri di bawah kanopi beton bertulang permanen.'
+        title: 'Setelah guncangan berhenti, periksa bahaya sekitar',
+        instruction: 'Jangan memasuki bangunan yang rusak. Bergerak ke area terbuka hanya jika jalurnya aman.',
+        why: 'Aplikasi tidak dapat menilai kondisi struktur atau keamanan rute.',
+        fallback: 'Jauhi bagian bangunan yang rusak dan ikuti arahan petugas.'
       },
       {
         id: 's3',
-        title: 'Hitung & Konfirmasi Jumlah Anggota',
-        instruction: 'Pastikan semua orang yang ada di dalam rumah sudah berada di titik kumpul luar.',
-        why: 'Memastikan tidak ada korban terperangkap di reruntuhan.',
-        fallback: 'Jika ada yang tertinggal di dalam gedung rapuh, JANGAN masuk sendiri! Laporkan ke regu penyelamat.'
+        title: 'Ikuti informasi resmi dan hubungi petugas bila perlu',
+        instruction: 'Jangan kembali ke bangunan rusak sampai dinyatakan aman oleh pihak berwenang.',
+        why: 'Penilaian keselamatan bangunan memerlukan pemeriksaan di lokasi.',
+        fallback: 'Laporkan orang yang membutuhkan bantuan kepada petugas; jangan masuk ke bangunan rusak.'
       }
     ],
     kebakaran: [
       {
         id: 's1',
-        title: 'Merangkak Rendah Menjauhi Asap',
-        instruction: 'Posisi hidung 30 cm di atas lantai. Tutup hidung dengan kain basah. Bernapaslah perlahan.',
-        why: 'Asap panas dan karbon monoksida naik ke atas langit-langit.',
-        fallback: 'Jika tidak ada kain basah, gunakan baju bagian dalam yang masih bersih.'
+        title: 'Menjauh dari api dan asap jika jalur keluar aman',
+        instruction: 'Jangan mengambil barang. Jika jalur terhalang api atau asap, jangan memaksakan diri melewatinya.',
+        why: 'Aplikasi tidak mengetahui posisi api, asap, atau jalur keluar Anda.',
+        fallback: 'Cari perlindungan dari asap dan hubungi pemadam atau layanan darurat resmi setempat.'
       },
       {
         id: 's2',
-        title: 'Cek Suhu Gagang Pintu Sebelum Dibuka',
-        instruction: 'Sentuh gagang pintu dengan punggung tangan Anda. Jika terasa panas, JANGAN BUKA pintu tersebut.',
-        why: 'Pintu panas menandakan kobaran api besar tepat di baliknya.',
-        fallback: 'Gunakan jendela darurat atau pintu belakang untuk jalan keluar alternatif.'
+        title: 'Jika ada asap, tetap serendah mungkin',
+        instruction: 'Jangan membuka pintu yang terasa panas. Jangan gunakan lift.',
+        why: 'Asap dan api dapat berubah cepat; jangan masuk ke area yang tidak diketahui aman.',
+        fallback: 'Beritahu petugas lokasi Anda dan ikuti instruksi mereka.'
       },
       {
         id: 's3',
-        title: 'Keluar dan Jangan Pernah Masuk Kembali',
-        instruction: 'Setelah berada di luar pekarangan, segera menjauh searah datangnya angin.',
-        why: 'Ledakan gas atau runtuhan atap dapat terjadi seketika.',
-        fallback: 'Panggil pemadam di 113 dari ponsel tetangga jika ponsel tertinggal.'
+        title: 'Hubungi petugas pemadam setempat',
+        instruction: 'Berikan lokasi kejadian melalui kanal darurat resmi yang tersedia di wilayah Anda.',
+        why: 'Tombol SOS aplikasi ini tidak menghubungi petugas.',
+        fallback: 'Minta bantuan orang sekitar untuk menghubungi petugas jika Anda tidak dapat menelepon.'
+      }
+    ],
+    longsor: [
+      {
+        id: 's1',
+        title: 'Jauhi lereng dan jalur material longsor',
+        instruction: 'Jangan mendekati atau melintasi area longsor. Pindah hanya melalui jalur yang dinyatakan aman oleh petugas.',
+        why: 'Longsor susulan dan bahaya di sekitar lokasi tidak dapat dinilai aplikasi.',
+        fallback: 'Jauhi area terdampak dan hubungi layanan darurat resmi setempat.'
+      },
+      {
+        id: 's2',
+        title: 'Ikuti arahan evakuasi resmi',
+        instruction: 'Aplikasi ini tidak memiliki peta zona bahaya atau rute longsor terkini.',
+        why: 'Rute yang aman harus ditentukan berdasarkan kondisi lapangan.',
+        fallback: 'Jangan kembali ke area terdampak sebelum ada izin petugas.'
+      },
+      {
+        id: 's3',
+        title: 'Laporkan orang yang membutuhkan bantuan',
+        instruction: 'Sampaikan lokasi dan kebutuhan kepada petugas melalui kanal resmi.',
+        why: 'Laporan prototipe tidak mengirim bantuan.',
+        fallback: 'Jangan memasuki area longsor untuk menolong tanpa arahan petugas.'
+      }
+    ],
+    erupsi: [
+      {
+        id: 's1',
+        title: 'Ikuti perintah resmi dan zona bahaya',
+        instruction: 'Aplikasi ini tidak memantau aktivitas gunung, arah sebaran, atau zona bahaya terkini.',
+        why: 'Kondisi erupsi dapat berubah cepat dan memerlukan informasi resmi.',
+        fallback: 'Hubungi petugas setempat untuk mengetahui tindakan dan lokasi perlindungan yang ditetapkan.'
+      },
+      {
+        id: 's2',
+        title: 'Jauhi kawah dan aliran material',
+        instruction: 'Gunakan hanya jalur evakuasi yang ditetapkan petugas; jangan menerobos zona terlarang.',
+        why: 'Peta dan rute dalam aplikasi ini tidak terverifikasi.',
+        fallback: 'Bergerak menjauhi zona berbahaya hanya mengikuti arahan petugas.'
+      },
+      {
+        id: 's3',
+        title: 'Hubungi petugas jika membutuhkan bantuan',
+        instruction: 'Sampaikan lokasi dan kebutuhan melalui kanal darurat resmi setempat.',
+        why: 'Tombol SOS aplikasi ini tidak menghubungi petugas.',
+        fallback: 'Minta bantuan orang sekitar untuk menghubungi petugas jika Anda tidak dapat menelepon.'
+      }
+    ],
+    lainnya: [
+      {
+        id: 's1',
+        title: 'Jauhi bahaya langsung jika ada jalur yang jelas aman',
+        instruction: 'Aplikasi ini tidak dapat mengidentifikasi ancaman spesifik dari laporan Anda.',
+        why: 'Panduan khusus tidak dapat dipilih tanpa mengetahui jenis ancaman.',
+        fallback: 'Jangan bergerak ke area yang belum diketahui aman; hubungi petugas setempat.'
+      },
+      {
+        id: 's2',
+        title: 'Ikuti instruksi petugas di lokasi',
+        instruction: 'Jangan mengikuti rute atau titik evakuasi contoh dari aplikasi ini.',
+        why: 'Data lokasi dan rute dalam prototipe bukan informasi operasional.',
+        fallback: 'Gunakan kanal darurat resmi wilayah Anda untuk meminta arahan.'
+      },
+      {
+        id: 's3',
+        title: 'Laporkan kebutuhan bantuan',
+        instruction: 'Sampaikan jenis ancaman, lokasi, dan kebutuhan kepada petugas.',
+        why: 'Laporan SOS prototipe tidak mengirim petugas.',
+        fallback: 'Minta bantuan orang sekitar untuk menghubungi petugas jika Anda tidak dapat menelepon.'
       }
     ]
   };
 
-  const currentHazardSteps = stepsByHazard[hazardData.type] || stepsByHazard.banjir;
+  const currentHazardSteps = stepsByHazard[hazardData.type] || stepsByHazard.lainnya;
   const currentStep = currentHazardSteps[currentStepIndex];
   const isLastStep = currentStepIndex === currentHazardSteps.length - 1;
 
@@ -140,7 +201,7 @@ export default function EmergencyMode({
               <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 bg-rose-600 text-white rounded">
                 EMERGENCY MODE AKTIF
               </span>
-              <span className="text-xs text-blue-200">Mode Stres Rendah</span>
+              <span className="text-xs text-blue-200">Panduan demo · bukan layanan resmi</span>
             </div>
             <h1 className="text-lg sm:text-xl font-black mt-0.5">
               Panduan Tindakan 1-Langkah
@@ -182,7 +243,7 @@ export default function EmergencyMode({
       <div className="bg-white rounded-3xl border-3 border-[#2196F3] p-6 sm:p-8 shadow-xl space-y-6">
         <div className="space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#E3F2FD] text-[#0D47A1] rounded-full text-xs font-extrabold tracking-wide">
-            <span>TINDAKAN UTAMA ANDA SEKARANG</span>
+            <span>LANGKAH UMUM · PERIKSA ARAHAN RESMI</span>
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-snug">
@@ -246,8 +307,8 @@ export default function EmergencyMode({
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <p className="font-bold text-xs text-slate-800">Status Keluarga</p>
-            <p className="text-[11px] text-slate-500">3 anggota terdata</p>
+            <p className="font-bold text-xs text-slate-800">Periksa Status Keluarga</p>
+            <p className="text-[11px] text-slate-500">Check-in dilakukan manual</p>
           </div>
         </button>
 
@@ -259,8 +320,8 @@ export default function EmergencyMode({
             <MapPin className="w-5 h-5" />
           </div>
           <div>
-            <p className="font-bold text-xs text-slate-800">Rute Evakuasi</p>
-            <p className="text-[11px] text-slate-500">Posko RW 04 (350m)</p>
+            <p className="font-bold text-xs text-slate-800">Peta & Rute Contoh</p>
+            <p className="text-[11px] text-slate-500">Tidak untuk navigasi nyata</p>
           </div>
         </button>
 
@@ -273,7 +334,7 @@ export default function EmergencyMode({
           </div>
           <div>
             <p className="font-bold text-xs text-rose-900">Radar Warga (1 km)</p>
-            <p className="text-[11px] text-rose-600 font-semibold">PIN SOS Aktif</p>
+            <p className="text-[11px] text-rose-600 font-semibold">Bukan dispatch petugas</p>
           </div>
         </button>
       </div>

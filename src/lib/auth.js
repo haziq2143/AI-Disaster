@@ -11,12 +11,12 @@ export function getSessionToken(request) {
   return cookie ? decodeURIComponent(cookie.slice(authCookieName.length + 1)) : '';
 }
 
-export function getAuthenticatedUser(request) {
+export async function getAuthenticatedUser(request) {
   return getUserForSession(getSessionToken(request));
 }
 
-export function requireAuthenticatedUser(request) {
-  const user = getAuthenticatedUser(request);
+export async function requireAuthenticatedUser(request) {
+  const user = await getAuthenticatedUser(request);
   if (!user) {
     return {
       user: null,
@@ -26,8 +26,8 @@ export function requireAuthenticatedUser(request) {
   return { user, response: null };
 }
 
-export function requireSarUser(request) {
-  const required = requireAuthenticatedUser(request);
+export async function requireSarUser(request) {
+  const required = await requireAuthenticatedUser(request);
   if (required.response) return required;
   if (required.user.role !== 'sar') {
     return {
@@ -38,8 +38,8 @@ export function requireSarUser(request) {
   return required;
 }
 
-export function requireRoleAdmin(request) {
-  const required = requireAuthenticatedUser(request);
+export async function requireRoleAdmin(request) {
+  const required = await requireAuthenticatedUser(request);
   if (required.response) return required;
   if (!required.user.canManageRoles) {
     return {
@@ -67,10 +67,17 @@ export function clearSessionCookie() {
 }
 
 export function hasSameOrigin(request) {
-  const origin = request.headers.get('origin');
-  if (!origin) return true;
+  const originHeader = request.headers.get('origin');
+  if (!originHeader) return true;
   try {
-    return new URL(origin).origin === new URL(request.url).origin;
+    const requestUrl = new URL(request.url);
+    const forwardedProtocol = request.headers.get('x-forwarded-proto')?.split(',')[0].trim();
+    const host = request.headers.get('x-forwarded-host')?.split(',')[0].trim()
+      || request.headers.get('host')
+      || requestUrl.host;
+    const protocol = forwardedProtocol || requestUrl.protocol.slice(0, -1);
+    const expectedOrigin = new URL(`${protocol}://${host}`);
+    return new URL(originHeader).origin === expectedOrigin.origin;
   } catch {
     return false;
   }

@@ -29,12 +29,12 @@ export default function OnboardingScreen({ onStartApp, onQuickExplore }) {
     {
       icon: 'MapPin',
       title: 'Transparansi Rute & Posko',
-      desc: 'Data tidak terverifikasi ditandai tegas. AI tidak mengarang rute fiktif.'
+      desc: 'Data yang belum diverifikasi ditandai jelas. Aplikasi belum menyediakan rute evakuasi yang terverifikasi.'
     },
     {
       icon: 'Sparkles',
-      title: 'AI Cepat Teks & Suara',
-      desc: 'Koreksi transkrip terlebih dahulu sebelum analisis untuk menjamin akurasi fakta lapangan.'
+      title: 'Input Teks & Contoh Suara',
+      desc: 'Transkrip suara hanya simulasi teks; panduan statis tidak menganalisis keadaan lapangan.'
     }
   ];
 

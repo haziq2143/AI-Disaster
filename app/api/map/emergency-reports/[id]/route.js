@@ -3,11 +3,11 @@ import { getReportById, updateReportStatus } from '../../../../../src/lib/disast
 import { requireSarUser } from '../../../../../src/lib/auth.js';
 
 export async function GET(request, { params }) {
-  const { response } = requireSarUser(request);
+  const { response } = await requireSarUser(request);
   if (response) return response;
   try {
     const { id } = await params;
-    const report = getReportById(id);
+    const report = await getReportById(id);
 
     if (!report) {
       return NextResponse.json(
@@ -21,6 +21,7 @@ export async function GET(request, { params }) {
       data: report
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
+    console.error('API /api/map/emergency-reports/[id] GET error:', error);
     return NextResponse.json(
       { success: false, error: 'Gagal mengambil detail laporan darurat.' },
       { status: 500 }
@@ -29,14 +30,14 @@ export async function GET(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
-  const { response } = requireSarUser(request);
+  const { response } = await requireSarUser(request);
   if (response) return response;
   try {
     const { id } = await params;
     const body = await request.json();
     const { status } = body;
 
-    const updated = updateReportStatus(id, status);
+    const updated = await updateReportStatus(id, status);
 
     if (!updated) {
       return NextResponse.json(

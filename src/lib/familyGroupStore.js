@@ -1,10 +1,9 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import path from 'node:path';
+import { mutateDocument, readDocument } from './database.js';
 
-const storePath = process.env.FAMILY_GROUPS_FILE || path.join(process.cwd(), 'data', 'family_groups.json');
+const STORE_KEY = 'family_groups';
+const EMPTY_STORE = { groups: [] };
 const inviteLifetimeMs = 24 * 60 * 60 * 1000;
-let writeQueue = Promise.resolve();
 
 function createError(message, status) {
   const error = new Error(message);
@@ -70,34 +69,8 @@ function normalizePlan(plan) {
   };
 }
 
-async function readStore() {
-  try {
-    const content = await readFile(storePath, 'utf8');
-    const data = JSON.parse(content);
-    if (!Array.isArray(data.groups)) throw new Error('Invalid family group store format.');
-    return data;
-  } catch (error) {
-    if (error.code === 'ENOENT') return { groups: [] };
-    throw error;
-  }
-}
-
-async function writeStore(data) {
-  await mkdir(path.dirname(storePath), { recursive: true });
-  const temporaryPath = `${storePath}.${randomUUID()}.tmp`;
-  await writeFile(temporaryPath, JSON.stringify(data), { encoding: 'utf8', mode: 0o600 });
-  await rename(temporaryPath, storePath);
-}
-
 function mutateStore(mutator) {
-  const operation = writeQueue.then(async () => {
-    const data = await readStore();
-    const result = await mutator(data);
-    await writeStore(data);
-    return result;
-  });
-  writeQueue = operation.then(() => undefined, () => undefined);
-  return operation;
+  return mutateDocument(STORE_KEY, EMPTY_STORE, mutator);
 }
 
 function findAuthorizedGroup(data, groupId, token) {
@@ -175,7 +148,7 @@ export async function joinFamilyGroup({ inviteToken, member }) {
 }
 
 export async function getFamilyGroup({ groupId, accessToken }) {
-  const data = await readStore();
+  const data = await readDocument(STORE_KEY, EMPTY_STORE);
   const group = findAuthorizedGroup(data, groupId, accessToken);
   return {
     id: group.id,
