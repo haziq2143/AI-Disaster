@@ -11,7 +11,6 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
   const [confirmPassword, setConfirmPassword] = useState('');
   const [bootstrapSecret, setBootstrapSecret] = useState('');
   const [resetToken, setResetToken] = useState('');
-  const [verificationToken, setVerificationToken] = useState('');
   const [error, setError] = useState(initialError);
   const [notice, setNotice] = useState('');
   const [resetUrl, setResetUrl] = useState('');
@@ -19,17 +18,6 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
 
   useEffect(() => {
     const handleResetLink = () => {
-      const verificationMatch = window.location.hash.match(/^#verifyEmail=([A-Za-z0-9_-]{43})$/);
-      if (verificationMatch) {
-        setVerificationToken(verificationMatch[1]);
-        setPassword('');
-        setConfirmPassword('');
-        setError('');
-        setNotice('Tautan email ditemukan. Konfirmasi untuk menyelesaikan verifikasi.');
-        setMode('verify');
-        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
-        return;
-      }
       const match = window.location.hash.match(/^#resetPassword=([A-Za-z0-9_-]{43})$/);
       if (!match) return;
       setResetToken(match[1]);
@@ -56,19 +44,12 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
       if (mode === 'reset' && password !== confirmPassword) {
         throw new Error('Konfirmasi password tidak cocok.');
       }
-      if (mode === 'verify' && !verificationToken) {
-        throw new Error('Tautan verifikasi tidak ditemukan. Buka tautan yang dikirim ke email Anda.');
-      }
       const endpoint = mode === 'forgot' ? 'password-reset'
         : mode === 'reset' ? 'reset-password'
-          : mode === 'register' ? 'register'
-            : mode === 'verify' ? 'verify-email'
-              : mode === 'resend-verification' ? 'resend-verification' : 'login';
+          : mode === 'register' ? 'register' : 'login';
       const payload = mode === 'forgot' ? { email }
         : mode === 'reset' ? { token: resetToken, password }
-          : mode === 'verify' ? { token: verificationToken }
-            : mode === 'resend-verification' ? { email }
-              : { name, email, password, bootstrapSecret };
+          : { name, email, password, bootstrapSecret };
       const response = await fetch(`/api/auth/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -87,13 +68,6 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
         setResetToken('');
         setNotice(result.message);
       } else if (mode === 'register') {
-        setMode('login');
-        setNotice(result.message);
-      } else if (mode === 'verify') {
-        setMode('login');
-        setVerificationToken('');
-        setNotice(result.message);
-      } else if (mode === 'resend-verification') {
         setMode('login');
         setNotice(result.message);
       } else {
@@ -138,17 +112,14 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
         )}
 
         <form onSubmit={submit} className="space-y-4">
-          {['forgot', 'reset', 'verify', 'resend-verification'].includes(mode) && (
+          {['forgot', 'reset'].includes(mode) && (
             <div>
               <h1 className="text-lg font-extrabold text-slate-800">
-                {mode === 'forgot' ? 'Lupa password?' : mode === 'reset' ? 'Buat password baru'
-                  : mode === 'verify' ? 'Verifikasi email' : 'Kirim ulang verifikasi'}
+                {mode === 'forgot' ? 'Lupa password?' : 'Buat password baru'}
               </h1>
               <p className="mt-1 text-sm text-slate-600">
                 {mode === 'forgot' ? 'Masukkan email akun. Tautan reset demo hanya tersedia saat development.'
-                  : mode === 'reset' ? 'Gunakan password baru dengan panjang 10–128 karakter.'
-                    : mode === 'verify' ? 'Verifikasi alamat email untuk mengaktifkan akun.'
-                      : 'Masukkan email akun. Jika belum diverifikasi, tautan baru akan dikirim.'}
+                  : 'Gunakan password baru dengan panjang 10–128 karakter.'}
               </p>
             </div>
           )}
@@ -164,7 +135,7 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
               <input type="password" autoComplete="off" maxLength={128} value={bootstrapSecret} onChange={event => setBootstrapSecret(event.target.value)} className="form-control mt-1.5" placeholder="Hanya jika diminta admin server" />
             </label>
           )}
-          {['login', 'register', 'forgot', 'resend-verification'].includes(mode) && (
+          {['login', 'register', 'forgot'].includes(mode) && (
             <label className="block text-sm font-semibold text-slate-700">
               Email
               <input required type="email" autoComplete="email" maxLength={254} value={email} onChange={event => setEmail(event.target.value)} className="form-control mt-1.5" placeholder="nama@email.com" />
@@ -202,8 +173,7 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
           <button type="submit" disabled={busy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0D47A1] px-4 py-3 font-bold text-white hover:bg-[#1565C0] disabled:opacity-60">
             {busy ? 'Memproses…' : mode === 'register' ? 'Buat akun'
               : mode === 'forgot' ? 'Kirim tautan reset' : mode === 'reset' ? 'Simpan password baru'
-                : mode === 'verify' ? 'Verifikasi email'
-                  : mode === 'resend-verification' ? 'Kirim ulang tautan' : 'Masuk'}
+                : 'Masuk'}
             {!busy && <ArrowRight className="h-4 w-4" />}
           </button>
         </form>
@@ -212,12 +182,9 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
             <button type="button" onClick={() => changeMode('forgot')} className="mt-3 w-full text-center text-sm font-semibold text-[#0D47A1] hover:underline">
               Lupa password?
             </button>
-            <button type="button" onClick={() => changeMode('resend-verification')} className="mt-2 w-full text-center text-sm font-semibold text-[#0D47A1] hover:underline">
-              Belum menerima email verifikasi?
-            </button>
           </>
         )}
-        {['forgot', 'reset', 'verify', 'resend-verification'].includes(mode) && (
+        {['forgot', 'reset'].includes(mode) && (
           <button type="button" onClick={() => changeMode('login')} className="mt-3 w-full text-center text-sm font-semibold text-[#0D47A1] hover:underline">
             Kembali ke halaman masuk
           </button>

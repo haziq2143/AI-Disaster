@@ -8,7 +8,7 @@ Prototype web responsif pendamping keputusan dan evakuasi saat bencana.
 npm install
 ```
 
-Atur `DATABASE_URL`, `APP_BASE_URL`, dan konfigurasi SMTP di `.env.local` (lihat `.env.local.example`), buat database PostgreSQL, lalu impor data JSON lama dan siapkan skema:
+Atur `DATABASE_URL` di `.env.local`, buat database PostgreSQL, lalu impor data JSON lama dan siapkan skema:
 
 ```sh
 npm run db:migrate
@@ -20,14 +20,15 @@ Buka `http://127.0.0.1:3000`. Aplikasi menggunakan Next.js App Router.
 ## Akun dan role
 
 - Pengguna dapat membuat akun dengan nama, email, dan kata sandi. Nama akun dipakai pada profil keluarga dan laporan SOS; nama yang dikirim ke server tidak dapat diganti lewat payload browser.
-- Akun baru menjadi **Pengguna** setelah email diverifikasi. Verifikasi mengirim tautan sekali pakai berlaku 24 jam via SMTP; login ditolak sampai verifikasi selesai. Akun lama dari migrasi yang belum memiliki tanda verifikasi harus memakai tautan **Belum menerima email verifikasi?** pada halaman masuk. Untuk menetapkan admin pertama, isi `INITIAL_ADMIN_EMAIL` dan `INITIAL_ADMIN_SECRET`; admin juga wajib memverifikasi email sebelum dapat masuk.
+- Halaman **Pengaturan** dapat dibuka dari menu **Lainnya** di navigasi bawah; pemilik akun dapat menyimpan foto, tanggal lahir, kontak darurat, informasi kesehatan, dan data profil lain di sana. Profil pribadi hanya tersedia lewat sesi akun pemilik; jangan mengandalkannya sebagai satu-satunya sumber identitas saat darurat.
+- Akun dapat langsung digunakan setelah pendaftaran; aplikasi prototype ini tidak mengirim atau meminta verifikasi email. Untuk menetapkan admin pertama, isi `INITIAL_ADMIN_EMAIL` dan `INITIAL_ADMIN_SECRET`.
 - Role Tim SAR dapat melihat dan memperbarui laporan SOS, serta menambahkan posko. Posko kontribusi tetap ditandai belum terverifikasi; role akun tidak berarti afiliasi atau verifikasi resmi lembaga.
 - Laporan dan API detail dibatasi di server; akun biasa tidak menerima koordinat maupun detail laporan orang lain. Koordinat hanya disimpan saat pengguna mengirim SOS dengan persetujuan lokasi presisi. Lokasi GPS live tidak disimpan sebagai lokasi global.
 - Service worker hanya menyimpan cache peta yang tidak berisi laporan atau lokasi presisi. Cache offline versi lama dibersihkan saat aplikasi diperbarui.
 - Akun, sesi, grup keluarga, dan data peta disimpan di PostgreSQL. Migrasi awal mengimpor `data/accounts.json`, `data/family_groups.json`, dan `data/disaster_database.json` satu kali tanpa menimpa dokumen yang sudah ada. Runtime menggunakan dokumen JSONB per domain dengan transaksi dan penguncian baris PostgreSQL agar pembaruan antarkoneksi/instance tidak saling menimpa; ini memudahkan migrasi dari prototipe, tetapi menserialisasi penulisan pada dokumen yang sama. Untuk beban produksi tinggi, normalisasikan data ke tabel domain dan siapkan backup serta pemulihan teruji.
-- Hash kata sandi menggunakan scrypt dan cookie sesi bersifat HttpOnly. Fitur lupa password demo menampilkan tautan sekali pakai yang berlaku satu jam hanya saat development; email reset tidak dikirim dan kedua endpoint reset dinonaktifkan di server produksi. SMTP dipakai untuk verifikasi email akun, bukan reset password. Hosting produksi harus memakai HTTPS dan `APP_BASE_URL` HTTPS yang benar. Mode tamu tetap dapat memakai panduan non-akun dan data lokal. Tamu dapat mengirim laporan SOS anonim setelah menyetujui lokasi presisi; laporan berbasis akun memakai nama akun. Sinkronisasi keluarga tetap memerlukan akun.
+- Hash kata sandi menggunakan scrypt dan cookie sesi bersifat HttpOnly. Fitur lupa password demo menampilkan tautan sekali pakai yang berlaku satu jam hanya saat development; email reset tidak dikirim dan kedua endpoint reset dinonaktifkan di server produksi. Mode tamu tetap dapat memakai panduan non-akun dan data lokal. Tamu dapat mengirim laporan SOS anonim setelah menyetujui lokasi presisi; laporan berbasis akun memakai nama akun. Sinkronisasi keluarga tetap memerlukan akun.
 - Laporan SOS membatasi koordinat, kategori, urgensi, dan panjang teks di server; batasnya 3 laporan per alamat IP per 15 menit, berlaku lintas instance lewat PostgreSQL. Login dibatasi 10 percobaan per IP per 15 menit, pendaftaran 5 akun per IP per jam, dan permintaan verifikasi/reset demo 5 kali per IP per 15 menit. Di production, API autentikasi dan SOS menolak permintaan sampai `TRUST_PROXY_HEADERS=true` diaktifkan. Aktifkan hanya di belakang reverse proxy tepercaya yang menimpa `X-Real-IP` atau `X-Forwarded-For`; jangan percaya header ini dari klien langsung.
-- SMTP dan database harus tersedia agar pendaftaran serta login berfungsi. Siapkan host/port/TLS, kredensial SMTP bila diperlukan, dan alamat `SMTP_FROM` yang diizinkan provider. Ini tetap autentikasi prototype, bukan layanan produksi: belum ada reset kata sandi via email atau audit log. Analisis situasi, peta contoh, dan respons kesiapsiagaan adalah simulasi, bukan AI/layanan resmi atau dispatch darurat.
+- Database harus tersedia agar pendaftaran serta login berfungsi. Ini tetap autentikasi prototype, bukan layanan produksi: belum ada reset kata sandi via email atau audit log. Analisis situasi, peta contoh, dan respons kesiapsiagaan adalah simulasi, bukan AI/layanan resmi atau dispatch darurat.
 - Panduan assessment bersifat statis per jenis bencana; teks pengguna ditampilkan sebagai laporan yang belum diverifikasi, bukan dianalisis oleh AI. Peringatan resmi dan rute evakuasi live belum terhubung. Titik, kontak, jarak, dan kondisi contoh tidak boleh dipakai untuk navigasi atau meminta pertolongan. Marker demo tidak dibuat di sekitar GPS pengguna. SOS hanya dicatat di database dan tidak mengirim dispatch.
 - Navigasi pada layar Safe Route tetap dinonaktifkan. Endpoint rute hanya aktif jika `ROUTING_ENGINE_URL` diisi dan `ALLOW_EXTERNAL_ROUTING=true`; koordinat awal/tujuan akan dikirim ke layanan tersebut. Hasilnya hanya mengikuti data peta, bukan rute evakuasi aman. Daftar hazard tidak berisi feed resmi dan catatan tanpa status sumber `live` yang diverifikasi tidak dipakai dalam kalkulasi.
 
@@ -56,7 +57,7 @@ API aplikasi dilayani oleh Next.js Route Handlers; backend Express terpisah yang
 
 ## Tes integrasi PostgreSQL
 
-Setelah konfigurasi database dan migrasi, jalankan `$env:RUN_DATABASE_INTEGRATION_TESTS='true'; npm test` di PowerShell atau `RUN_DATABASE_INTEGRATION_TESTS=true npm test` di bash untuk menguji autentikasi, verifikasi email, sesi, role, rate limit, dan undangan keluarga sekali pakai. Tes membuat lalu menghapus akun/grup sementara.
+Setelah konfigurasi database dan migrasi, jalankan `$env:RUN_DATABASE_INTEGRATION_TESTS='true'; npm test` di PowerShell atau `RUN_DATABASE_INTEGRATION_TESTS=true npm test` di bash untuk menguji pendaftaran/login tanpa verifikasi email, sesi, role, rate limit, dan undangan keluarga sekali pakai. Tes membuat lalu menghapus akun/grup sementara.
 
 ## Backup dan pemulihan
 

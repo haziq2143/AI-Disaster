@@ -7,12 +7,14 @@ const enabled = process.env.RUN_DATABASE_INTEGRATION_TESTS === 'true';
 test('PostgreSQL account sessions and one-use family invites', { skip: !enabled }, async () => {
   const {
     registerAccount,
-    verifyAccountEmail,
     authenticateAccount,
     createSession,
     getUserForSession,
     revokeSession,
-    setAccountRole
+    setAccountRole,
+    getAccountProfile,
+    updateAccountProfile,
+    listAccounts
   } =
     await import('../src/lib/authStore.js');
   const { createFamilyGroup, createFamilyInvite, joinFamilyGroup } =
@@ -24,15 +26,29 @@ test('PostgreSQL account sessions and one-use family invites', { skip: !enabled 
 
   try {
     const registration = await registerAccount({ name: 'Integration User', email, password: 'integration-password-123' });
-    const user = registration.user;
+    const user = registration;
     userId = user.id;
-    await assert.rejects(
-      authenticateAccount({ email, password: 'integration-password-123' }),
-      /Email belum diverifikasi/
-    );
-    await verifyAccountEmail(registration.verificationToken);
     assert.equal((await authenticateAccount({ email, password: 'integration-password-123' })).id, user.id);
-    await assert.rejects(verifyAccountEmail(registration.verificationToken), /Tautan verifikasi/);
+    const updatedProfile = await updateAccountProfile(user.id, {
+      name: 'Updated Integration User',
+      profile: {
+        dateOfBirth: '1995-06-15',
+        phone: '+62 812 3456 7890',
+        emergencyContactName: 'Emergency Contact',
+        emergencyContactPhone: '+62 811 2222 3333',
+        bloodType: 'O+',
+        gender: 'Tidak ingin menyebutkan',
+        medicalInfo: 'Test medical notes',
+        homeArea: 'Test District'
+      }
+    });
+    assert.equal(updatedProfile.user.name, 'Updated Integration User');
+    assert.equal((await getAccountProfile(user.id)).profile.bloodType, 'O+');
+    assert.equal(Object.hasOwn((await listAccounts())[0], 'profile'), false);
+    await assert.rejects(
+      updateAccountProfile(user.id, { profile: { dateOfBirth: 'not-a-date' } }),
+      /Tanggal lahir tidak valid/
+    );
 
     const session = await createSession(user.id);
     assert.equal((await getUserForSession(session.token)).id, user.id);
@@ -60,11 +76,10 @@ test('PostgreSQL account sessions and one-use family invites', { skip: !enabled 
     );
   } finally {
     if (userId) {
-      await mutateDocument('accounts', { users: [], sessions: [], passwordResets: [], emailVerifications: [] }, store => {
+      await mutateDocument('accounts', { users: [], sessions: [], passwordResets: [] }, store => {
         store.users = store.users.filter(user => user.id !== userId);
         store.sessions = store.sessions.filter(session => session.userId !== userId);
         store.passwordResets = store.passwordResets.filter(reset => reset.userId !== userId);
-        store.emailVerifications = store.emailVerifications.filter(item => item.userId !== userId);
       });
     }
     if (groupId) {

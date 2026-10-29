@@ -4,15 +4,26 @@ import { mutateDocument, readDocument } from './database.js';
 
 const scryptAsync = promisify(scrypt);
 const STORE_KEY = 'accounts';
-const EMPTY_STORE = { users: [], sessions: [], passwordResets: [], emailVerifications: [] };
+const EMPTY_STORE = { users: [], sessions: [], passwordResets: [] };
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+const PROFILE_FIELDS = [
+  'profilePhoto',
+  'dateOfBirth',
+  'phone',
+  'emergencyContactName',
+  'emergencyContactPhone',
+  'bloodType',
+  'gender',
+  'medicalInfo',
+  'homeArea'
+];
+const EMPTY_PROFILE = Object.fromEntries(PROFILE_FIELDS.map(field => [field, '']));
 
 function normalizeStore(store) {
   if (!Array.isArray(store.users) || !Array.isArray(store.sessions)) {
     throw new Error('Penyimpanan akun tidak valid.');
   }
   if (!Array.isArray(store.passwordResets)) store.passwordResets = [];
-  if (!Array.isArray(store.emailVerifications)) store.emailVerifications = [];
   return store;
 }
 
@@ -45,6 +56,14 @@ function publicUser(user) {
     role: user.role,
     canManageRoles: user.isInitialAdmin === true && user.email === configuredAdminEmail()
   };
+}
+
+function publicProfile(user) {
+  const profile = Object.fromEntries(PROFILE_FIELDS.map(field => [
+    field,
+    typeof user.profile?.[field] === 'string' ? user.profile[field] : ''
+  ]));
+  return { user: publicUser(user), profile };
 }
 
 function safeEqual(left, right) {
@@ -85,25 +104,15 @@ export async function registerAccount(input) {
     isInitialAdmin: initialAdmin,
     passwordSalt: salt.toString('hex'),
     passwordHash: passwordHash.toString('hex'),
-    emailVerifiedAt: null,
     createdAt: new Date().toISOString()
   };
-  const verificationToken = randomBytes(32).toString('base64url');
 
   return mutateStore(store => {
     if (store.users.some(account => account.email === normalizedEmail)) {
       throw new Error('Email sudah terdaftar. Silakan masuk.');
     }
     store.users.push(user);
-    const now = Date.now();
-    store.emailVerifications = store.emailVerifications.filter(item => item.userId !== user.id);
-    store.emailVerifications.push({
-      tokenHash: createHash('sha256').update(verificationToken).digest('hex'),
-      userId: user.id,
-      createdAt: new Date(now).toISOString(),
-      expiresAt: new Date(now + 24 * 60 * 60 * 1000).toISOString()
-    });
-    return { user: publicUser(user), verificationToken };
+    return publicUser(user);
   });
 }
 
@@ -121,52 +130,7 @@ export async function authenticateAccount(input) {
   if (!user || !timingSafeEqual(expected, actual)) {
     throw new Error('Email atau kata sandi tidak cocok.');
   }
-  if (!user.emailVerifiedAt) throw new Error('Email belum diverifikasi. Periksa inbox atau minta tautan verifikasi baru.');
   return publicUser(user);
-}
-
-export async function createEmailVerificationToken(email) {
-  const normalizedEmail = normalizeEmail(email);
-  return mutateStore(store => {
-    const user = store.users.find(account => account.email === normalizedEmail);
-    const now = Date.now();
-    store.emailVerifications = store.emailVerifications.filter(item => Date.parse(item.expiresAt) > now);
-    if (!user || user.emailVerifiedAt) return null;
-
-    const previous = store.emailVerifications.find(item => item.userId === user.id);
-    if (previous && now - Date.parse(previous.createdAt) < 60_000) return null;
-
-    const token = randomBytes(32).toString('base64url');
-    store.emailVerifications = store.emailVerifications.filter(item => item.userId !== user.id);
-    store.emailVerifications.push({
-      tokenHash: createHash('sha256').update(token).digest('hex'),
-      userId: user.id,
-      createdAt: new Date(now).toISOString(),
-      expiresAt: new Date(now + 24 * 60 * 60 * 1000).toISOString()
-    });
-    return token;
-  });
-}
-
-export async function verifyAccountEmail(token) {
-  if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
-    throw new Error('Tautan verifikasi tidak valid atau sudah kedaluwarsa.');
-  }
-
-  const tokenHash = createHash('sha256').update(token).digest('hex');
-  return mutateStore(store => {
-    const now = Date.now();
-    const verification = store.emailVerifications.find(item => safeEqual(item.tokenHash, tokenHash));
-    if (!verification || Date.parse(verification.expiresAt) <= now) {
-      throw new Error('Tautan verifikasi tidak valid atau sudah kedaluwarsa.');
-    }
-
-    const user = store.users.find(account => account.id === verification.userId);
-    if (!user) throw new Error('Akun untuk tautan verifikasi tidak ditemukan.');
-    user.emailVerifiedAt = new Date(now).toISOString();
-    store.emailVerifications = store.emailVerifications.filter(item => item.userId !== user.id);
-    return publicUser(user);
-  });
 }
 
 export async function createPasswordResetToken(email) {
@@ -222,7 +186,6 @@ export async function resetAccountPassword(token, password) {
     user.passwordSalt = salt.toString('hex');
     user.passwordHash = passwordHash.toString('hex');
     store.passwordResets = store.passwordResets.filter(item => item.userId !== user.id);
-    store.emailVerifications = store.emailVerifications.filter(item => item.userId !== user.id);
     store.sessions = store.sessions.filter(session => session.userId !== user.id);
   });
 }
@@ -231,8 +194,7 @@ export async function createSession(userId) {
   const token = randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS).toISOString();
   await mutateStore(store => {
-    const user = store.users.find(account => account.id === userId);
-    if (!user?.emailVerifiedAt) throw new Error('Email belum diverifikasi.');
+    if (!store.users.some(account => account.id === userId)) throw new Error('Akun tidak ditemukan.');
     store.sessions = store.sessions.filter(session => Date.parse(session.expiresAt) > Date.now());
     store.sessions.push({
       tokenHash: createHash('sha256').update(token).digest('hex'),
@@ -250,7 +212,87 @@ export async function getUserForSession(token) {
   const session = store.sessions.find(item => safeEqual(item.tokenHash, tokenHash));
   if (!session || Date.parse(session.expiresAt) <= Date.now()) return null;
   const user = store.users.find(account => account.id === session.userId);
-  return user?.emailVerifiedAt ? publicUser(user) : null;
+  return user ? publicUser(user) : null;
+}
+
+export async function getAccountProfile(userId) {
+  const store = await readStore();
+  const user = store.users.find(account => account.id === userId);
+  if (!user) throw new Error('Akun tidak ditemukan.');
+  return publicProfile(user);
+}
+
+export async function updateAccountProfile(userId, input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error('Format profil tidak valid.');
+  }
+  const allowedInputFields = new Set(['name', 'profile']);
+  if (Object.keys(input).some(field => !allowedInputFields.has(field))) {
+    throw new Error('Data profil tidak valid.');
+  }
+  if (input.profile !== undefined
+    && (!input.profile || typeof input.profile !== 'object' || Array.isArray(input.profile))) {
+    throw new Error('Format profil tidak valid.');
+  }
+
+  const suppliedProfile = input.profile || {};
+  if (Object.keys(suppliedProfile).some(field => !PROFILE_FIELDS.includes(field))) {
+    throw new Error('Data profil tidak valid.');
+  }
+
+  return mutateStore(store => {
+    const user = store.users.find(account => account.id === userId);
+    if (!user) throw new Error('Akun tidak ditemukan.');
+
+    if (input.name !== undefined && typeof input.name !== 'string') {
+      throw new Error('Nama harus terdiri dari 2–80 karakter.');
+    }
+    const name = input.name === undefined ? user.name : input.name.trim();
+    if (name.length < 2 || name.length > 80) {
+      throw new Error('Nama harus terdiri dari 2–80 karakter.');
+    }
+
+    const profile = { ...EMPTY_PROFILE, ...(user.profile || {}), ...suppliedProfile };
+    for (const field of PROFILE_FIELDS) {
+      if (typeof profile[field] !== 'string') throw new Error('Data profil tidak valid.');
+      profile[field] = profile[field].trim();
+    }
+    if (profile.dateOfBirth) {
+      const date = new Date(`${profile.dateOfBirth}T00:00:00.000Z`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(profile.dateOfBirth)
+        || Number.isNaN(date.getTime())
+        || date.toISOString().slice(0, 10) !== profile.dateOfBirth
+        || profile.dateOfBirth < '1900-01-01'
+        || profile.dateOfBirth > new Date().toISOString().slice(0, 10)) {
+        throw new Error('Tanggal lahir tidak valid.');
+      }
+    }
+    for (const field of ['phone', 'emergencyContactPhone']) {
+      if (profile[field] && (profile[field].length > 32 || !/^[+\d\s().-]{5,32}$/.test(profile[field]))) {
+        throw new Error('Nomor telepon tidak valid.');
+      }
+    }
+    if (profile.emergencyContactName.length > 80
+      || profile.medicalInfo.length > 1000
+      || profile.homeArea.length > 160) {
+      throw new Error('Ada data profil yang melebihi batas panjang.');
+    }
+    if (!['', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Tidak tahu'].includes(profile.bloodType)) {
+      throw new Error('Golongan darah tidak valid.');
+    }
+    if (!['', 'Perempuan', 'Laki-laki', 'Lainnya', 'Tidak ingin menyebutkan'].includes(profile.gender)) {
+      throw new Error('Pilihan jenis kelamin tidak valid.');
+    }
+    if (profile.profilePhoto
+      && (profile.profilePhoto.length > 350_000
+        || !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(profile.profilePhoto))) {
+      throw new Error('Foto profil tidak valid atau ukurannya terlalu besar.');
+    }
+
+    user.name = name;
+    user.profile = profile;
+    return publicProfile(user);
+  });
 }
 
 export async function revokeSession(token) {

@@ -24,9 +24,7 @@ export async function POST(request) {
     if (error instanceof SyntaxError) {
       return Response.json({ success: false, error: 'Format permintaan tidak valid.' }, { status: 400 });
     }
-    const status = /tidak cocok/.test(error.message) ? 401
-      : /Email belum diverifikasi/.test(error.message) ? 403
-        : 500;
+    const status = /tidak cocok/.test(error.message) ? 401 : 500;
     if (status === 500) console.error('API /api/auth/login error:', error);
     return Response.json(
       {

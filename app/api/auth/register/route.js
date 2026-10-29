@@ -1,5 +1,4 @@
 import { registerAccount } from '../../../../src/lib/authStore.js';
-import { sendVerificationEmail } from '../../../../src/lib/email.js';
 import { hasSameOrigin, badOriginResponse } from '../../../../src/lib/auth.js';
 import {
   checkRequestRateLimit,
@@ -15,18 +14,9 @@ export async function POST(request) {
     if (!rateLimit.allowed) return rateLimitExceededResponse(rateLimit.retryAfterSeconds);
 
     const body = await request.json();
-    const { user, verificationToken } = await registerAccount(body);
-    try {
-      await sendVerificationEmail({ email: user.email, token: verificationToken, request });
-    } catch (error) {
-      console.error('Gagal mengirim email verifikasi akun:', error);
-      return Response.json(
-        { success: false, error: 'Akun menunggu verifikasi, tetapi email belum dapat dikirim. Coba kirim ulang tautan verifikasi.' },
-        { status: 503, headers: { 'Cache-Control': 'no-store' } }
-      );
-    }
+    await registerAccount(body);
     return Response.json(
-      { success: true, message: 'Akun dibuat. Periksa inbox untuk memverifikasi alamat email sebelum masuk.' },
+      { success: true, message: 'Akun berhasil dibuat. Silakan masuk.' },
       { status: 201, headers: { 'Cache-Control': 'no-store' } }
     );
   } catch (error) {

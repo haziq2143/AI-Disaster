@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { 
   ShieldAlert, 
   Home, 
@@ -25,6 +25,7 @@ import GlobalSafetyMap from './components/GlobalSafetyMap';
 import ShareStatus from './components/ShareStatus';
 import AuthScreen from './components/AuthScreen';
 import SarDashboard from './components/SarDashboard';
+import SettingsScreen from './components/SettingsScreen';
 
 import { INITIAL_CHECKLIST, INITIAL_FAMILY } from './data/mockData';
 
@@ -429,6 +430,10 @@ export default function App() {
     }
   };
 
+  const handleProfileUpdated = useCallback(user => {
+    setAuthUser(current => current ? { ...current, ...user } : current);
+  }, []);
+
   // PRD Screen Index mapping for demo reviewer
   const screenList = [
     { id: 'onboarding', num: '01', name: 'Onboarding' },
@@ -443,7 +448,8 @@ export default function App() {
     { id: 'confirm_safe', num: '10', name: 'Safe Confirmation' },
     { id: 'safety_map', num: '11', name: 'Global Safety Map' },
     { id: 'share_status', num: '12', name: 'Share Status & Report Abuse' },
-    ...(authUser?.role === 'sar' ? [{ id: 'sar_dashboard', num: '13', name: 'Panel Tim SAR' }] : [])
+    ...(authUser?.role === 'sar' ? [{ id: 'sar_dashboard', num: '13', name: 'Panel Tim SAR' }] : []),
+    { id: 'settings', num: '14', name: 'Pengaturan' }
   ];
 
   const primaryNavigation = [
@@ -678,6 +684,15 @@ export default function App() {
             safetyShareDetails={safetyShareDetails}
             setSafetyShareDetails={setSafetyShareDetails}
             onBack={() => setCurrentScreen('safety_map')}
+          />
+        )}
+
+        {currentScreen === 'settings' && (
+          <SettingsScreen
+            currentUser={authUser}
+            onSignOut={handleSignOut}
+            onBack={() => setCurrentScreen('home')}
+            onProfileUpdated={handleProfileUpdated}
           />
         )}
       </main>
