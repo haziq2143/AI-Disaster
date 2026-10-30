@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { AlertCircle, ArrowRight, ShieldAlert } from 'lucide-react';
+import GuardianShieldLogo from './GuardianShieldLogo';
 
 export default function AuthScreen({ onAuthenticated, onContinueGuest, initialError = '' }) {
   const [mode, setMode] = useState('login');
@@ -91,11 +92,9 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
     <main className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-sky-100 px-4 py-10">
       <section className="mx-auto max-w-md rounded-3xl border border-blue-100 bg-white p-6 shadow-xl sm:p-8">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#0D47A1] to-[#2196F3] text-white">
-            <ShieldAlert className="h-6 w-6" />
-          </div>
+          <GuardianShieldLogo size={48} className="shrink-0" />
           <div>
-            <p className="text-lg font-extrabold text-[#0D47A1]">AI Disaster Assistant</p>
+            <p className="text-lg font-extrabold text-[#0D47A1]">Evacu8</p>
             <p className="text-xs text-slate-500">Masuk dengan akun untuk melanjutkan</p>
           </div>
         </div>

@@ -1,9 +1,17 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'AI Disaster Assistant — Pendamping Keputusan & Evakuasi Cepat',
+  title: 'Evacu8 — Pendamping Keputusan & Evakuasi Cepat',
   description: 'Prototype pendamping keputusan awal saat bencana dengan panduan keselamatan, peta komunitas, dan rencana keluarga.',
-  applicationName: 'AI Disaster Assistant'
+  applicationName: 'Evacu8',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/favicon.svg', type: 'image/svg+xml' }
+    ],
+    apple: '/apple-touch-icon.png'
+  },
+  manifest: '/site.webmanifest'
 };
 
 export const viewport = {

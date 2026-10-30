@@ -26,6 +26,7 @@ import ShareStatus from './components/ShareStatus';
 import AuthScreen from './components/AuthScreen';
 import SarDashboard from './components/SarDashboard';
 import SettingsScreen from './components/SettingsScreen';
+import GuardianShieldLogo from './components/GuardianShieldLogo';
 
 import { INITIAL_CHECKLIST, INITIAL_FAMILY } from './data/mockData';
 
@@ -506,16 +507,11 @@ export default function App() {
             onClick={() => setCurrentScreen('home')}
             className="flex min-w-0 items-center gap-2.5 text-left cursor-pointer group sm:gap-3"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-[#0D47A1] to-[#2196F3] flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <ShieldAlert className="w-6 h-6 text-white" />
-            </div>
+            <GuardianShieldLogo className="h-9 w-9 shrink-0 transition-transform group-hover:scale-105 sm:h-10 sm:w-10" />
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-base sm:text-lg text-[#0D47A1] tracking-tight">
-                  AI Disaster
-                </span>
-                <span className="hidden text-[10px] font-bold px-1.5 py-0.2 bg-[#E3F2FD] text-[#0D47A1] rounded border border-[#90CAF9] min-[400px]:inline">
-                  ASSISTANT
+                  Evacu8
                 </span>
               </div>
               <p className="text-[10px] text-slate-500 hidden sm:block">Keputusan & Evakuasi Cepat Terstruktur</p>
@@ -762,7 +758,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div className="space-y-1">
             <p className="font-bold text-[#0D47A1]">
-              AI Disaster Assistant — Prototype Lomba UI/UX
+              Evacu8 — Prototype Lomba UI/UX
             </p>
             <p className="text-[11px] text-slate-400">
               Palet: #0D47A1 (Navy) · #2196F3 (Electric) · #90CAF9 (Sky) · #E3F2FD (Ice Light)
