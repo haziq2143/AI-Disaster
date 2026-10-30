@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title-master">
+  <title id="title-master">AI Disaster Assistant - Guardian Shield</title>
+  <g id="symbol">
+    <!-- Left Wing (Navy) -->
+    <path fill="#0D47A1" d="M 100 44 L 48 74 C 40 144 68 200 108 228 L 108 174 C 88 152 78 120 80 88 L 108 74 Z"/>
+    <!-- Right Wing (Navy) -->
+    <path fill="#0D47A1" d="M 156 44 L 208 74 C 216 144 188 200 148 228 L 148 174 C 168 152 178 120 176 88 L 148 74 Z"/>
+    <!-- Guiding Compass Needle (Electric Blue) -->
+    <polygon fill="#2196F3" points="128,68 148,116 128,164 108,116"/>
+  </g>
+</svg>

@@ -446,7 +446,7 @@ export default function VirtualRouteSchematic({
 
           {/* Watermark */}
           <text x={width - 12} y={height - 10} fill="#64748B" fontSize="8" fontWeight="600" textAnchor="end" opacity="0.65">
-            AI Disaster · Skema Rute Virtual GPS
+            Evacu8 · Skema Rute Virtual GPS
           </text>
         </svg>
       </div>

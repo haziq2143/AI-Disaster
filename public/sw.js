@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ai-disaster-offline-v2';
+const CACHE_NAME = 'ai-disaster-offline-v3';
 const APP_URL = new URL('/', self.location.origin).href;
 const OFFLINE_URL = new URL('/offline.html', self.location.origin).href;
 

@@ -1,0 +1,37 @@
+{
+  "brand": "AI Disaster Assistant",
+  "tagline": "Tetap tenang. Pahami situasi. Ambil langkah aman.",
+  "brief": "Platform web pendamping evakuasi dan keputusan darurat saat bencana, berfokus pada ketenangan, kejelasan aksi, dan rute keselamatan keluarga.",
+  "adjectives": [
+    "tenang",
+    "terstruktur",
+    "pelindung",
+    "responsif"
+  ],
+  "criteria": "Desain logo perisai geometris bersih, navigasi rute aman terarah, terbaca di favicon 16px, dan bebas dari klise tanda bahaya/seru.",
+  "industry": "consumer-app",
+  "nav": [
+    "Beranda",
+    "Peta Keselamatan",
+    "Rencana Keluarga",
+    "Mode Darurat"
+  ],
+  "brand_color": "#0D47A1",
+  "greyscale": false,
+  "final": true,
+  "round": 1,
+  "concepts": [
+    {
+      "name": "Guardian Shield",
+      "symbol": "guardian-shield.svg",
+      "avatar": "guardian-shield-small.svg",
+      "idea": "Perisai pelindung dinamis dengan jarum kompas navigasi terpadu menuju jalur keselamatan.",
+      "rationale": [
+        "Simbol perisai didekonstruksi menjadi dua sayap penopang yang kokoh dan seimbang.",
+        "Jarum kompas Electric Blue melambangkan bimbingan AI cerdas dan rute evakuasi terverifikasi.",
+        "Versi small-cut khusus memastikan celah negatif dan siluet tetap tajam di ukuran 16px."
+      ]
+    }
+  ],
+  "recommendation": "Guardian Shield merupakan identitas yang tangguh, protektif, dan presisi tinggi untuk aplikasi tanggap darurat."
+}

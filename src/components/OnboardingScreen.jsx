@@ -48,7 +48,7 @@ export default function OnboardingScreen({ onStartApp, onQuickExplore }) {
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-          AI Disaster Assistant
+          Evacu8
         </h1>
         <p className="text-base sm:text-lg text-slate-600 max-w-xl mx-auto font-normal">
           Platform Web Pendamping Keputusan dan Evakuasi Saat Bencana. <br />
