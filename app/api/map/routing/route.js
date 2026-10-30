@@ -58,15 +58,24 @@ function processSteps(segments = [], coordinates = []) {
       const wpIdx = Array.isArray(s.way_points) ? s.way_points[0] : null;
       const stepCoord = wpIdx !== null && coordinates[wpIdx] ? coordinates[wpIdx] : null;
 
-      let title = s.instruction || (s.name && s.name !== '-' ? `Lewat ${s.name}` : 'Ikuti jalan utama');
+      const isArrival = s.type === 10;
+      let title = s.instruction || (s.name && s.name !== '-' ? `Lewat ${s.name}` : (isArrival ? 'Tiba di tujuan' : 'Ikuti jalan utama'));
+      let instructionText = s.instruction;
+      if (!instructionText) {
+        instructionText = isArrival ? 'Anda telah tiba di lokasi tujuan' : `Lanjutkan sejauh ${formatDistance(s.distance)}`;
+      } else if (!isArrival && s.distance > 0) {
+        instructionText = `${s.instruction} sejauh ${formatDistance(s.distance)}`;
+      }
+
       steps.push({
         step: stepNum++,
         title,
-        instruction: s.instruction ? `${s.instruction} sejauh ${formatDistance(s.distance)}` : `Lanjutkan sejauh ${formatDistance(s.distance)}`,
+        instruction: instructionText,
         distanceMeters: Math.round(s.distance),
         durationSeconds: Math.round(s.duration),
         lat: stepCoord ? stepCoord[0] : null,
-        lng: stepCoord ? stepCoord[1] : null
+        lng: stepCoord ? stepCoord[1] : null,
+        isArrival
       });
     }
   }
@@ -83,7 +92,8 @@ async function fetchOrsRoute(profile, startLng, startLat, endLng, endLat, apiKey
     instructions: true,
     geometry: true,
     geometry_simplify: false,
-    alternative_routes: { target_count: 3, share_factor: 0.9, weight_factor: 2.0 }
+    alternative_routes: { target_count: 3, share_factor: 0.9, weight_factor: 2.0 },
+    language: 'id'
   };
 
   const controller = new AbortController();

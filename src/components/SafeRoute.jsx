@@ -734,7 +734,7 @@ export default function SafeRoute({
   const speakInstruction = useCallback((text) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      if (isSpeaking) {
+      if (!text) {
         setIsSpeaking(false);
         return;
       }
@@ -746,7 +746,71 @@ export default function SafeRoute({
       setIsSpeaking(true);
       window.speechSynthesis.speak(utterance);
     }
-  }, [isSpeaking]);
+  }, []);
+
+  const handleToggleVoice = useCallback(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+      } else {
+        const textToSpeak = currentNavStep?.instruction
+          ? `Langkah ${currentNavStep.step}: ${currentNavStep.instruction}`
+          : `Menuju ke ${selectedPoint.name}`;
+        speakInstruction(textToSpeak);
+      }
+    }
+  }, [isSpeaking, currentNavStep, selectedPoint, speakInstruction]);
+
+  // Proximity & Automatic Turn-by-Turn Voice Navigation (Google Maps Style)
+  const lastSpokenStepRef = useRef(-1);
+  const hasAnnouncedArrivalRef = useRef(false);
+
+  useEffect(() => {
+    if (!isNavigating || !gpsCoords || !navSteps || navSteps.length === 0) {
+      hasAnnouncedArrivalRef.current = false;
+      return;
+    }
+
+    const currentStep = navSteps[currentStepIndex];
+    const isLastStep = currentStepIndex === totalNavSteps - 1;
+    const destLat = selectedPoint.lat;
+    const destLng = selectedPoint.lng;
+
+    // Check distance to final destination
+    const distToDestination = calculateDistance(gpsCoords.lat, gpsCoords.lng, destLat, destLng);
+
+    // If within 35 meters of final destination, announce arrival automatically
+    if (distToDestination <= 35 && !hasAnnouncedArrivalRef.current) {
+      hasAnnouncedArrivalRef.current = true;
+      setCurrentStepIndex(totalNavSteps - 1);
+      const arrivalMsg = `Selamat! Anda telah tiba di lokasi tujuan: ${selectedPoint.name.split(' (')[0]}. Silakan lapor ke posko atau konfirmasi kondisi aman Anda.`;
+      speakInstruction(arrivalMsg);
+      setRouteToastMessage(`🎉 Anda telah tiba di ${selectedPoint.name.split(' (')[0]}!`);
+      return;
+    }
+
+    // Check distance to next waypoint if step coordinates exist
+    if (currentStep && Number.isFinite(currentStep.lat) && Number.isFinite(currentStep.lng)) {
+      const distToStep = calculateDistance(gpsCoords.lat, gpsCoords.lng, currentStep.lat, currentStep.lng);
+
+      // If user reaches within 40 meters of current turn waypoint, automatically advance to next step!
+      if (distToStep <= 40 && !isLastStep) {
+        const nextIdx = currentStepIndex + 1;
+        if (nextIdx !== lastSpokenStepRef.current) {
+          lastSpokenStepRef.current = nextIdx;
+          setCurrentStepIndex(nextIdx);
+          const nextStep = navSteps[nextIdx];
+          if (nextStep) {
+            const voiceText = nextStep.isArrival
+              ? `Mendekati tujuan: ${nextStep.instruction}`
+              : `Langkah ${nextStep.step}: ${nextStep.instruction}`;
+            speakInstruction(voiceText);
+          }
+        }
+      }
+    }
+  }, [isNavigating, gpsCoords, currentStepIndex, navSteps, totalNavSteps, selectedPoint, speakInstruction]);
 
   // Core handler: Select a destination point
   const handleDirectRoute = useCallback((point, category) => {
@@ -773,11 +837,19 @@ export default function SafeRoute({
     const nextNavigatingState = !isNavigating;
     setIsNavigating(nextNavigatingState);
     setCurrentStepIndex(0);
+    hasAnnouncedArrivalRef.current = false;
+    lastSpokenStepRef.current = 0;
+
     if (nextNavigatingState) {
-      const firstStepText = `Memulai panduan rute evakuasi ke ${selectedPoint.name}. Langkah 1: ${navSteps[0]?.instruction || ''}`;
+      const firstStepText = `Memulai panduan navigasi evakuasi ke ${selectedPoint.name.split(' (')[0]}. Langkah 1: ${navSteps[0]?.instruction || ''}`;
       speakInstruction(firstStepText);
-      setRouteToastMessage('🧭 Simulasi Panduan Rute Aktif. Ikuti langkah demi langkah di bawah.');
+      setRouteToastMessage('🧭 Navigasi Suara Otomatis Aktif (Bahasa Indonesia).');
       setTimeout(() => setRouteToastMessage(null), 3500);
+    } else {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+      }
     }
   };
 
@@ -1513,17 +1585,18 @@ export default function SafeRoute({
           {/* Voice Guidance Speaker Button */}
           <button
             type="button"
-            onClick={() => speakInstruction(currentNavStep?.instruction || '')}
-            className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer shrink-0 shadow-xs ${
+            onClick={handleToggleVoice}
+            className={`px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl border transition-all cursor-pointer shrink-0 shadow-xs flex items-center gap-1.5 font-bold text-xs ${
               isSpeaking
                 ? 'bg-rose-600 text-white border-rose-400 animate-pulse'
                 : isNavigating
                   ? 'bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-300'
                   : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-300'
             }`}
-            title="Dengarkan instruksi suara panduan"
+            title="Dengarkan atau matikan panduan suara navigasi Bahasa Indonesia"
           >
-            {isSpeaking ? <VolumeX className="w-5 h-5 text-white" /> : <Volume2 className="w-5 h-5 text-current" />}
+            {isSpeaking ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4 text-current" />}
+            <span className="hidden sm:inline text-[11px]">{isSpeaking ? 'Hening' : 'Suara ID'}</span>
           </button>
         </div>
 
