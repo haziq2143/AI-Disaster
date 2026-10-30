@@ -27,10 +27,37 @@ export default function VirtualRouteSchematic({
   const activeRoute = smartRoutes.find(r => r.id === activeRouteId) || smartRoutes[0] || null;
   const altRoute = smartRoutes.find(r => r.id !== activeRouteId) || null;
 
-  // Guaranteed fallback for distance and duration so it never renders "() • Jalur Terverifikasi"
-  const displayDistance = activeRoute?.distanceFormatted || target?.distance || '21,6 km';
-  const displayDuration = activeRoute?.durationFormatted || target?.estTime || (selectedTransport === 'motor' ? '35 mnt' : '38 mnt');
-  const displaySummary = activeRoute?.summary || target?.summaryRoute || 'Jl. Pantura / Jl. Raya Cilegon Drangong Serang';
+  // Dynamic travel times proportional to actual road distance & real-world traffic conditions
+  // Calibrated to Google Maps benchmarks: 21.6 km is ~38 min (motor) / ~40 min (mobil) / ~4.5h (jalan); 6.0 km is ~12 min (motor) / ~13 min (mobil) / 1j 14m (jalan)
+  const transportTimes = useMemo(() => {
+    const dist = activeRoute?.distanceMeters || target?.distanceMeters || 0;
+    const dur = activeRoute?.durationSeconds || 0;
+    if (!dist) return { motor: '—', mobil: '—', bus: '—', jalan: '—' };
+
+    const carSec = dur || Math.max(60, Math.round(dist / 8.6));
+    const motorSec = Math.max(60, Math.round(carSec * 0.92));
+    const busSec = Math.max(60, Math.round(carSec * 1.25));
+    const walkSec = Math.max(60, Math.round(dist / 1.33));
+
+    const fmt = (sec) => {
+      const min = Math.max(1, Math.round(sec / 60));
+      if (min < 60) return `${min} mnt`;
+      const h = Math.floor(min / 60);
+      const m = min % 60;
+      return m > 0 ? `${h}j ${m}m` : `${h} jam`;
+    };
+
+    return {
+      motor: fmt(motorSec),
+      mobil: fmt(carSec),
+      bus: fmt(busSec),
+      jalan: fmt(walkSec)
+    };
+  }, [activeRoute, target]);
+
+  const displayDistance = activeRoute?.distanceFormatted || target?.distance || (target?.distanceMeters ? `${(target.distanceMeters / 1000).toFixed(1)} km` : '—');
+  const displayDuration = transportTimes[selectedTransport] || activeRoute?.durationFormatted || target?.estTime || '—';
+  const displaySummary = activeRoute?.summary || target?.summaryRoute || 'Jalur Jalan Terverifikasi';
 
   // 1. Calculate Geographic Bounding Box and Projection
   const { pathD, altPathD, startXY, endXY, midXY, hazardPoints } = useMemo(() => {
@@ -430,10 +457,10 @@ export default function VirtualRouteSchematic({
         <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
           <div className="flex items-center gap-1 sm:gap-2">
             {[
-              { id: 'motor', icon: '🏍️', label: 'Motor', time: displayDuration },
-              { id: 'mobil', icon: '🚗', label: 'Mobil', time: '~38 mnt' },
-              { id: 'bus', icon: '🚌', label: 'Armada', time: '~30 mnt' },
-              { id: 'jalan', icon: '🚶', label: 'Jalan', time: '4j 15m' }
+              { id: 'motor', icon: '🏍️', label: 'Motor', time: transportTimes.motor },
+              { id: 'mobil', icon: '🚗', label: 'Mobil', time: transportTimes.mobil },
+              { id: 'bus', icon: '🚌', label: 'Armada', time: transportTimes.bus },
+              { id: 'jalan', icon: '🚶', label: 'Jalan', time: transportTimes.jalan }
             ].map(item => (
               <button
                 key={item.id}
@@ -453,48 +480,41 @@ export default function VirtualRouteSchematic({
           </div>
 
           <div className="flex items-center gap-1 text-slate-500">
-            <button
-              type="button"
-              onClick={() => onSelectRoute && altRoute && onSelectRoute(altRoute.id)}
-              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-700 font-bold text-xs flex items-center gap-1 cursor-pointer"
-              title="Ganti rute"
-            >
-              <span>🔀</span>
-              <span className="hidden sm:inline">Rute Opsi</span>
-            </button>
+            {altRoute && (
+              <button
+                type="button"
+                onClick={() => onSelectRoute && altRoute && onSelectRoute(altRoute.id)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-700 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                title="Ganti rute"
+              >
+                <span>🔀</span>
+                <span className="hidden sm:inline">Rute Opsi</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Row B: Smart Filter Chips (integrating PRD test scenarios seamlessly) */}
+        {/* Row B: Smart Filter Chips */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-          <button
-            type="button"
-            onClick={() => onSelectRoute && onSelectRoute('route-0')}
-            className={`px-3 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer border ${
-              activeRouteId === 'route-0' && !isMainBlocked
-                ? 'bg-slate-900 text-white border-slate-900'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-            }`}
-          >
-            ✓ Rute Tercepat (Tol)
-          </button>
-
-          {altRoute && (
+          {(smartRoutes || []).map((r) => (
             <button
+              key={r.id}
               type="button"
-              onClick={() => onSelectRoute && onSelectRoute(altRoute.id)}
+              onClick={() => onSelectRoute && onSelectRoute(r.id)}
               className={`px-3 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer border ${
-                activeRouteId === altRoute.id
+                activeRouteId === r.id && !r.isBlocked
                   ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                  : r.isBlocked
+                    ? 'bg-rose-50 text-rose-700 border-rose-300'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
               }`}
             >
-              ✓ Hindari Tol (Arteri)
+              {r.isBlocked ? '⛔' : '✓'} {r.name}
             </button>
-          )}
+          ))}
 
           <span className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200 font-bold whitespace-nowrap">
-            Status: {activeRoute?.statusLabel || 'Belum ada laporan bahaya terdata'}
+            {activeRoute?.statusLabel || 'Jalur Jalan Terverifikasi'}
           </span>
         </div>
 

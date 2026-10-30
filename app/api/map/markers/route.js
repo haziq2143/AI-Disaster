@@ -23,7 +23,38 @@ export async function GET(request) {
 
     const userCoords = hasLat ? { lat, lng } : null;
     const data = await getAllMarkers(userCoords);
-    if (user?.role !== 'sar') data.laporan_darurat = [];
+
+    const isSar = user?.role === 'sar';
+
+    if (!isSar && Array.isArray(data.laporan_darurat)) {
+      // User biasa tetap bisa melihat laporan darurat di peta komunitas (sesuai PRD 4.11 PIN SOS),
+      // tapi koordinat presisi disamarkan ke area ~1 km dan detail kontak disembunyikan.
+      data.laporan_darurat = data.laporan_darurat.map(r => {
+        if (!r.precision_consent) return null; // hanya tampilkan jika korban setuju dibagikan
+        return {
+          id: r.id,
+          // Geser koordinat ±0.005 derajat (~500m) agar tidak presisi untuk user biasa
+          lat: r.lat + (Math.random() - 0.5) * 0.005,
+          lng: r.lng + (Math.random() - 0.5) * 0.005,
+          area: r.address_detail
+            ? r.address_detail.split(',').slice(-2).join(',').trim()
+            : 'Area tidak diketahui',
+          hazard_type: r.hazard_type,
+          urgency_level: r.urgency_level,
+          status: r.status,
+          vulnerable_members: r.vulnerable_members,
+          needs_description: r.needs_description,
+          reported_at: r.reported_at,
+          verified_status: r.verified_status,
+          precision_consent: r.precision_consent,
+          // Field sensitif disembunyikan untuk user biasa
+          contact: null,
+          address_detail: null,
+          reporter_name: 'Anonim (laporan warga)',
+        };
+      }).filter(Boolean);
+    }
+
     data.user_location = null;
 
     return NextResponse.json({

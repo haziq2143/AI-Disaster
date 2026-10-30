@@ -68,5 +68,29 @@ export const api = {
       throw new Error('Laporan belum berhasil dicatat. Periksa koneksi lalu coba lagi.');
     }
     return result;
+  },
+
+  reportHazardBlocked: async (hazardId, sessionId) => {
+    const result = await requestJson('/api/map/road-hazards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hazardId, sessionId, action: 'report' })
+    });
+    if (!result.success) {
+      throw new Error(result.error || 'Gagal mengirim laporan bahaya jalan.');
+    }
+    return result;
+  },
+
+  cancelHazardReport: async (hazardId, sessionId) => {
+    const result = await requestJson('/api/map/road-hazards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hazardId, sessionId, action: 'cancel' })
+    });
+    if (!result.success) {
+      throw new Error(result.error || 'Gagal membatalkan laporan bahaya jalan.');
+    }
+    return result;
   }
 };

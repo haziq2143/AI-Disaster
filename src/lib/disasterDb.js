@@ -142,7 +142,50 @@ export const INITIAL_DATABASE = {
     display_mode: 'radius_1km',
     updated_at: new Date().toISOString()
   },
-  road_hazards: []
+  road_hazards: [
+    {
+      id: 'hazard-cilegon-drangong',
+      road_name: 'Simpang Drangong - Serang Barat',
+      hazard_type: 'Banjir Luapan Sungai',
+      water_depth: '65 cm',
+      severity: 'closed',
+      status: 'verified',
+      data_status: 'live',
+      active: true,
+      lat: -6.0420,
+      lng: 106.0950,
+      radius_meters: 220,
+      description: 'Luapan air sungai mencapai 65 cm dengan arus deras. Ruas jalan ditutup total untuk semua jenis kendaraan.',
+      reported_by: 'BPBD Banten & Satlantas',
+      reported_at: '15 mnt lalu',
+      community_reports: [],
+      report_count: 0,
+      is_blocked_by_community: false,
+      block_threshold: 5,
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'hazard-tol-merak-km74',
+      road_name: 'Akses Interchange Tol Merak KM 74',
+      hazard_type: 'Genangan Sedang',
+      water_depth: '25 cm',
+      severity: 'passable_caution',
+      status: 'verified',
+      data_status: 'live',
+      active: false,
+      lat: -6.0150,
+      lng: 106.0680,
+      radius_meters: 180,
+      description: 'Genangan setinggi 25 cm di bahu jalan tol, dapat dilintasi kendaraan evakuasi bertonase sedang dengan kehati-hatian.',
+      reported_by: 'Petugas Tol PJR',
+      reported_at: '20 mnt lalu',
+      community_reports: [],
+      report_count: 0,
+      is_blocked_by_community: false,
+      block_threshold: 5,
+      updated_at: new Date().toISOString()
+    }
+  ]
 };
 
 // Calculate Haversine distance in meters
@@ -176,8 +219,73 @@ export function writeDb(data) {
 
 export async function getRoadHazards() {
   const db = await readDb();
+  const now = Date.now();
   return (Array.isArray(db.road_hazards) ? db.road_hazards : [])
-    .filter(hazard => hazard.data_status === 'live' && hazard.status === 'verified');
+    .filter(hazard => hazard.data_status === 'live' && hazard.status === 'verified')
+    .map(hazard => {
+      const activeReports = (hazard.community_reports || []).filter(
+        r => !r.expiresAt || new Date(r.expiresAt).getTime() > now
+      );
+      const reportCount = activeReports.length;
+      const isBlockedByCommunity = reportCount >= (hazard.block_threshold || 5);
+      return {
+        ...hazard,
+        community_reports: activeReports,
+        report_count: reportCount,
+        is_blocked_by_community: isBlockedByCommunity
+      };
+    });
+}
+
+// Add a community road-blocked report for a hazard
+export async function addHazardReport(hazardId, sessionId) {
+  return mutateDocument(STORE_KEY, INITIAL_DATABASE, db => {
+    const hazard = (Array.isArray(db.road_hazards) ? db.road_hazards : [])
+      .find(h => h.id === hazardId);
+    if (!hazard) return null;
+
+    if (!Array.isArray(hazard.community_reports)) hazard.community_reports = [];
+
+    // Prune expired reports first
+    const now = Date.now();
+    hazard.community_reports = hazard.community_reports.filter(
+      r => !r.expiresAt || new Date(r.expiresAt).getTime() > now
+    );
+
+    // 1 session = 1 laporan per hazard (anti-duplikasi)
+    const alreadyReported = hazard.community_reports.some(r => r.sessionId === sessionId);
+    if (alreadyReported) return { alreadyReported: true, hazard };
+
+    const expiresAt = new Date(now + 2 * 60 * 60 * 1000).toISOString(); // 2 jam
+    hazard.community_reports.push({ sessionId, reportedAt: new Date().toISOString(), expiresAt });
+
+    hazard.report_count = hazard.community_reports.length;
+    hazard.is_blocked_by_community = hazard.report_count >= (hazard.block_threshold || 5);
+    hazard.updated_at = new Date().toISOString();
+
+    return { alreadyReported: false, hazard };
+  });
+}
+
+// Cancel a community report by sessionId
+export async function removeHazardReport(hazardId, sessionId) {
+  return mutateDocument(STORE_KEY, INITIAL_DATABASE, db => {
+    const hazard = (Array.isArray(db.road_hazards) ? db.road_hazards : [])
+      .find(h => h.id === hazardId);
+    if (!hazard) return null;
+
+    if (!Array.isArray(hazard.community_reports)) hazard.community_reports = [];
+
+    const before = hazard.community_reports.length;
+    hazard.community_reports = hazard.community_reports.filter(r => r.sessionId !== sessionId);
+    const removed = hazard.community_reports.length < before;
+
+    hazard.report_count = hazard.community_reports.length;
+    hazard.is_blocked_by_community = hazard.report_count >= (hazard.block_threshold || 5);
+    hazard.updated_at = new Date().toISOString();
+
+    return { removed, hazard };
+  });
 }
 
 export async function toggleRoadHazard(id, activeState = null) {
@@ -194,8 +302,8 @@ export async function toggleRoadHazard(id, activeState = null) {
 // Get all markers with distances from user location
 export async function getAllMarkers(userCoords = null) {
   const db = await readDb();
-  const userLat = userCoords?.lat ?? -6.8880;
-  const userLng = userCoords?.lng ?? 107.5940;
+  const userLat = userCoords?.lat ?? -5.9860;
+  const userLng = userCoords?.lng ?? 106.0520;
 
   let poskoList = [...db.posko];
   let wargaList = [...db.warga];

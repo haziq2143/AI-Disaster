@@ -30,7 +30,10 @@ import {
   RefreshCw,
   AlertOctagon,
   ShieldQuestion,
-  LocateFixed
+  LocateFixed,
+  ChevronUp,
+  ChevronDown,
+  Menu
 } from 'lucide-react';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { api } from '../services/api';
@@ -64,6 +67,7 @@ export default function GlobalSafetyMap({
     accuracyText,
     accuracyLevel,
     lastUpdated: gpsLastUpdated,
+    integrityStatus,
     retry: retryGps
   } = useGeolocation();
 
@@ -85,6 +89,9 @@ export default function GlobalSafetyMap({
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'darurat', 'posko', 'warga'
   const [selectedItem, setSelectedItem] = useState(null);
   const [showList, setShowList] = useState(false);
+  const [showLayerMenu, setShowLayerMenu] = useState(false);
+  const [isCardCollapsed, setIsCardCollapsed] = useState(false);
+  const [isCardDismissed, setIsCardDismissed] = useState(false);
 
   // 4. Database Data
   const [dbMarkers, setDbMarkers] = useState({
@@ -149,6 +156,7 @@ export default function GlobalSafetyMap({
     loadDatabaseMarkers(userLat, userLng);
   };
 
+  // Load saat GPS bergerak signifikan
   useEffect(() => {
     const prev = lastFetchedRef.current;
     if (
@@ -159,6 +167,25 @@ export default function GlobalSafetyMap({
       lastFetchedRef.current = { lat: userLat, lng: userLng };
       loadDatabaseMarkers(userLat, userLng);
     }
+  }, [userLat, userLng, loadDatabaseMarkers]);
+
+  // Auto-refresh polling setiap 30 detik agar laporan dari user lain terdeteksi
+  const [nextRefreshIn, setNextRefreshIn] = useState(30);
+  useEffect(() => {
+    setNextRefreshIn(30);
+    const countdown = setInterval(() => {
+      setNextRefreshIn(prev => (prev <= 1 ? 30 : prev - 1));
+    }, 1000);
+    const interval = setInterval(() => {
+      const lat = lastFetchedRef.current?.lat ?? userLat;
+      const lng = lastFetchedRef.current?.lng ?? userLng;
+      loadDatabaseMarkers(lat, lng);
+      setNextRefreshIn(30);
+    }, 30_000);
+    return () => {
+      clearInterval(interval);
+      clearInterval(countdown);
+    };
   }, [userLat, userLng, loadDatabaseMarkers]);
 
   // "Gunakan Lokasi Saya" Button Handler
@@ -626,71 +653,193 @@ export default function GlobalSafetyMap({
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5 items-start">
         {/* Map Section Container */}
         <section 
-          className={`${showList ? 'hidden lg:flex' : 'flex'} glass-card relative min-h-[420px] sm:min-h-[560px] overflow-hidden p-4 rounded-3xl border border-white/80 shadow-xl flex-col justify-between`}
+          className={`${showList ? 'hidden lg:flex' : 'flex'} glass-card relative h-[540px] sm:h-[600px] overflow-hidden p-3 sm:p-4 rounded-3xl border border-white/80 shadow-xl flex-col justify-between`}
           aria-label="Peta Leaflet OpenStreetMap keselamatan bencana"
         >
-          {/* Top Over-Map Toolbar */}
-          <div className="relative z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-auto">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="rounded-xl border border-white/80 bg-white/95 backdrop-blur-md px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                <span>
-                  {isRealGpsActive ? 'Lokasi GPS Anda' : 'Lokasi contoh: Sukajadi, Bandung'}
+          {/* Top Over-Map Clean Bar: Status Pill on Left, Burger Layer Menu on Right */}
+          <div className="relative z-20 flex items-center justify-between gap-2 pointer-events-auto">
+            {/* Left Pill: GPS Status */}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="rounded-2xl border border-slate-200/90 bg-white/95 backdrop-blur-md px-3 py-1.5 text-xs font-black text-slate-800 shadow-md flex items-center gap-1.5 truncate">
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                  isUserInDanger
+                    ? 'bg-rose-500 animate-ping'
+                    : isRealGpsActive
+                      ? 'bg-emerald-500 animate-pulse'
+                      : 'bg-amber-500'
+                }`} />
+                <span className="truncate">
+                  {isUserInDanger ? 'SOS Presisi' : isRealGpsActive ? 'Lokasi GPS Anda' : 'Lokasi Contoh'}
                 </span>
-              </span>
-
-              {isUserInDanger ? (
-                <span className="rounded-xl border border-rose-300 bg-rose-500 text-white px-3 py-1.5 text-xs font-bold shadow-md flex items-center gap-1.5 animate-pulse">
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>PIN Presisi Darurat Aktif</span>
+                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 shrink-0">
+                  Radius 1 km
                 </span>
-              ) : isRealGpsActive ? (
-                <span className="rounded-xl border border-blue-200 bg-blue-50/95 text-blue-900 px-3 py-1.5 text-xs font-bold shadow-sm flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
-                  <span>Lingkaran Radius 1 km (Privasi)</span>
-                </span>
-              ) : (
-                <span className="rounded-xl border border-amber-200 bg-amber-50/95 text-amber-900 px-3 py-1.5 text-xs font-bold shadow-sm flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5" />
-                  <span>Tidak menampilkan titik GPS pengguna</span>
-                </span>
-              )}
-
-              <span className="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 px-2.5 py-1 text-[11px] font-bold shadow-sm flex items-center gap-1">
-                Leaflet + OpenStreetMap
               </span>
             </div>
 
-            {/* Map Action Buttons (Zoom & Reset) */}
-            <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md p-1 rounded-xl border border-white/90 shadow-sm">
+            {/* Right: Burger / Layer Menu Button */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
-                onClick={() => mapControlRef.current?.zoomIn()}
-                className="w-7 h-7 rounded-lg hover:bg-slate-100 grid place-items-center text-slate-700 cursor-pointer"
-                aria-label="Perbesar peta"
-                title="Perbesar Peta"
+                onClick={() => setShowLayerMenu(!showLayerMenu)}
+                className={`h-9 px-3 rounded-2xl border backdrop-blur-md text-xs font-black shadow-md flex items-center gap-1.5 transition-all cursor-pointer ${
+                  showLayerMenu
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/20'
+                    : 'bg-white/95 text-slate-800 border-slate-200 hover:bg-slate-50'
+                }`}
+                aria-expanded={showLayerMenu}
+                title="Buka Menu Layer, Filter & Privasi Peta"
               >
-                <ZoomIn className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => mapControlRef.current?.zoomOut()}
-                className="w-7 h-7 rounded-lg hover:bg-slate-100 grid place-items-center text-slate-700 cursor-pointer"
-                aria-label="Perkecil peta"
-                title="Perkecil Peta"
-              >
-                <ZoomOut className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={handleUseMyLocation}
-                className="w-7 h-7 rounded-lg hover:bg-slate-100 grid place-items-center text-slate-700 cursor-pointer"
-                aria-label="Pusatkan ke lokasi saya"
-                title="Pusatkan Peta ke Lokasi GPS Saya"
-              >
-                <RotateCcw className="w-4 h-4" />
+                <Menu className="w-4 h-4" />
+                <span className="text-[11px] font-bold hidden sm:inline">Layer & Info</span>
               </button>
             </div>
+          </div>
+
+          {/* Floating Burger / Layer & Privacy Settings Popover Modal */}
+          {showLayerMenu && (
+            <div className="absolute top-14 right-3 left-3 sm:left-auto sm:w-80 z-40 p-4 rounded-3xl bg-white/98 backdrop-blur-2xl border border-slate-300 shadow-2xl animate-fadeIn space-y-3 pointer-events-auto text-slate-900">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <div className="flex items-center gap-2 font-black text-xs text-slate-900">
+                  <Layers className="w-4 h-4 text-blue-600" />
+                  <span>Pengaturan & Privasi Peta</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLayerMenu(false)}
+                  className="w-7 h-7 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 grid place-items-center cursor-pointer"
+                  aria-label="Tutup menu layer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Mode Perspektif Privasi (PRD 4.5 & 4.11) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-extrabold text-slate-700">Perspektif Tampilan Peta:</label>
+                  <span className="text-[10px] text-blue-600 font-bold">PRD 4.5</span>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => { setPerspective('me'); }}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-black transition-all cursor-pointer ${
+                      perspective === 'me'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Tampilan Saya
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setPerspective('public'); }}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-black transition-all cursor-pointer ${
+                      perspective === 'public'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Tampilan Publik
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500 leading-tight">
+                  {perspective === 'me'
+                    ? 'Mode Pribadi: Menampilkan lokasi presisi GPS Anda & radar fasilitas evakuasi sekitar.'
+                    : 'Mode Publik: Simulasi bagaimana tetangga hanya melihat lingkaran radius perkiraan 1 km.'}
+                </p>
+              </div>
+
+              {/* Filter Titik Peta */}
+              <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                <label className="text-[11px] font-extrabold text-slate-700">Filter Cepat Pin Peta:</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { id: 'all', label: 'Semua Titik', count: filteredList.length },
+                    { id: 'darurat', label: '🚨 Darurat', count: dbMarkers.laporan_darurat.length },
+                    { id: 'posko', label: '🏕️ Posko', count: dbMarkers.posko.length },
+                    { id: 'warga', label: '👥 Warga', count: dbMarkers.warga.length }
+                  ].map(item => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => { setActiveFilter(item.id); setShowLayerMenu(false); }}
+                      className={`px-2.5 py-1.5 rounded-xl text-[10px] font-extrabold border transition-all cursor-pointer flex items-center justify-between ${
+                        activeFilter === item.id
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      <span className="text-[9px] opacity-75">({item.count})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Anti-Spoofing & Location Integrity (PRD Section 4.13) */}
+              <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-800">
+                    <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Deteksi Fake GPS (PRD 4.13)</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                    integrityStatus?.status === 'flagged'
+                      ? 'bg-rose-100 text-rose-800'
+                      : integrityStatus?.status === 'caution'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    {integrityStatus?.publicLabel || 'Lokasi belum diverifikasi'}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500 leading-tight">
+                  Pemeriksaan heuristik mendeteksi anomali akurasi dan lompatan koordinat tak wajar.
+                </p>
+                <div className="text-[9px] text-slate-400 font-semibold bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                  {integrityStatus?.demoNotice || 'DATA DEMO — Hasil penilaian heuristik web prototipe'}
+                </div>
+              </div>
+
+              {/* Attribution & Tech Info */}
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500 font-bold">
+                <span>Leaflet 1.9.4</span>
+                <span className="text-emerald-700">© OpenStreetMap</span>
+              </div>
+            </div>
+          )}
+
+          {/* Floating Vertical Map Control Dock (Zoom In, Zoom Out, Recenter) on Right Side */}
+          <div className="absolute top-16 right-3 z-20 flex flex-col gap-1.5 pointer-events-auto">
+            <button
+              type="button"
+              onClick={() => mapControlRef.current?.zoomIn()}
+              className="w-9 h-9 rounded-2xl bg-white/95 hover:bg-white text-slate-800 border border-slate-200/90 shadow-md grid place-items-center cursor-pointer transition-transform active:scale-95"
+              aria-label="Perbesar peta"
+              title="Perbesar Peta"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => mapControlRef.current?.zoomOut()}
+              className="w-9 h-9 rounded-2xl bg-white/95 hover:bg-white text-slate-800 border border-slate-200/90 shadow-md grid place-items-center cursor-pointer transition-transform active:scale-95"
+              aria-label="Perkecil peta"
+              title="Perkecil Peta"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleUseMyLocation}
+              className="w-9 h-9 rounded-2xl bg-blue-50/95 hover:bg-blue-100 text-blue-700 border border-blue-200 shadow-md grid place-items-center cursor-pointer transition-transform active:scale-95"
+              aria-label="Pusatkan ke lokasi saya"
+              title="Pusatkan Peta ke Lokasi GPS Saya"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Interactive Leaflet + OpenStreetMap Canvas */}
@@ -706,7 +855,11 @@ export default function GlobalSafetyMap({
               wargaList={dbMarkers.warga}
               laporanDaruratList={dbMarkers.laporan_darurat}
               selectedItem={activeSelected}
-              onSelectItem={setSelectedItem}
+              onSelectItem={(item) => {
+                setSelectedItem(item);
+                setIsCardDismissed(false);
+                setIsCardCollapsed(false);
+              }}
               onNavigateRoute={onNavigateRoute}
               onTileError={setMapTileError}
               mapControlRef={mapControlRef}
@@ -714,160 +867,225 @@ export default function GlobalSafetyMap({
             />
           </div>
 
-          {/* Perspective Active Indicator Banner on top of Map */}
-          <div className="absolute top-14 left-3 right-3 z-10 pointer-events-none">
-            {perspective === 'public' ? (
-              <div className="p-2.5 rounded-2xl bg-indigo-950/90 text-indigo-100 border border-indigo-400/60 shadow-xl backdrop-blur-md flex items-center justify-between gap-2 text-xs font-bold animate-fadeIn">
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <Users className="w-4 h-4 text-indigo-300 shrink-0" />
-                  <span>Mode Publik Aktif: Lokasi rumah Anda disamarkan dalam radius privasi 1 km (PRD 4.5).</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-md bg-indigo-700 text-white text-[9px] font-extrabold uppercase shrink-0">
-                  Tampilan Warga Lain
-                </span>
-              </div>
-            ) : (
-              <div className="p-2.5 rounded-2xl bg-blue-950/90 text-blue-100 border border-blue-400/60 shadow-xl backdrop-blur-md flex items-center justify-between gap-2 text-xs font-bold animate-fadeIn">
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <Radio className="w-4 h-4 text-blue-300 animate-pulse shrink-0" />
-                  <span>Mode Pribadi: Menampilkan lokasi presisi GPS Anda & radar fasilitas evakuasi terdekat.</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-md bg-blue-700 text-white text-[9px] font-extrabold uppercase shrink-0">
-                  Tampilan Saya
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom Card: Selected Pin Details */}
-          <div className="relative z-20 mt-auto pt-4 pointer-events-auto">
-            <div className="rounded-2xl bg-white/95 backdrop-blur-xl border border-white/90 p-4 shadow-xl">
-              <div className="space-y-4">
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className={`w-11 h-11 rounded-2xl grid place-items-center shrink-0 shadow-md ${
+          {/* Collapsible Bottom Sheet: Selected Pin Details */}
+          {isCardDismissed ? (
+            <div className="relative z-20 mt-auto pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => { setIsCardDismissed(false); setIsCardCollapsed(false); }}
+                className="px-3.5 py-2 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-300 shadow-xl text-slate-900 font-black text-xs flex items-center gap-2 hover:bg-white cursor-pointer active:scale-95"
+              >
+                <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                <span className="truncate max-w-[200px]">{activeSelected?.name || 'Detail Pin'}</span>
+                <span className="text-[10px] text-blue-700 font-extrabold bg-blue-50 px-1.5 py-0.5 rounded">▲ Buka</span>
+              </button>
+            </div>
+          ) : isCardCollapsed ? (
+            <div className="relative z-20 mt-auto pointer-events-auto">
+              <div 
+                onClick={() => setIsCardCollapsed(false)}
+                className="rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-xl flex items-center justify-between gap-2.5 cursor-pointer hover:bg-white transition-all active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-7 h-7 rounded-xl grid place-items-center shrink-0 shadow-xs ${
                     activeSelected?.itemType === 'laporan_darurat' || activeSelected?.status === 'help'
-                      ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                      ? 'bg-rose-100 text-rose-700'
                       : activeSelected?.itemType === 'posko'
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : 'bg-blue-100 text-blue-800 border border-blue-200'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-blue-100 text-blue-800'
                   }`}>
                     {activeSelected?.itemType === 'laporan_darurat' || activeSelected?.status === 'help' ? (
-                      <ShieldAlert className="w-6 h-6 animate-pulse" />
+                      <ShieldAlert className="w-4 h-4 animate-pulse" />
                     ) : activeSelected?.itemType === 'posko' ? (
-                      <HeartHandshake className="w-6 h-6" />
+                      <HeartHandshake className="w-4 h-4" />
                     ) : (
-                      <MapPin className="w-6 h-6" />
+                      <MapPin className="w-4 h-4" />
                     )}
                   </div>
-
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="min-w-0 break-words font-extrabold text-sm sm:text-base text-slate-900 leading-tight">
-                        {activeSelected?.name || activeSelected?.alias || activeSelected?.reporter_name}
-                      </h3>
-                      <span className={`px-2 py-0.2 text-[10px] font-bold rounded-md ${
-                        activeSelected?.itemType === 'laporan_darurat' || activeSelected?.status === 'help'
-                          ? 'bg-rose-600 text-white'
-                          : activeSelected?.itemType === 'posko'
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-blue-600 text-white'
-                      }`}>
-                        {activeSelected?.itemType === 'laporan_darurat'
-                          ? `🚨 LAPORAN DEMO (${activeSelected?.urgency_level || 'KRITIS'})`
-                          : activeSelected?.itemType === 'posko'
-                            ? 'POSKO CONTOH'
-                            : activeSelected?.type === 'user' && !isRealGpsActive
-                              ? 'LOKASI CONTOH'
-                              : activeSelected?.type === 'user'
-                                ? 'LOKASI SAYA'
-                                : 'WARGA CONTOH'}
-                      </span>
-                    </div>
-
-                    <p className="break-words text-xs text-slate-600 mt-1">
-                      {activeSelected?.needs_description || activeSelected?.notes || activeSelected?.address || (!isRealGpsActive && activeSelected?.type === 'user' ? 'GPS belum tersedia. Peta menampilkan area contoh Sukajadi, bukan lokasi perangkat Anda.' : 'Terdata dalam database prototipe lokal.')}
+                    <p className="font-black text-xs text-slate-900 truncate">
+                      {activeSelected?.name || activeSelected?.alias || activeSelected?.reporter_name}
                     </p>
-
-                    {activeSelected?.vulnerable_members && (
-                      <p className="text-[11px] font-semibold text-rose-700 mt-1">
-                        Keluarga rentan: {activeSelected.vulnerable_members}
-                      </p>
-                    )}
-
-                    <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1.5 flex-wrap">
-                      <span className="flex items-center gap-1 font-semibold text-slate-700">
-                        <Clock className="w-3 h-3 text-blue-600" />
-                        {activeSelected?.reported_at || activeSelected?.updated_at || activeSelected?.verified_at || 'Waktu pada data tidak tersedia'}
-                      </span>
-                      <span>•</span>
-                      <span className="font-medium">
-                        {activeSelected?.type === 'user' && !isRealGpsActive
-                          ? 'GPS belum tersedia'
-                          : `Format Tampilan: ${activeSelected?.status === 'help' ? '🔴 PIN Presisi' : '🔵 Radius Perkiraan 1 km'}`}
-                      </span>
-                      {activeSelected?.distanceFormatted && (
-                        <>
-                          <span>•</span>
-                          <span className="font-semibold text-blue-700">
-                            Jarak: {activeSelected.distanceFormatted} ({activeSelected.estWalkTime} jalan kaki)
-                          </span>
-                        </>
-                      )}
-                    </div>
+                    <p className="text-[10px] text-slate-500 truncate">
+                      {activeSelected?.distanceFormatted ? `Jarak: ${activeSelected.distanceFormatted}` : activeSelected?.status === 'help' ? '🔴 PIN Presisi Darurat' : '🔵 Radius Perkiraan 1 km'}
+                    </p>
                   </div>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2 border-t border-slate-200/70 pt-3">
-                  {activeSelected?.itemType === 'laporan_darurat' && (
-                    <a
-                      href="tel:112"
-                      className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white shadow transition-colors hover:bg-rose-700 sm:w-auto"
-                    >
-                      <PhoneCall className="w-3.5 h-3.5" />
-                      <span>Hubungi layanan darurat 112</span>
-                    </a>
-                  )}
-
-                  {activeSelected?.type !== 'user' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (onNavigateRoute) {
-                          onNavigateRoute(activeSelected);
-                        } else {
-                          onNavigateScreen('route');
-                        }
-                      }}
-                      className={`w-full justify-center text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer sm:w-auto ${
-                        activeSelected?.itemType === 'laporan_darurat'
-                          ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                          : 'primary-action'
-                      }`}
-                    >
-                      <Navigation className="w-3.5 h-3.5" />
-                      <span>
-                        {activeSelected?.itemType === 'laporan_darurat'
-                          ? 'Rute Penyelamatan'
-                          : activeSelected?.itemType === 'posko'
-                            ? 'Rute ke Posko'
-                            : 'Arahkan Rute'}
-                      </span>
-                    </button>
-                  )}
-
-                  {activeSelected?.type !== 'user' && (
-                    <button
-                      type="button"
-                      onClick={() => { setReportTarget(activeSelected); setReportSubmitted(false); }}
-                      className="inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-rose-300 hover:text-rose-700 cursor-pointer sm:w-auto"
-                    >
-                      Laporkan
-                    </button>
-                  )}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setIsCardCollapsed(false); }}
+                    className="p-1 rounded-lg text-blue-700 bg-blue-50 font-bold text-[10px] flex items-center gap-0.5"
+                    title="Buka detail lengkap"
+                  >
+                    <span>Detail</span>
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setIsCardDismissed(true); }}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                    title="Sembunyikan kartu"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="relative z-20 mt-auto pt-2 pointer-events-auto">
+              <div className="rounded-3xl bg-white/98 backdrop-blur-xl border border-slate-200/90 p-3.5 sm:p-4 shadow-2xl space-y-3 animate-fadeIn">
+                {/* Header bar with collapse & dismiss controls */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-6 h-1 rounded-full bg-slate-300 mx-auto" />
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                      Informasi Titik Terpilih
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsCardCollapsed(true)}
+                      className="px-2 py-0.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-[10px] font-bold flex items-center gap-0.5 cursor-pointer"
+                      title="Ciutkan kartu agar peta lebih luas"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                      <span>Ciutkan</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsCardDismissed(true)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+                      title="Tutup kartu"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className={`w-10 h-10 rounded-2xl grid place-items-center shrink-0 shadow-md ${
+                      activeSelected?.itemType === 'laporan_darurat' || activeSelected?.status === 'help'
+                        ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                        : activeSelected?.itemType === 'posko'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : 'bg-blue-100 text-blue-800 border border-blue-200'
+                    }`}>
+                      {activeSelected?.itemType === 'laporan_darurat' || activeSelected?.status === 'help' ? (
+                        <ShieldAlert className="w-5 h-5 animate-pulse" />
+                      ) : activeSelected?.itemType === 'posko' ? (
+                        <HeartHandshake className="w-5 h-5" />
+                      ) : (
+                        <MapPin className="w-5 h-5" />
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="min-w-0 break-words font-black text-xs sm:text-sm text-slate-900 leading-tight">
+                          {activeSelected?.name || activeSelected?.alias || activeSelected?.reporter_name}
+                        </h3>
+                        <span className={`px-2 py-0.2 text-[9px] font-black rounded-md ${
+                          activeSelected?.itemType === 'laporan_darurat' || activeSelected?.status === 'help'
+                            ? 'bg-rose-600 text-white'
+                            : activeSelected?.itemType === 'posko'
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-blue-600 text-white'
+                        }`}>
+                          {activeSelected?.itemType === 'laporan_darurat'
+                            ? `🚨 LAPORAN (${activeSelected?.urgency_level || 'KRITIS'})`
+                            : activeSelected?.itemType === 'posko'
+                              ? 'POSKO'
+                              : activeSelected?.type === 'user' && !isRealGpsActive
+                                ? 'LOKASI CONTOH'
+                                : activeSelected?.type === 'user'
+                                  ? 'LOKASI SAYA'
+                                  : 'WARGA'}
+                        </span>
+                      </div>
+
+                      <p className="break-words text-[11px] text-slate-600 mt-1 line-clamp-2">
+                        {activeSelected?.needs_description || activeSelected?.notes || activeSelected?.address || (!isRealGpsActive && activeSelected?.type === 'user' ? 'GPS belum tersedia. Peta menampilkan area contoh Sukajadi, bukan lokasi perangkat Anda.' : 'Terdata dalam database prototipe lokal.')}
+                      </p>
+
+                      {activeSelected?.vulnerable_members && (
+                        <p className="text-[10px] font-bold text-rose-700 mt-0.5">
+                          Keluarga rentan: {activeSelected.vulnerable_members}
+                        </p>
+                      )}
+
+                      <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-1 flex-wrap">
+                        <span className="flex items-center gap-1 font-semibold text-slate-700">
+                          <Clock className="w-3 h-3 text-blue-600" />
+                          {activeSelected?.reported_at || activeSelected?.updated_at || activeSelected?.verified_at || 'Waktu tidak tersedia'}
+                        </span>
+                        {activeSelected?.distanceFormatted && (
+                          <>
+                            <span>•</span>
+                            <span className="font-extrabold text-blue-700">
+                              {activeSelected.distanceFormatted} ({activeSelected.estWalkTime || '—'} jalan)
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions buttons */}
+                  <div className="flex flex-wrap items-center gap-2 border-t border-slate-200/70 pt-2.5">
+                    {activeSelected?.itemType === 'laporan_darurat' && (
+                      <a
+                        href="tel:112"
+                        className="inline-flex min-h-9 w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow transition-colors hover:bg-rose-700"
+                      >
+                        <PhoneCall className="w-3.5 h-3.5" />
+                        <span>Hubungi 112</span>
+                      </a>
+                    )}
+
+                    {activeSelected?.type !== 'user' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onNavigateRoute) {
+                            onNavigateRoute(activeSelected);
+                          } else {
+                            onNavigateScreen('route');
+                          }
+                        }}
+                        className={`w-full sm:w-auto justify-center text-xs px-3.5 py-2 rounded-xl font-black flex items-center gap-1.5 shadow transition-all cursor-pointer ${
+                          activeSelected?.itemType === 'laporan_darurat'
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                            : 'primary-action'
+                        }`}
+                      >
+                        <Navigation className="w-3.5 h-3.5" />
+                        <span>
+                          {activeSelected?.itemType === 'laporan_darurat'
+                            ? 'Rute Penyelamatan'
+                            : activeSelected?.itemType === 'posko'
+                              ? 'Rute ke Posko'
+                              : 'Arahkan Rute'}
+                        </span>
+                      </button>
+                    )}
+
+                    {activeSelected?.type !== 'user' && (
+                      <button
+                        type="button"
+                        onClick={() => { setReportTarget(activeSelected); setReportSubmitted(false); }}
+                        className="inline-flex min-h-9 w-full sm:w-auto items-center justify-center rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:border-rose-300 hover:text-rose-700 cursor-pointer"
+                      >
+                        Laporkan
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Prototype data and emergency actions */}
@@ -969,7 +1187,7 @@ export default function GlobalSafetyMap({
                   aria-label="Perbarui data peta"
                 >
                   <RefreshCw className={`w-3 h-3 ${isLoadingDb ? 'animate-spin' : ''}`} />
-                  Perbarui
+                  {isLoadingDb ? 'Memuat…' : `Perbarui (${nextRefreshIn}d)`}
                 </button>
               </div>
             </div>

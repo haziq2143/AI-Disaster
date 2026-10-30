@@ -35,6 +35,10 @@ export function validateEmergencyReport(body) {
     invalid('Informasi anggota rentan maksimal 500 karakter.');
   }
 
+  const verifiedStatus = typeof body.verified_status === 'string'
+    ? body.verified_status.slice(0, 80)
+    : 'Lokasi belum diverifikasi secara menyeluruh';
+
   return {
     lat,
     lng,
@@ -42,6 +46,7 @@ export function validateEmergencyReport(body) {
     urgency_level: body.urgency_level || 'KRITIS',
     needs_description: needsDescription.trim() || 'Butuh bantuan segera di titik GPS.',
     vulnerable_members: vulnerableMembers.trim(),
-    precision_consent: true
+    precision_consent: true,
+    verified_status: verifiedStatus
   };
 }

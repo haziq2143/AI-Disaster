@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { evaluateLocationIntegrity } from '../lib/locationIntegrity';
 
 export function useGeolocation(options) {
   const [coords, setCoords] = useState(null);
@@ -9,11 +10,19 @@ export function useGeolocation(options) {
   const [accuracyText, setAccuracyText] = useState('Mengukur...');
   const [accuracyLevel, setAccuracyLevel] = useState('medium');
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [integrityStatus, setIntegrityStatus] = useState({
+    status: 'clean',
+    publicLabel: 'Lokasi belum diverifikasi secara menyeluruh',
+    riskScore: 0,
+    indicators: [],
+    demoNotice: 'DATA DEMO — Hasil penilaian heuristik web prototipe (PRD 4.13)'
+  });
 
   const watchIdRef = useRef(null);
   const optionsRef = useRef(options);
   optionsRef.current = options;
   const hasTriedFallbackRef = useRef(false);
+  const prevPositionRef = useRef(null);
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('id-ID', {
@@ -26,6 +35,20 @@ export function useGeolocation(options) {
   const handleSuccess = useCallback((position) => {
     const { latitude, longitude, accuracy, altitude, heading, speed } = position.coords;
     const accRound = Math.round(accuracy);
+
+    const currentReading = {
+      lat: latitude,
+      lng: longitude,
+      accuracy: accRound,
+      altitude,
+      heading,
+      speed,
+      timestamp: position.timestamp
+    };
+
+    const integrity = evaluateLocationIntegrity(currentReading, prevPositionRef.current);
+    prevPositionRef.current = currentReading;
+    setIntegrityStatus(integrity);
 
     setCoords(prev => {
       if (
@@ -184,6 +207,7 @@ export function useGeolocation(options) {
     accuracyText,
     accuracyLevel,
     lastUpdated,
+    integrityStatus,
     retry: requestLocation
   };
 }
