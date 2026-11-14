@@ -194,7 +194,7 @@ export default function LandingPage({ onEnterApp, onQuickExplore, onLoginClick, 
               className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all cursor-pointer shadow-2xs hover-lift"
             >
               <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
-              <span>Demo SAR</span>
+              <span>Masuk Cepat SAR</span>
             </button>
 
             <button
@@ -534,200 +534,232 @@ export default function LandingPage({ onEnterApp, onQuickExplore, onLoginClick, 
       </section>
 
       {/* MOBILE SHOWCASE (Nexora Hand-Held Phone / Workspace in Your Hands) */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
-          {/* Left Text Column */}
-          <div className="lg:col-span-6 space-y-6 text-left">
-            <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-              Aplikasi Tanggap Darurat Mobile
-            </span>
-
-            <h2 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight leading-[1.15]">
-              Penyelamat darurat <br />
-              <span className="text-[#2563EB]">dalam saku Anda</span>
-            </h2>
-
-            <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-lg font-normal">
-              Bekerja di mana saja bahkan saat listrik padam total. Kartu identitas medis darurat dan sinyal peluit tersimpan permanen di memori browser HP Anda tanpa harus mengunduh aplikasi berat dari PlayStore.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold">
-                <Smartphone className="w-4 h-4 text-blue-400" />
-                <span>Web App (PWA) Siap Pasang</span>
+          {/* Left Text Column with ScrollReveal */}
+          <div className="lg:col-span-6 text-left">
+            <ScrollReveal direction="left" delay={50} className="space-y-6">
+              <div className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-200 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                <span>Aplikasi Tanggap Darurat Mobile</span>
               </div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
-                <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />
-                <span>Akses Offline Mandiri</span>
+
+              <h2 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight leading-[1.15]">
+                Penyelamat darurat <br />
+                <span className="text-[#2563EB]">dalam saku Anda</span>
+              </h2>
+
+              <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-lg font-normal">
+                Bekerja di mana saja bahkan saat listrik padam total. Kartu identitas medis darurat dan sinyal peluit tersimpan permanen di memori browser HP Anda tanpa harus mengunduh aplikasi berat dari PlayStore.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold shadow-md hover-lift transition-transform">
+                  <Smartphone className="w-4 h-4 text-blue-400" />
+                  <span>Web App (PWA) Siap Pasang</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs hover-lift transition-transform">
+                  <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />
+                  <span>Akses Offline Mandiri</span>
+                </div>
               </div>
-            </div>
+            </ScrollReveal>
           </div>
 
-          {/* Right Phone Mockup with Floating Tooltip Chips (Realistic Nexora Proportions) */}
+          {/* Right Phone Mockup with Floating Tooltip Chips & Entrance Animation */}
           <div className="lg:col-span-6 relative flex items-center justify-center py-6">
-            {/* Ambient Back Glow */}
-            <div className="absolute w-80 h-96 bg-blue-300/40 rounded-full blur-3xl pointer-events-none" />
+            <ScrollReveal direction="right" delay={150} className="relative flex items-center justify-center w-full">
+              {/* Ambient Breathing Back Glow */}
+              <div className="absolute w-80 h-96 bg-gradient-to-tr from-blue-400/30 to-indigo-300/30 rounded-full blur-3xl pointer-events-none animate-pulseSoft" />
 
-            {/* High-Fidelity Smartphone Mockup Frame */}
-            <div className="relative w-full max-w-[360px] sm:max-w-[390px] bg-slate-950 rounded-[52px] p-3.5 shadow-[0_30px_90px_-20px_rgba(15,23,42,0.4)] border-[6px] border-slate-900 ring-1 ring-white/10">
-              
-              {/* Dynamic Island Notch */}
-              <div className="absolute top-5 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-full z-30 flex items-center justify-end pr-2.5 space-x-1.5 shadow-sm">
-                <div className="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-800" />
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              </div>
-
-              {/* Phone Screen Container */}
-              <div className="bg-slate-50 rounded-[42px] pt-8 pb-5 px-4 text-left space-y-3.5 overflow-hidden relative border border-slate-200/80 shadow-inner">
+              {/* Floating Smartphone Mockup Frame */}
+              <div 
+                className="relative w-full max-w-[360px] sm:max-w-[390px] bg-slate-950 rounded-[52px] p-3.5 shadow-[0_35px_100px_-20px_rgba(15,23,42,0.45)] border-[6px] border-slate-900 ring-1 ring-white/10 transition-all duration-500 hover:scale-[1.02] hover:-rotate-1"
+                style={{ animation: 'floatSlow 6s ease-in-out infinite' }}
+              >
                 
-                {/* Status Bar */}
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-800 px-2 pt-1 pb-1">
-                  <span>09:41</span>
-                  <div className="flex items-center gap-1.5 text-slate-700">
-                    <Signal className="w-3 h-3" />
-                    <Wifi className="w-3 h-3" />
-                    <Battery className="w-3.5 h-3.5 text-slate-800 fill-slate-800" />
-                  </div>
+                {/* Dynamic Island Notch */}
+                <div className="absolute top-5 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-full z-30 flex items-center justify-end pr-2.5 space-x-1.5 shadow-sm">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-800" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 </div>
 
-                {/* In-App Header */}
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs">
-                      <GuardianShieldLogo size={16} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-black text-slate-900 leading-tight">Evacu8</p>
-                      <p className="text-[9px] font-semibold text-slate-500">Sistem Tanggap Bencana</p>
+                {/* Phone Screen Container */}
+                <div className="bg-slate-50 rounded-[42px] pt-8 pb-5 px-4 text-left space-y-3.5 overflow-hidden relative border border-slate-200/80 shadow-inner">
+                  
+                  {/* Status Bar */}
+                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-800 px-2 pt-1 pb-1">
+                    <span>09:41</span>
+                    <div className="flex items-center gap-1.5 text-slate-700">
+                      <Signal className="w-3 h-3" />
+                      <Wifi className="w-3 h-3" />
+                      <Battery className="w-3.5 h-3.5 text-slate-800 fill-slate-800" />
                     </div>
                   </div>
-                  <span className="text-[10px] font-black text-rose-700 bg-rose-100 border border-rose-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping" />
-                    SIAGA 1
+
+                  {/* In-App Header */}
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs">
+                        <GuardianShieldLogo size={16} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-slate-900 leading-tight">Evacu8</p>
+                        <p className="text-[9px] font-semibold text-slate-500">Sistem Tanggap Bencana</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-black text-rose-700 bg-rose-100 border border-rose-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping" />
+                      SIAGA 1
+                    </span>
+                  </div>
+
+                  {/* Progress Step Bar */}
+                  <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-extrabold text-blue-600 uppercase tracking-wider text-[10px]">
+                        Langkah Siaga Terdekat
+                      </span>
+                      <span className="font-bold text-slate-500 text-[10px]">1 dari 3 Langkah</span>
+                    </div>
+
+                    {/* Progress track */}
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-[#2563EB] h-full w-1/3 rounded-full relative overflow-hidden">
+                        <div className="absolute inset-0 bg-white/40 animate-pulse" />
+                      </div>
+                    </div>
+
+                    <p className="text-xs font-black text-slate-900 leading-snug pt-1">
+                      Matikan sakelar meteran MCB listrik rumah sebelum mengungsi
+                    </p>
+
+                    <button type="button" className="w-full py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>Konfirmasi Langkah Selesai</span>
+                    </button>
+                  </div>
+
+                  {/* Family Status Tracker */}
+                  <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-2xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                        Family Safety (Tanpa Pulsa)
+                      </span>
+                      <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        2 Terhubung
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs bg-emerald-50/80 p-2 rounded-xl border border-emerald-200/70">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">
+                            IS
+                          </div>
+                          <div>
+                            <p className="font-extrabold text-slate-900 text-[11px] leading-tight">Ibu Siti & Balita</p>
+                            <p className="text-[9px] text-emerald-700">Sudah di Posko Desa</p>
+                          </div>
+                        </div>
+                        <span className="text-emerald-700 font-black text-[11px]">Aman ✓</span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-xl border border-slate-200/70">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-blue-600 text-white text-[10px] font-black flex items-center justify-center">
+                            KH
+                          </div>
+                          <div>
+                            <p className="font-extrabold text-slate-900 text-[11px] leading-tight">Kakek Harun</p>
+                            <p className="text-[9px] text-slate-500">Menuju Titik Kumpul (250m)</p>
+                          </div>
+                        </div>
+                        <span className="text-blue-700 font-bold text-[10px]">OTW Posko</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Acoustic Whistle Banner */}
+                  <div className="bg-gradient-to-r from-rose-500 to-red-600 rounded-2xl p-3 text-white shadow-sm flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center relative">
+                        <span className="absolute inset-0 rounded-xl bg-white/30 animate-ping" style={{ animationDuration: '2s' }} />
+                        <Radio className="w-4 h-4 text-white relative z-10" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-black leading-tight">Peluit Darurat 3.000 Hz</p>
+                        <p className="text-[9px] text-rose-100">Menembus puing saat tertimbun</p>
+                      </div>
+                    </div>
+                    <div className="px-2.5 py-1 bg-white text-rose-600 rounded-lg text-[10px] font-black shadow-xs">
+                      SIAP
+                    </div>
+                  </div>
+
+                  {/* Bottom App Navigation Dock */}
+                  <div className="pt-2 flex items-center justify-around border-t border-slate-200 text-slate-400">
+                    <div className="flex flex-col items-center gap-0.5 text-blue-600">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      <span className="text-[9px] font-extrabold">Beranda</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span className="text-[9px] font-semibold">Peta</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <Users className="w-3.5 h-3.5" />
+                      <span className="text-[9px] font-semibold">Keluarga</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span className="text-[9px] font-semibold">Peluit</span>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Floating Pill Chip 1 (Top Left) */}
+                <div 
+                  className="absolute -top-4 -left-4 sm:-left-8 bg-white/95 backdrop-blur-md px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-slate-200/90 shadow-xl text-xs font-bold text-slate-800 flex items-center gap-2.5 transition-transform hover:scale-105 z-20"
+                  style={{ animation: 'floatSlow 4.5s ease-in-out infinite', animationDelay: '0.2s' }}
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
                   </span>
+                  <Radio className="w-4 h-4 text-rose-600" />
+                  <span className="whitespace-nowrap">Peluit SOS 3.000 Hz Siap</span>
                 </div>
 
-                {/* Progress Step Bar */}
-                <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs space-y-2">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-extrabold text-blue-600 uppercase tracking-wider text-[10px]">
-                      Langkah Siaga Terdekat
-                    </span>
-                    <span className="font-bold text-slate-500 text-[10px]">1 dari 3 Langkah</span>
-                  </div>
-
-                  {/* Progress track */}
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-[#2563EB] h-full w-1/3 rounded-full" />
-                  </div>
-
-                  <p className="text-xs font-black text-slate-900 leading-snug pt-1">
-                    Matikan sakelar meteran MCB listrik rumah sebelum mengungsi
-                  </p>
-
-                  <button type="button" className="w-full py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold shadow-sm flex items-center justify-center gap-1.5 transition-transform active:scale-95">
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    <span>Konfirmasi Langkah Selesai</span>
-                  </button>
+                {/* Floating Pill Chip 2 (Top Right) */}
+                <div 
+                  className="absolute top-14 -right-4 sm:-right-8 bg-white/95 backdrop-blur-md px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-slate-200/90 shadow-xl text-xs font-bold text-slate-800 flex items-center gap-2.5 transition-transform hover:scale-105 z-20"
+                  style={{ animation: 'floatSlow 5.2s ease-in-out infinite', animationDelay: '1.2s' }}
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600" />
+                  </span>
+                  <Navigation className="w-4 h-4 text-blue-600" />
+                  <span className="whitespace-nowrap">Rute OSRM Terhindar Banjir</span>
                 </div>
 
-                {/* Family Status Tracker */}
-                <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-2xs space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">
-                      Family Safety (Tanpa Pulsa)
-                    </span>
-                    <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      2 Terhubung
-                    </span>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs bg-emerald-50/80 p-2 rounded-xl border border-emerald-200/70">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">
-                          IS
-                        </div>
-                        <div>
-                          <p className="font-extrabold text-slate-900 text-[11px] leading-tight">Ibu Siti & Balita</p>
-                          <p className="text-[9px] text-emerald-700">Sudah di Posko Desa</p>
-                        </div>
-                      </div>
-                      <span className="text-emerald-700 font-black text-[11px]">Aman ✓</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-xl border border-slate-200/70">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-blue-600 text-white text-[10px] font-black flex items-center justify-center">
-                          KH
-                        </div>
-                        <div>
-                          <p className="font-extrabold text-slate-900 text-[11px] leading-tight">Kakek Harun</p>
-                          <p className="text-[9px] text-slate-500">Menuju Titik Kumpul (250m)</p>
-                        </div>
-                      </div>
-                      <span className="text-blue-700 font-bold text-[10px]">OTW Posko</span>
-                    </div>
-                  </div>
+                {/* Floating Pill Chip 3 (Bottom Right) */}
+                <div 
+                  className="absolute -bottom-4 -right-4 sm:-right-6 bg-white/95 backdrop-blur-md px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-slate-200/90 shadow-xl text-xs font-bold text-slate-800 flex items-center gap-2.5 transition-transform hover:scale-105 z-20"
+                  style={{ animation: 'floatSlow 4.8s ease-in-out infinite', animationDelay: '2.4s' }}
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600" />
+                  </span>
+                  <MapPin className="w-4 h-4 text-emerald-600" />
+                  <span className="whitespace-nowrap">Posko Balai Desa · 450m</span>
                 </div>
-
-                {/* Acoustic Whistle Banner */}
-                <div className="bg-gradient-to-r from-rose-500 to-red-600 rounded-2xl p-3 text-white shadow-sm flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
-                      <Radio className="w-4 h-4 text-white animate-pulse" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-black leading-tight">Peluit Darurat 3.000 Hz</p>
-                      <p className="text-[9px] text-rose-100">Menembus puing saat tertimbun</p>
-                    </div>
-                  </div>
-                  <div className="px-2.5 py-1 bg-white text-rose-600 rounded-lg text-[10px] font-black shadow-xs">
-                    SIAP
-                  </div>
-                </div>
-
-                {/* Bottom App Navigation Dock */}
-                <div className="pt-2 flex items-center justify-around border-t border-slate-200 text-slate-400">
-                  <div className="flex flex-col items-center gap-0.5 text-blue-600">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                    <span className="text-[9px] font-extrabold">Beranda</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-0.5">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span className="text-[9px] font-semibold">Peta</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-0.5">
-                    <Users className="w-3.5 h-3.5" />
-                    <span className="text-[9px] font-semibold">Keluarga</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-0.5">
-                    <Volume2 className="w-3.5 h-3.5" />
-                    <span className="text-[9px] font-semibold">Peluit</span>
-                  </div>
-                </div>
-
               </div>
-
-              {/* Floating Pill Chip 1 (Top Left) */}
-              <div className="absolute -top-3 -left-8 bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-200 shadow-xl text-xs font-bold text-slate-800 flex items-center gap-2 animate-bounce">
-                <Radio className="w-4 h-4 text-rose-600 animate-pulse" />
-                <span>Peluit SOS 3.000 Hz Siap</span>
-              </div>
-
-              {/* Floating Pill Chip 2 (Top Right) */}
-              <div className="absolute top-16 -right-8 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-200 shadow-xl text-xs font-bold text-slate-800 flex items-center gap-2">
-                <Navigation className="w-4 h-4 text-blue-600" />
-                <span>Rute OSRM Terhindar Banjir</span>
-              </div>
-
-              {/* Floating Pill Chip 3 (Bottom Right) */}
-              <div className="absolute -bottom-3 -right-6 bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-200 shadow-xl text-xs font-bold text-slate-800 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-emerald-600" />
-                <span>Posko Balai Desa · 450m</span>
-              </div>
-            </div>
+            </ScrollReveal>
           </div>
 
         </div>

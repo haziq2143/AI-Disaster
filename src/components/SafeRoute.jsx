@@ -35,7 +35,7 @@ import { useGeolocation } from '../hooks/useGeolocation';
 import RouteMapCanvas from './RouteMapCanvas';
 import VirtualRouteSchematic from './VirtualRouteSchematic';
 import { api } from '../services/api';
-import { speakIndonesian, stopSpeaking } from '../lib/speechVoice';
+import { speakIndonesian, stopSpeaking, preloadIndonesianAudio } from '../lib/speechVoice';
 import {
   calculateDistance,
   calculateRoadDistance,
@@ -229,7 +229,10 @@ export default function SafeRoute({
         if (active) setManagedPoskosLoading(false);
       });
 
-    return () => { active = false; };
+    return () => { 
+      active = false; 
+      stopSpeaking();
+    };
   }, []);
 
   const managedPoskoTargets = useMemo(() => managedPoskos.map(posko => {
@@ -852,6 +855,17 @@ export default function SafeRoute({
     }
   }, [isSpeaking, currentNavStep, selectedPoint, speakInstruction]);
 
+  // Pre-buffer suara wanita Bahasa Indonesia untuk setiap langkah navigasi agar responsif & tanpa jeda
+  useEffect(() => {
+    if (navSteps && navSteps.length > 0) {
+      navSteps.forEach(step => {
+        if (step.instruction) {
+          preloadIndonesianAudio(`Langkah ${step.step}: ${step.instruction}`);
+        }
+      });
+    }
+  }, [navSteps]);
+
   // Proximity & Automatic Turn-by-Turn Voice Navigation (Google Maps Style)
   const lastSpokenStepRef = useRef(-1);
   const hasAnnouncedArrivalRef = useRef(false);
@@ -936,10 +950,8 @@ export default function SafeRoute({
       setRouteToastMessage('Navigasi Suara Otomatis Aktif (Bahasa Indonesia).');
       setTimeout(() => setRouteToastMessage(null), 3500);
     } else {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-      }
+      stopSpeaking();
+      setIsSpeaking(false);
     }
   };
 
@@ -1148,7 +1160,7 @@ export default function SafeRoute({
               ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
               : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-300'
           }`}
-          title="Buka panel simulasi skenario pengujian PRD"
+          title="Buka panel simulasi skenario evakuasi"
         >
           <Sparkles className={`w-3.5 h-3.5 ${showEvaluatorPanel ? 'text-white' : 'text-blue-600'}`} />
           <span className="text-[11px]">Skenario</span>
@@ -1163,7 +1175,7 @@ export default function SafeRoute({
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
               <span className="text-xs font-black text-slate-900">
-                Pilih Skenario Pengujian (PRD):
+                Pilih Skenario Simulasi Evakuasi:
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -2161,7 +2173,7 @@ export default function SafeRoute({
       <div className="p-4 bg-[#E3F2FD] rounded-3xl border border-[#90CAF9] text-xs text-[#0D47A1] space-y-1.5 shadow-sm">
         <div className="flex items-center gap-1.5 font-extrabold">
           <ShieldCheck className="w-4 h-4 text-[#2196F3]" />
-          <span>Prinsip Keselamatan & Batasan Sistem Routing (PRD 4.6):</span>
+          <span>Prinsip Keselamatan & Algoritma Rute Siaga:</span>
         </div>
         <p className="leading-relaxed text-slate-700 font-medium">
           Sistem Safe Route memadukan koordinat GPS perangkat dengan jaringan OpenStreetMap serta database pelaporan bencana. <strong>Kondisi lapangan dapat berubah sewaktu-waktu akibat luapan air atau pohon tumbang</strong>. Sistem tidak mengklaim rute aman secara mutlak tanpa arahan tim penyelamat. Utamakan instruksi langsung petugas BPBD/SAR dan relawan setempat.

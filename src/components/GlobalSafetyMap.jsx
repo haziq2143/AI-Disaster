@@ -736,7 +736,7 @@ export default function GlobalSafetyMap({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-extrabold text-slate-700">Perspektif Tampilan Peta:</label>
-                  <span className="text-[10px] text-blue-600 font-bold">PRD 4.5</span>
+                  <span className="text-[10px] text-blue-600 font-bold">Privasi GPS</span>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl">
                   <button
@@ -801,7 +801,7 @@ export default function GlobalSafetyMap({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-800">
                     <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Deteksi Fake GPS (PRD 4.13)</span>
+                    <span>Integritas Sinyal Sensor GPS</span>
                   </div>
                   <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
                     integrityStatus?.status === 'flagged'

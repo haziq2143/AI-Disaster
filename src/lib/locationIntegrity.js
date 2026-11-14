@@ -94,7 +94,7 @@ export function evaluateLocationIntegrity(current, previous = null) {
     publicLabel,
     riskScore,
     indicators,
-    demoNotice: 'DATA DEMO — Hasil penilaian heuristik web prototipe (PRD 4.13)',
+    demoNotice: 'Hasil verifikasi integritas sinyal GPS perangkat',
     timestamp: new Date().toISOString()
   };
 }

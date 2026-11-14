@@ -15,7 +15,7 @@ export function useGeolocation(options) {
     publicLabel: 'Lokasi belum diverifikasi secara menyeluruh',
     riskScore: 0,
     indicators: [],
-    demoNotice: 'DATA DEMO — Hasil penilaian heuristik web prototipe (PRD 4.13)'
+    demoNotice: 'Hasil verifikasi integritas sinyal GPS perangkat'
   });
 
   const watchIdRef = useRef(null);

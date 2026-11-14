@@ -1,85 +1,113 @@
 // Helper terpusat untuk Text-to-Speech (TTS) Bahasa Indonesia
-// Mengatasi masalah umum browser Windows/Chromium di mana getVoices() belum siap
-// atau OS tidak memiliki suara id-ID sehingga memakai suara English.
+// Menggunakan 100% Suara Wanita Bahasa Indonesia Alami (Natural Indonesian Female Voice)
+// Bebas David / suara robotik bahasa Inggris bawaan OS.
 
-let cachedIndonesianVoice = null;
-let voicesLoaded = false;
+let currentAudioInstance = null;
+let activeSpeechSession = 0;
 
-export function getIndonesianVoice() {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
-  if (cachedIndonesianVoice) return cachedIndonesianVoice;
+// Cache memory URL audio untuk langkah-langkah yang di-preload
+const preloadedUrls = new Set();
 
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices || voices.length === 0) return null;
+export function stopSpeaking() {
+  activeSpeechSession++;
 
-  // 1. Prioritas Utama: Suara Bahasa Indonesia resmi (id-ID, id_ID, atau nama 'Indonesia')
-  const directId = voices.find(v => 
-    v.lang.toLowerCase() === 'id-id' || 
-    v.lang.toLowerCase() === 'id_id' || 
-    v.lang.toLowerCase() === 'id' ||
-    v.name.toLowerCase().includes('indonesia') ||
-    v.name.toLowerCase().includes('gadis') ||
-    v.name.toLowerCase().includes('ardi')
-  );
-  if (directId) {
-    cachedIndonesianVoice = directId;
-    return directId;
+  if (currentAudioInstance) {
+    try {
+      currentAudioInstance.onplay = null;
+      currentAudioInstance.onended = null;
+      currentAudioInstance.onerror = null;
+      currentAudioInstance.pause();
+      currentAudioInstance.currentTime = 0;
+      currentAudioInstance.src = '';
+    } catch {}
+    currentAudioInstance = null;
   }
 
-  // 2. Prioritas Cadangan: Suara Bahasa Melayu (ms-MY / ms)
-  // Bahasa Melayu memiliki sistem fonetik vokal (a, i, u, e, o) dan konsonan yang hampir identik dengan Bahasa Indonesia,
-  // sehingga pelafalan terdengar sangat natural ketimbang suara English (David/Mark) membaca teks Indonesia.
-  const malayVoice = voices.find(v => 
-    v.lang.toLowerCase().startsWith('ms') || 
-    v.name.toLowerCase().includes('melayu') || 
-    v.name.toLowerCase().includes('malay')
-  );
-  if (malayVoice) {
-    cachedIndonesianVoice = malayVoice;
-    return malayVoice;
+  // Bersihkan dan batalkan sintesis lokal jika pernah aktif di tab lain
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {}
   }
-
-  return null;
 }
 
-// Inisialisasi listener onvoiceschanged segera setelah script dimuat di client
-if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-  window.speechSynthesis.onvoiceschanged = () => {
-    voicesLoaded = true;
-    cachedIndonesianVoice = null;
-    getIndonesianVoice();
-  };
+export function preloadIndonesianAudio(text) {
+  if (typeof window === 'undefined' || !text) return;
+  const clean = text
+    .replace(/[#*_`~[\]()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!clean || preloadedUrls.has(clean)) return;
+
+  preloadedUrls.add(clean);
+  try {
+    const url = `/api/tts?text=${encodeURIComponent(clean.slice(0, 500))}`;
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.src = url;
+  } catch {}
 }
 
 export function speakIndonesian(text, options = {}) {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
-
-  window.speechSynthesis.cancel();
+  // Hentikan audio sebelumnya seketika (anti-nabrak)
+  stopSpeaking();
   if (!text) return null;
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  const voice = getIndonesianVoice();
+  const cleanText = text
+    .replace(/[#*_`~[\]()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-  if (voice) {
-    utterance.voice = voice;
-    utterance.lang = voice.lang;
-  } else {
-    utterance.lang = 'id-ID';
-  }
+  if (!cleanText) return null;
 
-  utterance.rate = options.rate || 0.93;
-  utterance.pitch = options.pitch || 1.0;
+  const mySession = ++activeSpeechSession;
 
-  if (options.onstart) utterance.onstart = options.onstart;
-  if (options.onend) utterance.onend = options.onend;
-  if (options.onerror) utterance.onerror = options.onerror;
+  try {
+    const audioUrl = `/api/tts?text=${encodeURIComponent(cleanText.slice(0, 500))}`;
+    const audio = new Audio(audioUrl);
+    currentAudioInstance = audio;
 
-  window.speechSynthesis.speak(utterance);
-  return utterance;
-}
+    if (options.rate && options.rate !== 1) {
+      audio.playbackRate = options.rate;
+    }
 
-export function stopSpeaking() {
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
+    audio.onplay = () => {
+      if (mySession !== activeSpeechSession) {
+        try { audio.pause(); } catch {}
+        return;
+      }
+      if (options.onstart) options.onstart();
+    };
+
+    audio.onended = () => {
+      if (mySession === activeSpeechSession) {
+        currentAudioInstance = null;
+        if (options.onend) options.onend();
+      }
+    };
+
+    audio.onerror = () => {
+      if (mySession === activeSpeechSession) {
+        currentAudioInstance = null;
+        if (options.onerror) options.onerror(new Error('Audio playback error'));
+      }
+    };
+
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        // Abaikan jika dihentikan karena beralih langkah navigasi
+        if (mySession !== activeSpeechSession) return;
+        if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
+          return;
+        }
+        if (options.onerror) options.onerror(err);
+      });
+    }
+
+    return audio;
+  } catch (err) {
+    if (options.onerror) options.onerror(err);
+    return null;
   }
 }

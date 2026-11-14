@@ -40,13 +40,9 @@ export default function SituationAssessment({
   const [completedActions, setCompletedActions] = useState({});
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      setSpeechSupported(true);
-    }
+    setSpeechSupported(true);
     return () => {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
+      stopSpeaking();
     };
   }, []);
 
