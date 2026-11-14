@@ -37,6 +37,11 @@ import {
 } from 'lucide-react';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { api } from '../services/api';
+import { isRouteEligiblePosko } from '../lib/poskoManagement.js';
+import { queueSosReport, initOfflineSosSync } from '../lib/emergencyOutbox.js';
+import SignalBeaconModal from './SignalBeaconModal';
+import FallbackSosModal from './FallbackSosModal';
+import InactivityTrapDetector from './InactivityTrapDetector';
 
 // Dynamically import Leaflet canvas on client side (no SSR pass) to prevent "window is not defined"
 const LeafletMapCanvas = dynamic(() => import('./LeafletMapCanvas'), {
@@ -104,6 +109,8 @@ export default function GlobalSafetyMap({
   const [mapDataUpdatedAt, setMapDataUpdatedAt] = useState(null);
   const [mapTileError, setMapTileError] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const [isBeaconOpen, setIsBeaconOpen] = useState(false);
+  const [isFallbackSosOpen, setIsFallbackSosOpen] = useState(false);
 
   // 5. Leaflet Map Control Ref
   const mapControlRef = useRef(null);
@@ -171,6 +178,19 @@ export default function GlobalSafetyMap({
 
   // Auto-refresh polling setiap 30 detik agar laporan dari user lain terdeteksi
   const [nextRefreshIn, setNextRefreshIn] = useState(30);
+
+  useEffect(() => {
+    const cleanup = initOfflineSosSync(() => {
+      setBroadcastFeedback('✅ Sinyal SOS darurat offline Anda berhasil dikirim ke Tim SAR!');
+      handleRefreshMapData();
+    });
+    return cleanup;
+  }, [handleRefreshMapData]);
+
+  const activeDispatchReport = useMemo(() => {
+    return (dbMarkers.laporan_darurat || []).find(r => r.status === 'in_progress');
+  }, [dbMarkers.laporan_darurat]);
+
   useEffect(() => {
     setNextRefreshIn(30);
     const countdown = setInterval(() => {
@@ -267,22 +287,29 @@ export default function GlobalSafetyMap({
     }
 
     setDistressStatus('sending');
+    const payload = {
+      lat: gpsCoords.lat,
+      lng: gpsCoords.lng,
+      reporter_name: safetyShareDetails?.name || 'Pengguna aplikasi',
+      hazard_type: hazardData?.type || 'darurat',
+      urgency_level: 'KRITIS',
+      needs_description: 'Pengguna mengaktifkan sinyal darurat SOS dan membutuhkan evakuasi.',
+      vulnerable_members: 'Belum diinformasikan',
+      precision_consent: true
+    };
+
     try {
-      await api.submitEmergencyReport({
-        lat: gpsCoords.lat,
-        lng: gpsCoords.lng,
-        reporter_name: 'Pengguna aplikasi',
-        hazard_type: hazardData?.type || 'darurat',
-        urgency_level: 'KRITIS',
-        needs_description: 'Pengguna mengaktifkan SOS dan meminta bantuan.',
-        vulnerable_members: 'Belum diinformasikan',
-        precision_consent: true
-      });
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        throw new Error('Koneksi offline.');
+      }
+      await api.submitEmergencyReport(payload);
       setDistressStatus('saved');
       await loadDatabaseMarkers(userLat, userLng);
     } catch (err) {
-      console.error('Gagal mencatat status SOS:', err);
-      setDistressStatus('failed');
+      console.warn('Laporan darurat gagal langsung terkirim; dialihkan ke antrean offline:', err);
+      queueSosReport(payload);
+      setDistressStatus('saved');
+      setBroadcastFeedback('📦 Disimpan di Antrean SOS Offline: Begitu HP mendapat koneksi internet, laporan otomatis terkirim ke Tim SAR!');
     }
   };
 
@@ -325,6 +352,9 @@ export default function GlobalSafetyMap({
         : 'GPS belum tersedia. Peta menampilkan area contoh Sukajadi, bukan lokasi perangkat Anda.',
     accuracy: accuracyText
   };
+  const routeToPoskoDisabled = activeSelected?.itemType === 'posko'
+    && Object.hasOwn(activeSelected, 'operational_status')
+    && !isRouteEligiblePosko(activeSelected);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-fadeIn pb-28 sm:pb-16">
@@ -368,6 +398,16 @@ export default function GlobalSafetyMap({
           >
             <LocateFixed className="w-3.5 h-3.5 text-blue-600" />
             <span>Gunakan Lokasi Saya</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsBeaconOpen(true)}
+            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-slate-800"
+            title="Bunyikan Peluit Darurat & Senter"
+          >
+            <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+            <span className="hidden sm:inline">Peluit SOS</span>
           </button>
 
           <button
@@ -480,6 +520,77 @@ export default function GlobalSafetyMap({
         </div>
       </section>
 
+      {/* 2b. Inactivity / Man-Down Trap Detector (PASS System) */}
+      <InactivityTrapDetector
+        userLat={userLat}
+        userLng={userLng}
+        isRealGpsActive={isRealGpsActive}
+        disasterZones={dbMarkers.zona_bencana || []}
+        userName={safetyShareDetails?.name || 'Warga'}
+        onAutoTriggerSOS={async (payload) => {
+          try {
+            if (typeof navigator !== 'undefined' && !navigator.onLine) {
+              throw new Error('Koneksi offline.');
+            }
+            await fetch('/api/map/emergency-reports', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            setUserStatus('help');
+            setPrecisionConsent(true);
+            setIsShareActive(true);
+            setBroadcastFeedback('🚨 Sinyal Bantuan Otomatis (PASS) Telah Terkirim ke Tim SAR!');
+            handleRefreshMapData();
+          } catch (e) {
+            queueSosReport(payload);
+            setUserStatus('help');
+            setPrecisionConsent(true);
+            setIsShareActive(true);
+            setBroadcastFeedback('📦 Sinyal Otomatis (PASS) Disimpan di Antrean Offline (Akan Otomatis Terkirim ke Tim SAR Begitu Ada Sinyal).');
+          }
+        }}
+        onActivateBeacon={() => {
+          setIsBeaconOpen(true);
+        }}
+      />
+
+      {/* 2c. Two-Way Life Feed: Notifikasi Petugas SAR Bergerak Menuju Lokasi (OTW) */}
+      {activeDispatchReport && (
+        <section className="rounded-2xl border-2 border-blue-500 bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 p-4 text-white shadow-xl animate-fadeIn">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-blue-600 border border-blue-400 flex items-center justify-center text-white shrink-0 shadow-lg">
+                <Navigation className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-blue-500/40 text-blue-200 border border-blue-400/40">
+                    STATUS OPERASI SAR
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                </div>
+                <h3 className="text-base font-black text-white mt-0.5">
+                  🚑 Bantuan Sedang Bergerak Menuju Lokasi Anda!
+                </h3>
+                <p className="text-xs text-blue-100">
+                  Regu: <strong>{activeDispatchReport.dispatch_team || 'Tim SAR Lapangan'}</strong> · Estimasi Tiba: <strong>~{activeDispatchReport.eta_minutes || 15} Menit</strong>
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsBeaconOpen(true)}
+              className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-md flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+            >
+              <Volume2 className="w-4 h-4 text-slate-950" />
+              <span>Bunyikan Beacon Suara</span>
+            </button>
+          </div>
+        </section>
+      )}
+
       {!isOnline && (
         <div className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-xs leading-relaxed text-rose-950" role="alert">
           <strong>Koneksi terputus.</strong> Data terbaru dan peta online mungkin tidak tersedia. Data yang masih terlihat bisa sudah lama; jangan mengandalkannya untuk keputusan evakuasi.
@@ -528,106 +639,20 @@ export default function GlobalSafetyMap({
         </div>
       )}
 
-      {/* Dual Perspective Banner & Controls */}
-      <section className="glass-card p-4 sm:p-5 space-y-4">
-        <div className="rounded-xl border border-blue-200 bg-blue-50/90 p-3 text-xs leading-relaxed text-blue-950 flex items-start gap-2">
-          <Info className="w-4 h-4 shrink-0 mt-0.5 text-blue-700" />
-          <p>
-            <strong>Data prototipe lokal</strong> · Contoh posko dan laporan ini tidak terhubung ke feed resmi real-time. Waktu di bawah menunjukkan waktu data diambil dari prototipe, bukan waktu verifikasi lapangan. {!isRealGpsActive && 'Jarak dihitung dari area contoh Sukajadi, bukan lokasi Anda.'}
-            {mapDataUpdatedAt && (
-              <span className="block mt-1 text-blue-800">
-                Data diambil: {new Date(mapDataUpdatedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
-              </span>
-            )}
-          </p>
+      {/* Disclaimer Ringkas & Status Sumber Data */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 rounded-xl border border-blue-200/80 bg-blue-50/70 text-xs text-blue-950">
+        <div className="flex items-center gap-2">
+          <Info className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+          <span>
+            <strong>Data Prototipe Lokal</strong> · Titik posko & zona bahaya disimulasikan. Bukan kanal dispatch resmi (darurat: 112).
+          </span>
         </div>
-
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
-          {/* Switcher A: Sudut Pandang (Perspective) */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Eye className="w-3.5 h-3.5 text-blue-600" />
-              Pilih Sudut Pandang Tampilan Peta:
-            </label>
-            <div className="inline-flex rounded-xl p-1 bg-slate-100/90 border border-slate-200/90 text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => setPerspective('me')}
-                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                  perspective === 'me'
-                    ? 'bg-white text-blue-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Radio className="w-3.5 h-3.5 text-blue-600" />
-                <span>Sudut Pandang Saya (Korban/Warga)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPerspective('public')}
-                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                  perspective === 'public'
-                    ? 'bg-white text-blue-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Users className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Sudut Pandang Warga Lain (Publik)</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Switcher B: Mode Lokasi Cepat */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-rose-600" />
-              Mode Lokasi Anda:
-            </label>
-            <div className="inline-flex rounded-xl p-1 bg-slate-100/90 border border-slate-200/90 text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => {
-                  setUserStatus('checking');
-                  setPrecisionConsent(false);
-                  setConsentCheckbox(false);
-                  setDistressStatus('idle');
-                  if (setSafetyShareDetails) {
-                    setSafetyShareDetails(prev => ({ ...prev, status: 'checking', displayMode: 'radius_1km' }));
-                  }
-                }}
-                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                  !isUserInDanger
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Normal (Radius 1km Privasi)</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleOpenEmergencyConsent}
-                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isUserInDanger
-                    ? 'bg-rose-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-rose-700'
-                }`}
-              >
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-200" />
-                <span>Butuh Bantuan (PIN Presisi SOS)</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Requirement 8 & 9: Verification Disclaimer Notice */}
-        <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3 text-xs leading-relaxed text-amber-950 flex items-start gap-2.5">
-          <AlertOctagon className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-          <div>
-            <strong>Batasan data:</strong> Koordinat dan radius pada peta adalah visualisasi prototipe. Data contoh tidak terhubung ke sumber resmi atau verifikasi petugas secara real-time. PIN SOS juga tidak mengirim notifikasi; untuk bantuan nyata, telepon 112.
-          </div>
-        </div>
-      </section>
+        {mapDataUpdatedAt && (
+          <span className="text-[11px] text-blue-800 font-medium">
+            Diperbarui: {new Date(mapDataUpdatedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
+      </div>
 
       {/* 3. Main Interactive Map & Vicinity Layout */}
       <div className="grid grid-cols-2 gap-2 rounded-xl border border-blue-100 bg-white/70 p-1.5 lg:hidden" role="tablist" aria-label="Tampilan peta dan data">
@@ -1048,6 +1073,7 @@ export default function GlobalSafetyMap({
                     {activeSelected?.type !== 'user' && (
                       <button
                         type="button"
+                        disabled={routeToPoskoDisabled}
                         onClick={() => {
                           if (onNavigateRoute) {
                             onNavigateRoute(activeSelected);
@@ -1055,10 +1081,12 @@ export default function GlobalSafetyMap({
                             onNavigateScreen('route');
                           }
                         }}
-                        className={`w-full sm:w-auto justify-center text-xs px-3.5 py-2 rounded-xl font-black flex items-center gap-1.5 shadow transition-all cursor-pointer ${
-                          activeSelected?.itemType === 'laporan_darurat'
-                            ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                            : 'primary-action'
+                        className={`min-h-11 w-full sm:w-auto justify-center text-xs px-3.5 py-2 rounded-xl font-black flex items-center gap-1.5 shadow transition-all cursor-pointer ${
+                          routeToPoskoDisabled
+                            ? 'cursor-not-allowed bg-slate-200 text-slate-600 shadow-none'
+                            : activeSelected?.itemType === 'laporan_darurat'
+                              ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                              : 'primary-action'
                         }`}
                       >
                         <Navigation className="w-3.5 h-3.5" />
@@ -1066,10 +1094,13 @@ export default function GlobalSafetyMap({
                           {activeSelected?.itemType === 'laporan_darurat'
                             ? 'Rute Penyelamatan'
                             : activeSelected?.itemType === 'posko'
-                              ? 'Rute ke Posko'
+                              ? routeToPoskoDisabled ? 'Posko belum siap dirutekan' : 'Rute ke Posko'
                               : 'Arahkan Rute'}
                         </span>
                       </button>
+                    )}
+                    {routeToPoskoDisabled && (
+                      <p className="w-full text-xs text-amber-900">Tim SAR perlu mengonfirmasi posko buka dan sudah dicek sebelum dirutekan.</p>
                     )}
 
                     {activeSelected?.type !== 'user' && (
@@ -1164,6 +1195,25 @@ export default function GlobalSafetyMap({
                   <PhoneCall className="w-4 h-4" />
                   Hubungi layanan darurat 112
                 </a>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsFallbackSosOpen(true)}
+                    className="py-2.5 px-3 rounded-xl bg-white text-rose-950 font-bold text-xs border border-rose-300 hover:bg-rose-50 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span>Kirim SMS/WA SOS</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsBeaconOpen(true)}
+                    className="py-2.5 px-3 rounded-xl bg-slate-900 text-white font-bold text-xs border border-slate-700 hover:bg-slate-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                    <span>Peluit & Senter</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1446,6 +1496,20 @@ export default function GlobalSafetyMap({
           </section>
         </div>
       )}
+
+      {/* Field Emergency Modals */}
+      <SignalBeaconModal 
+        isOpen={isBeaconOpen} 
+        onClose={() => setIsBeaconOpen(false)} 
+      />
+
+      <FallbackSosModal
+        isOpen={isFallbackSosOpen}
+        onClose={() => setIsFallbackSosOpen(false)}
+        hazardType={hazardData?.type || 'darurat'}
+        userLocation={isRealGpsActive ? { lat: userLat, lng: userLng } : null}
+        userName={safetyShareDetails?.name || 'Warga'}
+      />
     </div>
   );
 }

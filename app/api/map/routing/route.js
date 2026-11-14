@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
 import { getRoadHazards, calculateDistance } from '../../../../src/lib/disasterDb.js';
 
 const ORS_API_KEY = process.env.ORS_API_KEY;
 const ORS_BASE_URL = 'https://api.openrouteservice.org';
+const OSRM_BASE_URL = process.env.ROUTING_ENGINE_URL || 'https://router.project-osrm.org';
 
 function formatDistance(meters) {
   if (meters < 1000) return `${Math.round(meters)} meter`;
@@ -17,9 +17,34 @@ function formatDuration(seconds) {
   return remainingMin > 0 ? `${hours}j ${remainingMin}m` : `${hours} jam`;
 }
 
-function orsProfile(mode) {
-  if (mode === 'walking') return 'foot-walking';
-  return 'driving-car';
+function translateManeuverModifier(modifier) {
+  switch (modifier) {
+    case 'right': return 'kanan';
+    case 'slight right': return 'agak ke kanan';
+    case 'sharp right': return 'tajam ke kanan';
+    case 'left': return 'kiri';
+    case 'slight left': return 'agak ke kiri';
+    case 'sharp left': return 'tajam ke kiri';
+    case 'straight': return 'lurus';
+    case 'uturn': return 'balik';
+    default: return 'depan';
+  }
+}
+
+function translateManeuver(type, modifier) {
+  if (type === 'turn' || type === 'end of road') {
+    if (modifier?.includes('right')) return 'Belok kanan';
+    if (modifier?.includes('left')) return 'Belok kiri';
+    if (modifier === 'straight') return 'Lurus terus';
+    if (modifier === 'uturn') return 'Putar balik';
+    return 'Belok';
+  }
+  if (type === 'new name') return 'Lanjutkan ke';
+  if (type === 'fork') return modifier?.includes('left') ? 'Ambil percabangan kiri' : 'Ambil percabangan kanan';
+  if (type === 'roundabout' || type === 'rotary') return 'Masuk bundaran dan ambil arah keluar';
+  if (type === 'on ramp') return 'Masuk ke jalan akses';
+  if (type === 'off ramp') return 'Keluar ke jalan akses';
+  return 'Lanjutkan';
 }
 
 function checkRouteHazards(coordinates, activeHazards) {
@@ -49,80 +74,69 @@ function checkRouteHazards(coordinates, activeHazards) {
   };
 }
 
-function processSteps(segments = [], coordinates = []) {
-  const steps = [];
+function processOsrmSteps(steps = []) {
+  const result = [];
   let stepNum = 1;
-  for (const seg of segments) {
-    for (const s of (seg.steps || [])) {
-      if (s.distance < 5 && stepNum > 1 && s.type !== 10) continue;
-      const wpIdx = Array.isArray(s.way_points) ? s.way_points[0] : null;
-      const stepCoord = wpIdx !== null && coordinates[wpIdx] ? coordinates[wpIdx] : null;
 
-      const isArrival = s.type === 10;
-      let title = s.instruction || (s.name && s.name !== '-' ? `Lewat ${s.name}` : (isArrival ? 'Tiba di tujuan' : 'Ikuti jalan utama'));
-      let instructionText = s.instruction;
-      if (!instructionText) {
-        instructionText = isArrival ? 'Anda telah tiba di lokasi tujuan' : `Lanjutkan sejauh ${formatDistance(s.distance)}`;
-      } else if (!isArrival && s.distance > 0) {
-        instructionText = `${s.instruction} sejauh ${formatDistance(s.distance)}`;
-      }
+  for (const s of steps) {
+    if (s.distance < 5 && stepNum > 1 && s.maneuver?.type !== 'arrive') continue;
+    const isArrival = s.maneuver?.type === 'arrive';
+    const isDepart = s.maneuver?.type === 'depart';
+    const streetName = s.name && s.name !== '-' ? s.name : 'jalan utama';
 
-      steps.push({
-        step: stepNum++,
-        title,
-        instruction: instructionText,
-        distanceMeters: Math.round(s.distance),
-        durationSeconds: Math.round(s.duration),
-        lat: stepCoord ? stepCoord[0] : null,
-        lng: stepCoord ? stepCoord[1] : null,
-        isArrival
-      });
+    let title = '';
+    let instructionText = '';
+
+    if (isDepart) {
+      title = `Mulai dari ${streetName}`;
+      instructionText = `Berangkat ke arah ${translateManeuverModifier(s.maneuver?.modifier)} melalui ${streetName} sejauh ${formatDistance(s.distance)}`;
+    } else if (isArrival) {
+      title = 'Tiba di lokasi tujuan';
+      instructionText = 'Anda telah tiba di titik tujuan evakuasi / posko.';
+    } else {
+      const action = translateManeuver(s.maneuver?.type, s.maneuver?.modifier);
+      title = `${action} ${s.name ? 'ke ' + s.name : ''}`.trim();
+      instructionText = `${title}, lanjutkan sejauh ${formatDistance(s.distance)}`;
     }
+
+    const stepCoord = s.maneuver?.location ? [s.maneuver.location[1], s.maneuver.location[0]] : null;
+
+    result.push({
+      step: stepNum++,
+      title,
+      instruction: instructionText,
+      distanceMeters: Math.round(s.distance),
+      durationSeconds: Math.round(s.duration),
+      lat: stepCoord ? stepCoord[0] : null,
+      lng: stepCoord ? stepCoord[1] : null,
+      isArrival
+    });
   }
-  return steps;
+
+  return result;
 }
 
-async function fetchOrsRoute(profile, startLng, startLat, endLng, endLat, apiKey) {
-  const url = `${ORS_BASE_URL}/v2/directions/${profile}/geojson`;
-  const body = {
-    coordinates: [
-      [startLng, startLat],
-      [endLng, endLat]
-    ],
-    instructions: true,
-    geometry: true,
-    geometry_simplify: false,
-    alternative_routes: { target_count: 3, share_factor: 0.9, weight_factor: 2.0 },
-    language: 'id'
-  };
+// Fetch OSRM Real Road Route
+async function fetchOsrmRoute(profile, startLng, startLat, endLng, endLat, viaLng = null, viaLat = null) {
+  const coordsPath = viaLng !== null && viaLat !== null
+    ? `${startLng},${startLat};${viaLng},${viaLat};${endLng},${endLat}`
+    : `${startLng},${startLat};${endLng},${endLat}`;
 
+  const url = `${OSRM_BASE_URL}/route/v1/${profile}/${coordsPath}?overview=full&geometries=geojson&steps=true&alternatives=true`;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => controller.abort(), 7000);
 
   try {
     const res = await fetch(url, {
-      method: 'POST',
       signal: controller.signal,
-      headers: {
-        'Authorization': apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json, application/geo+json'
-      },
-      body: JSON.stringify(body)
+      headers: { 'Accept': 'application/json' }
     });
     clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.warn(`[ORS] HTTP ${res.status}:`, errText.slice(0, 200));
-      return null;
-    }
-
-    const data = await res.json();
-    return data;
+    if (!res.ok) return null;
+    return await res.json();
   } catch (err) {
     clearTimeout(timeoutId);
-    console.warn('[ORS] Request failed:', err.message);
+    console.warn('[OSRM Routing Error]', err.message);
     return null;
   }
 }
@@ -141,65 +155,79 @@ export async function GET(request) {
       || Math.abs(startLat) > 90 || Math.abs(endLat) > 90
       || Math.abs(startLng) > 180 || Math.abs(endLng) > 180
     ) {
-      return NextResponse.json(
+      return Response.json(
         { success: false, error: 'Koordinat awal dan tujuan wajib valid.' },
         { status: 400 }
       );
     }
 
-    if (!ORS_API_KEY || process.env.ALLOW_EXTERNAL_ROUTING !== 'true') {
-      return NextResponse.json(
+    // Jika ALLOW_EXTERNAL_ROUTING diset eksplisit 'false', tolak
+    if (process.env.ALLOW_EXTERNAL_ROUTING === 'false') {
+      return Response.json(
         { success: false, error: 'Routing eksternal belum diaktifkan.' },
         { status: 503 }
       );
     }
 
-    const profile = orsProfile(mode);
-
-    const [allHazards, orsData] = await Promise.all([
-      getRoadHazards().catch(() => []),
-      fetchOrsRoute(profile, startLng, startLat, endLng, endLat, ORS_API_KEY)
-    ]);
-
+    const osrmProfile = mode === 'walking' ? 'foot' : 'driving';
+    const allHazards = await getRoadHazards().catch(() => []);
     const activeHazards = allHazards.filter(h => h.active || h.is_blocked_by_community);
-    const features = orsData?.features || [];
 
-    if (features.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'OpenRouteService tidak dapat menghitung rute untuk titik ini.' },
+    // 1. Ambil rute utama via OSRM
+    const osrmData = await fetchOsrmRoute(osrmProfile, startLng, startLat, endLng, endLat);
+    const osrmRoutes = osrmData?.routes || [];
+
+    if (osrmRoutes.length === 0) {
+      return Response.json(
+        { success: false, error: 'Tidak dapat menghitung rute jalan untuk titik ini.' },
         { status: 503 }
       );
     }
 
-    // Process up to 2 distinct real routes returned by ORS
-    const selectedFeatures = features.slice(0, 2);
-    let processedRoutes = selectedFeatures.map((feature, idx) => {
-      // ORS GeoJSON coordinates are [lng, lat] -> convert to Leaflet [lat, lng]
-      const rawCoords = feature.geometry?.coordinates || [];
+    // Ambil rute kandidat (rute 1 dan rute 2)
+    const rawCandidateRoutes = [...osrmRoutes];
+
+    // Jika OSRM hanya mengembalikan 1 rute, buat rute alternatif via jalur samping
+    if (rawCandidateRoutes.length < 2) {
+      const dx = endLng - startLng;
+      const dy = endLat - startLat;
+      const viaLng = parseFloat((startLng + dx * 0.5 - dy * 0.12).toFixed(5));
+      const viaLat = parseFloat((startLat + dy * 0.5 + dx * 0.12).toFixed(5));
+      const altOsrmData = await fetchOsrmRoute(osrmProfile, startLng, startLat, endLng, endLat, viaLng, viaLat);
+      if (altOsrmData?.routes?.[0]) {
+        rawCandidateRoutes.push(altOsrmData.routes[0]);
+      }
+    }
+
+    const selectedRoutes = rawCandidateRoutes.slice(0, 2);
+
+    let processedRoutes = selectedRoutes.map((route, idx) => {
+      // OSRM coordinates: [lng, lat] -> convert to Leaflet: [lat, lng]
+      const rawCoords = route.geometry?.coordinates || [];
       const coordinates = rawCoords.map(([lng, lat]) => [lat, lng]);
 
       const hazardCheck = checkRouteHazards(coordinates, activeHazards);
-      const summary = feature.properties?.summary || {};
+      const allSteps = (route.legs || []).flatMap(leg => leg.steps || []);
 
-      // Real-world Indonesian traffic & terrain calibration
-      // Driving on Indonesian city & Pantura arterials averages ~32-35 km/h (matching Google Maps benchmark: 21.6 km ~38 min)
-      const trafficFactor = mode === 'walking' ? 1.0 : 1.75;
-      let durationSeconds = Math.round((summary.duration || 0) * trafficFactor);
-      if (hazardCheck.isImpacted) durationSeconds += 900; // penalti jika genangan sedang
+      // Traffic & mode calibration
+      const trafficFactor = mode === 'walking' ? 1.0 : 1.45;
+      let durationSeconds = Math.round((route.duration || 0) * trafficFactor);
+      if (hazardCheck.isImpacted) durationSeconds += 600;
 
-      const distanceMeters = Math.round(summary.distance || 0);
-      const steps = processSteps(feature.properties?.segments || [], coordinates);
+      const distanceMeters = Math.round(route.distance || 0);
+      const steps = processOsrmSteps(allSteps);
 
-      // Extract real road names from steps for realistic summary
+      // Ekstrak nama jalan nyata dari langkah perjalanan
       const uniqueRoads = [];
-      for (const s of (feature.properties?.segments?.[0]?.steps || [])) {
+      for (const s of allSteps) {
         if (s.name && s.name !== '-' && !uniqueRoads.includes(s.name) && uniqueRoads.length < 3) {
           uniqueRoads.push(s.name);
         }
       }
+
       const realRoadSummary = uniqueRoads.length > 0
         ? `Lewat ${uniqueRoads.join(' → ')}`
-        : (idx === 0 ? 'Rute Utama Terverifikasi ORS' : 'Jalur Alternatif Terverifikasi ORS');
+        : (idx === 0 ? 'Rute Utama Terverifikasi OpenStreetMap' : 'Jalur Alternatif Arteri Sekunder');
 
       let statusLabel = 'Jalur Bebas Hambatan';
       let isViable = true;
@@ -250,7 +278,7 @@ export async function GET(request) {
       const isRec = r.id === bestRouteId && !r.isBlocked;
       let selectionReason = '';
       if (isRec) {
-        selectionReason = `Rute tercepat via OpenRouteService (${r.durationFormatted}, ${r.distanceFormatted}) — jalur jalan nyata terverifikasi.`;
+        selectionReason = `Rute tercepat mengikuti jaringan jalan nyata (${r.durationFormatted}, ${r.distanceFormatted}) — rute jalan terverifikasi OpenStreetMap.`;
       } else if (r.isBlocked) {
         selectionReason = `Laporan bahaya bencana beririsan dengan ruas jalan ini.`;
       } else {
@@ -259,25 +287,24 @@ export async function GET(request) {
       return { ...r, isRecommended: isRec, selectionReason };
     });
 
-    return NextResponse.json({
+    return Response.json({
       success: true,
       data_status: 'live',
-      source: 'openrouteservice',
-      routingEngine: 'OpenRouteService API (HeiGIT)',
+      source: 'openstreetmap_osrm',
+      routingEngine: 'OpenStreetMap OSRM Road Network',
       timestamp: new Date().toISOString(),
       data: {
         routes: processedRoutes,
         recommendedRouteId: bestRouteId,
         allRoutesBlocked,
-        detourNotice: allRoutesBlocked ? 'Seluruh akses rute darat terdampak bahaya bencana.' : null,
+        detourNotice: allRoutesBlocked ? 'Seluruh akses rute darat terhalang bahaya.' : null,
         activeHazardsCount: activeHazards.length
       }
     });
-
   } catch (error) {
     console.error('API /api/map/routing error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Gagal memproses rute.' },
+    return Response.json(
+      { success: false, error: 'Gagal memproses rute jalan.' },
       { status: 500 }
     );
   }

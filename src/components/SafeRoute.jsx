@@ -28,6 +28,7 @@ import { useGeolocation } from '../hooks/useGeolocation';
 import RouteMapCanvas from './RouteMapCanvas';
 import VirtualRouteSchematic from './VirtualRouteSchematic';
 import { api } from '../services/api';
+import { speakIndonesian, stopSpeaking } from '../lib/speechVoice';
 import {
   calculateDistance,
   calculateRoadDistance,
@@ -35,6 +36,7 @@ import {
   formatTravelTime,
   formatWalkTime
 } from '../lib/geoUtils';
+import { isRouteEligiblePosko } from '../lib/poskoManagement.js';
 
 export {
   calculateDistance,
@@ -44,18 +46,38 @@ export {
   formatWalkTime
 };
 
-// Generate realistic intermediate coordinates between two points with natural curve
+// Generate realistic intermediate coordinates following street grid turns even in offline fallback
 function generateRouteCoordinates(startLat, startLng, endLat, endLng, curveFactor = 0.003) {
   const points = [];
-  const steps = 24;
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const curve = Math.sin(t * Math.PI) * curveFactor;
-    points.push([
-      parseFloat((startLat + (endLat - startLat) * t + curve * 0.4).toFixed(6)),
-      parseFloat((startLng + (endLng - startLng) * t + curve).toFixed(6))
-    ]);
+  const midLat1 = startLat + (endLat - startLat) * 0.35 + curveFactor * 0.6;
+  const midLng1 = startLng + (endLng - startLng) * 0.20;
+
+  const midLat2 = startLat + (endLat - startLat) * 0.68;
+  const midLng2 = startLng + (endLng - startLng) * 0.65 + curveFactor;
+
+  const keyWaypoints = [
+    [startLat, startLng],
+    [midLat1, startLng],
+    [midLat1, midLng1],
+    [midLat2, midLng1],
+    [midLat2, midLng2],
+    [endLat, midLng2],
+    [endLat, endLng]
+  ];
+
+  for (let w = 0; w < keyWaypoints.length - 1; w++) {
+    const [wLat1, wLng1] = keyWaypoints[w];
+    const [wLat2, wLng2] = keyWaypoints[w + 1];
+    const subSteps = 5;
+    for (let s = 0; s < subSteps; s++) {
+      const t = s / subSteps;
+      points.push([
+        parseFloat((wLat1 + (wLat2 - wLat1) * t).toFixed(6)),
+        parseFloat((wLng1 + (wLng2 - wLng1) * t).toFixed(6))
+      ]);
+    }
   }
+  points.push([endLat, endLng]);
   return points;
 }
 
@@ -108,6 +130,9 @@ export default function SafeRoute({
   // Dynamic route data from smart routing API (contains candidate routes, roadblocks, collision analysis)
   const [dynamicRouteData, setDynamicRouteData] = useState(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
+  const [managedPoskos, setManagedPoskos] = useState([]);
+  const [managedPoskosLoading, setManagedPoskosLoading] = useState(true);
+  const [managedPoskoError, setManagedPoskoError] = useState('');
 
   // Community report state: set of hazardIds yang sudah dilaporkan user ini
   const [myReportedHazards, setMyReportedHazards] = useState(new Set());
@@ -177,6 +202,59 @@ export default function SafeRoute({
   useEffect(() => {
     loadRoadHazards();
   }, [loadRoadHazards]);
+
+  useEffect(() => {
+    let active = true;
+    api.getMapMarkers()
+      .then(result => {
+        if (!active) return;
+        if (!Array.isArray(result.data?.posko)) {
+          throw new Error('Daftar posko tidak tersedia.');
+        }
+        setManagedPoskos(result.data.posko.filter(isRouteEligiblePosko));
+        setManagedPoskoError('');
+      })
+      .catch(error => {
+        if (!active) return;
+        setManagedPoskoError(error.message || 'Posko Tim SAR gagal dimuat.');
+      })
+      .finally(() => {
+        if (active) setManagedPoskosLoading(false);
+      });
+
+    return () => { active = false; };
+  }, []);
+
+  const managedPoskoTargets = useMemo(() => managedPoskos.map(posko => {
+    const distanceMeters = calculateRoadDistance(userLat, userLng, posko.lat, posko.lng, null, 'driving');
+    const checkedAt = posko.last_checked_at
+      ? new Date(posko.last_checked_at).toLocaleString('id-ID')
+      : 'waktu tidak tersedia';
+    const checkedBy = posko.last_checked_by || 'Tim SAR';
+
+    return {
+      id: posko.id,
+      dbId: posko.id,
+      name: posko.name,
+      category: 'posko',
+      targetType: 'posko',
+      source_type: posko.source_type,
+      verification_status: posko.verification_status,
+      operational_status: posko.operational_status,
+      lat: posko.lat,
+      lng: posko.lng,
+      address: posko.address,
+      summaryRoute: 'Estimasi jarak; rute jalan dihitung saat posko dipilih',
+      capacity: posko.capacity || 'Belum diinformasikan',
+      status: 'DICEK TIM SAR',
+      verifiedAt: `Dicek ${checkedAt} oleh ${checkedBy}`,
+      notes: 'Pengecekan Tim SAR bukan konfirmasi resmi dari instansi pemerintah.',
+      travelMode: 'driving',
+      distanceMeters,
+      distance: formatDistance(distanceMeters),
+      estTime: formatTravelTime(distanceMeters, 'driving')
+    };
+  }), [managedPoskos, userLat, userLng]);
 
   // 1. Destination Definitions: Posko Evakuasi
   // Semua koordinat adalah titik nyata di Cilegon/Serang/Banten yang diverifikasi via OpenStreetMap
@@ -372,7 +450,7 @@ export default function SafeRoute({
       }
     ];
 
-    return raw.map(p => {
+    const staticTargets = raw.map(p => {
       const dist = calculateRoadDistance(userLat, userLng, p.lat, p.lng, p.benchmarkRoadMeters, p.travelMode);
       return {
         ...p,
@@ -381,7 +459,8 @@ export default function SafeRoute({
         estTime: formatTravelTime(dist, p.travelMode)
       };
     });
-  }, [userLat, userLng]);
+    return [...staticTargets, ...managedPoskoTargets];
+  }, [userLat, userLng, managedPoskoTargets]);
 
   // 2. Destination Definitions: Rumah Sakit & Fasilitas Medis
   // Koordinat nyata dari OpenStreetMap
@@ -587,6 +666,15 @@ export default function SafeRoute({
   // If incoming navigationTarget updates from outside (e.g. from Global Safety Map click)
   useEffect(() => {
     if (navigationTarget) {
+      if (
+        navigationTarget.itemType === 'posko'
+        && Object.hasOwn(navigationTarget, 'operational_status')
+        && !isRouteEligiblePosko(navigationTarget)
+      ) {
+        setRouteToastMessage('Posko ini belum dicek Tim SAR atau sedang ditutup, jadi belum bisa dipakai sebagai tujuan rute.');
+        setTimeout(() => setRouteToastMessage(null), 5000);
+        return;
+      }
       if (navigationTarget.itemType === 'laporan_darurat') {
         setActiveTab('darurat');
       } else if (navigationTarget.itemType === 'warga' || navigationTarget.category === 'keluarga') {
@@ -730,35 +818,30 @@ export default function SafeRoute({
   const currentNavStep = navSteps[currentStepIndex] || navSteps[0];
   const totalNavSteps = navSteps.length || 3;
 
-  // Text-to-Speech Voice Guidance (Bahasa Indonesia)
+  // Text-to-Speech Voice Guidance (Bahasa Indonesia via centralized speechVoice helper)
   const speakInstruction = useCallback((text) => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      if (!text) {
-        setIsSpeaking(false);
-        return;
-      }
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'id-ID';
-      utterance.rate = 0.95;
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      setIsSpeaking(true);
-      window.speechSynthesis.speak(utterance);
+    if (!text) {
+      stopSpeaking();
+      setIsSpeaking(false);
+      return;
     }
+    speakIndonesian(text, {
+      rate: 0.95,
+      onstart: () => setIsSpeaking(true),
+      onend: () => setIsSpeaking(false),
+      onerror: () => setIsSpeaking(false)
+    });
   }, []);
 
   const handleToggleVoice = useCallback(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      if (isSpeaking) {
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-      } else {
-        const textToSpeak = currentNavStep?.instruction
-          ? `Langkah ${currentNavStep.step}: ${currentNavStep.instruction}`
-          : `Menuju ke ${selectedPoint.name}`;
-        speakInstruction(textToSpeak);
-      }
+    if (isSpeaking) {
+      stopSpeaking();
+      setIsSpeaking(false);
+    } else {
+      const textToSpeak = currentNavStep?.instruction
+        ? `Langkah ${currentNavStep.step}: ${currentNavStep.instruction}`
+        : `Menuju ke ${selectedPoint.name}`;
+      speakInstruction(textToSpeak);
     }
   }, [isSpeaking, currentNavStep, selectedPoint, speakInstruction]);
 
@@ -1754,9 +1837,15 @@ export default function SafeRoute({
         {/* LIST OF TARGET CARDS */}
         <div className="space-y-3">
           {/* TAB 1: POSKO EVAKUASI */}
-          {activeTab === 'posko' && poskoPoints.map((point) => {
+          {activeTab === 'posko' && (
+            <>
+              {managedPoskoError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">Posko dari Tim SAR gagal dimuat: {managedPoskoError}</p>}
+              {managedPoskosLoading && <p role="status" className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">Memuat posko Tim SAR…</p>}
+              {!managedPoskoError && !managedPoskosLoading && managedPoskos.length === 0 && <p role="status" className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">Belum ada posko kontribusi yang terbuka dan sudah dicek Tim SAR.</p>}
+              {poskoPoints.map((point) => {
             const isSelected = point.id === selectedPointId || point.dbId === selectedPointId;
-            const isVerified = point.status.includes('TERVERIFIKASI');
+            const isSarChecked = point.verification_status === 'sar_checked';
+            const isVerified = isSarChecked || point.status.includes('TERVERIFIKASI');
 
             return (
               <div
@@ -1775,7 +1864,7 @@ export default function SafeRoute({
                       {isVerified ? (
                         <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-md flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>TERVERIFIKASI RESMI</span>
+                          <span>{isSarChecked ? 'DICEK TIM SAR' : 'TERVERIFIKASI RESMI'}</span>
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 bg-amber-100 text-amber-900 text-[10px] font-bold rounded-md flex items-center gap-1">
@@ -1837,7 +1926,9 @@ export default function SafeRoute({
                 </div>
               </div>
             );
-          })}
+              })}
+            </>
+          )}
 
           {/* TAB 2: RUMAH SAKIT & MEDIS */}
           {activeTab === 'medis' && medisPoints.map((point) => {

@@ -7,10 +7,14 @@ import {
   ArrowLeft, 
   Clock, 
   CheckCircle2, 
-  Info
+  Info,
+  Volume2,
+  VolumeX,
+  Radio
 } from 'lucide-react';
 import { api } from '../services/api';
 import { createSituationAssessment } from '../lib/situationAssessment';
+import { speakIndonesian, stopSpeaking } from '../lib/speechVoice';
 
 export default function SituationAssessment({ 
   hazardData, 
@@ -21,6 +25,19 @@ export default function SituationAssessment({
   const [analyzing, setAnalyzing] = useState(true);
   const [serverAssessment, setServerAssessment] = useState(null);
   const [assessmentError, setAssessmentError] = useState('');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      setSpeechSupported(true);
+    }
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -81,6 +98,39 @@ export default function SituationAssessment({
     isFromServer: true
   } : localAssessment;
 
+  const toggleSpeech = () => {
+    if (!speechSupported) return;
+
+    if (isSpeaking) {
+      stopSpeaking();
+      setIsSpeaking(false);
+      return;
+    }
+
+    try {
+      // Susun naskah pembacaan yang jelas dan tenang dalam Bahasa Indonesia
+      const parts = [
+        `Panduan tindakan darurat. Tingkat urgensi: ${assessment.urgencyLevel}.`,
+        `Ringkasan situasi: ${assessment.summary}.`,
+        'Tindakan kritis yang harus segera dilakukan:',
+        ...assessment.immediateActions.map((act, i) => `Langkah ke-${i + 1}: ${act.title}. ${act.desc}`),
+        'Langkah lanjutan setelah kondisi relatif aman:',
+        ...assessment.nextActions.map((na, i) => `Catatan ${i + 1}: ${na}`)
+      ];
+
+      const fullText = parts.join(' ');
+      speakIndonesian(fullText, {
+        rate: 0.92,
+        onstart: () => setIsSpeaking(true),
+        onend: () => setIsSpeaking(false),
+        onerror: () => setIsSpeaking(false)
+      });
+    } catch (err) {
+      console.warn('Speech synthesis error', err);
+      setIsSpeaking(false);
+    }
+  };
+
   if (analyzing) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center space-y-4 animate-fadeIn">
@@ -110,6 +160,45 @@ export default function SituationAssessment({
           Ringkasan memakai laporan Anda sebagai input, bukan sebagai fakta yang telah dikonfirmasi.
         </p>
       </div>
+
+      {/* Voice Guidance Accessibility Bar */}
+      {speechSupported && (
+        <div className="flex items-center justify-between p-3.5 bg-gradient-to-r from-blue-900 to-[#0D47A1] text-white rounded-2xl shadow-sm">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isSpeaking ? 'bg-rose-500 animate-pulse' : 'bg-white/10'}`}>
+              {isSpeaking ? <Volume2 className="w-5 h-5 text-white" /> : <Volume2 className="w-5 h-5 text-blue-200" />}
+            </div>
+            <div className="min-w-0 text-xs">
+              <p className="font-bold truncate">Panduan Suara Evakuasi (Text-to-Speech)</p>
+              <p className="text-[11px] text-blue-200 truncate">
+                {isSpeaking ? 'Sedang membacakan panduan evakuasi...' : 'Dengarkan instruksi keselamatan dengan suara otomatis'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleSpeech}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+              isSpeaking
+                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-md'
+                : 'bg-white text-[#0D47A1] hover:bg-blue-50'
+            }`}
+          >
+            {isSpeaking ? (
+              <>
+                <VolumeX className="w-4 h-4" />
+                <span>Hentikan</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-4 h-4" />
+                <span>Dengarkan</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {assessmentError && (
         <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">

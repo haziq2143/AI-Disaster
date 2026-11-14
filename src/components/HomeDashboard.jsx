@@ -18,14 +18,18 @@ import {
   ChevronRight,
   Clock,
   Radio,
-  FileCheck
+  FileCheck,
+  Check
 } from 'lucide-react';
 import { HAZARD_TYPES, OFFICIAL_SOURCES } from '../data/mockData';
+import BmkgAlertBanner from './BmkgAlertBanner';
+import SignalBeaconModal from './SignalBeaconModal';
 
 export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardData, setHazardData }) {
   const [selectedQuickHazard, setSelectedQuickHazard] = useState(hazardData.type || 'banjir');
   const [offlineState, setOfflineState] = useState('checking');
   const [offlineMessage, setOfflineMessage] = useState('');
+  const [isBeaconOpen, setIsBeaconOpen] = useState(false);
   const selectedHazard = HAZARD_TYPES.find(hazard => hazard.id === selectedQuickHazard) || HAZARD_TYPES[0];
 
   useEffect(() => {
@@ -109,37 +113,27 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      {/* Top Banner Demo Notice as required by PRD 4.9 */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-[#E3F2FD] border border-[#90CAF9] rounded-xl text-xs font-medium text-[#0D47A1]">
+      {/* Emergency Call Quick Strip */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-slate-100/90 border border-slate-200/90 rounded-2xl text-xs text-slate-700 shadow-xs">
         <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 bg-[#0D47A1] text-white text-[10px] font-bold tracking-wider rounded uppercase">DATA DEMO</span>
-          <span>Prototype Pengujian UI/UX — Bukan pengganti arahan resmi BMKG/BPBD</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="font-bold text-slate-800">Sistem Siaga Bencana Aktif</span>
+          <span className="text-slate-400 hidden sm:inline">· Wilayah Jawa Barat</span>
         </div>
-        <div className="flex items-center gap-3 text-slate-600">
-          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-[#2196F3]" /> Simulasi Aktif</span>
-          <span className="flex items-center gap-1 font-semibold text-[#0D47A1]"><PhoneCall className="w-3.5 h-3.5 text-[#2196F3]" /> Darurat: 112 / 115</span>
+        <div className="flex items-center gap-3">
+          <a href="tel:112" className="flex items-center gap-1 font-bold text-rose-700 hover:underline">
+            <PhoneCall className="w-3.5 h-3.5 text-rose-600" />
+            <span>Panggilan Darurat: 112 (Bebas Pulsa)</span>
+          </a>
+          <span className="text-slate-300 hidden md:inline">|</span>
+          <a href="tel:115" className="hidden md:flex items-center gap-1 font-semibold text-blue-800 hover:underline">
+            <span>BASARNAS: 115</span>
+          </a>
         </div>
       </div>
 
-      <section className="rounded-2xl border border-blue-200 bg-white/85 p-4 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-4">
-        <div className="min-w-0">
-          <span className="demo-badge">Akses offline</span>
-          <h2 className="mt-2 text-sm font-extrabold text-slate-900">Simpan aplikasi & materi penting di perangkat</h2>
-          <p className="mt-1 text-xs leading-relaxed text-slate-600">
-            Halaman yang sudah dibuka dan checklist tersimpan bisa dicoba saat offline. Peta tile, panggilan, data baru, dan pengiriman laporan tetap memerlukan jaringan.
-          </p>
-          {offlineMessage && <p role="status" className="mt-1 text-xs font-semibold text-blue-800">{offlineMessage}</p>}
-          {offlineState === 'unsupported' && <p role="status" className="mt-1 text-xs text-amber-800">Browser ini tidak mendukung penyimpanan offline otomatis.</p>}
-        </div>
-        <button
-          type="button"
-          onClick={handlePrepareOffline}
-          disabled={offlineState === 'saving' || offlineState === 'checking'}
-          className="mt-3 inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[#0D47A1] px-4 py-2 text-xs font-bold text-white hover:bg-[#1565C0] disabled:cursor-wait disabled:opacity-60 sm:mt-0 sm:w-auto"
-        >
-          {offlineState === 'saving' ? 'Menyimpan…' : offlineState === 'saved' ? 'Perbarui materi offline' : 'Siapkan akses offline'}
-        </button>
-      </section>
+      {/* Real-time BMKG Earthquake Warning Feed */}
+      <BmkgAlertBanner />
 
       {/* Hero Primary Section */}
       <div className="home-hero relative overflow-hidden rounded-[2rem] p-6 sm:p-10 text-white">
@@ -174,6 +168,15 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
                 <ShieldAlert className="w-5 h-5 text-rose-600 transition-transform group-hover:scale-110" />
                 <span>Saya sedang darurat</span>
                 <ArrowRight className="w-4 h-4 text-[#2196F3] group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsBeaconOpen(true)}
+                className="flex items-center justify-center gap-2 px-5 py-4 bg-rose-600/90 hover:bg-rose-600 text-white border border-rose-400/40 rounded-2xl font-bold text-xs sm:text-sm backdrop-blur-sm transition-all duration-200 cursor-pointer shadow-md"
+              >
+                <Radio className="w-4 h-4 text-white animate-pulse" />
+                <span>Peluit & Senter SOS</span>
               </button>
 
               <button
@@ -252,6 +255,11 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
                 <span className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-tight">
                   {item.desc}
                 </span>
+                {isSelected && (
+                  <span className="mt-2 text-[10px] font-black uppercase text-[#0D47A1] bg-blue-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Dipilih
+                  </span>
+                )}
               </button>
             );
           })}
@@ -361,6 +369,30 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
         </button>
       </div>
 
+      {/* Akses Offline & Cache Materi */}
+      <section className="rounded-2xl border border-blue-200 bg-white/90 p-4 sm:p-5 shadow-xs sm:flex sm:items-center sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="demo-badge">Kesiapan Offline</span>
+            <span className="text-[11px] text-slate-500 font-semibold">Tersimpan di Browser</span>
+          </div>
+          <h2 className="mt-1.5 text-sm font-extrabold text-slate-900">Simpan aplikasi & materi panduan untuk kondisi tanpa sinyal</h2>
+          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+            Halaman panduan dan checklist kebutuhan darurat dapat dibuka saat BTS padam. Panggilan darurat telepon dan peta satelit baru tetap membutuhkan jaringan seluler.
+          </p>
+          {offlineMessage && <p role="status" className="mt-1.5 text-xs font-bold text-emerald-800">{offlineMessage}</p>}
+          {offlineState === 'unsupported' && <p role="status" className="mt-1.5 text-xs text-amber-800">Browser ini belum mendukung penyimpanan offline otomatis.</p>}
+        </div>
+        <button
+          type="button"
+          onClick={handlePrepareOffline}
+          disabled={offlineState === 'saving' || offlineState === 'checking'}
+          className="mt-3 inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[#0D47A1] hover:bg-[#1565C0] px-4 py-2 text-xs font-extrabold text-white transition-colors disabled:cursor-wait disabled:opacity-60 sm:mt-0 sm:w-auto shadow-xs cursor-pointer"
+        >
+          {offlineState === 'saving' ? 'Menyimpan…' : offlineState === 'saved' ? 'Perbarui Cache Offline' : 'Unduh Materi Offline'}
+        </button>
+      </section>
+
       {/* Official Transparency Card */}
       <div className="p-5 bg-white rounded-2xl border border-slate-200/90 space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -384,6 +416,11 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
           ))}
         </div>
       </div>
+
+      <SignalBeaconModal 
+        isOpen={isBeaconOpen} 
+        onClose={() => setIsBeaconOpen(false)} 
+      />
     </div>
   );
 }

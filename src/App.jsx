@@ -8,7 +8,15 @@ import {
   MapPin,
   CheckSquare, 
   Layers, 
-  X
+  X,
+  Compass,
+  Navigation,
+  AlertTriangle,
+  CheckCircle2,
+  Radio,
+  Settings,
+  Heart,
+  Info
 } from 'lucide-react';
 
 import OnboardingScreen from './components/OnboardingScreen';
@@ -26,6 +34,7 @@ import ShareStatus from './components/ShareStatus';
 import AuthScreen from './components/AuthScreen';
 import SarDashboard from './components/SarDashboard';
 import SettingsScreen from './components/SettingsScreen';
+import EmergencyIdentityCard from './components/EmergencyIdentityCard';
 import GuardianShieldLogo from './components/GuardianShieldLogo';
 
 import { INITIAL_CHECKLIST, INITIAL_FAMILY } from './data/mockData';
@@ -54,6 +63,7 @@ const DEFAULT_FAMILY_PLAN = {
   localEmergencySource: '',
   localEmergencyCheckedAt: ''
 };
+const OFFLINE_EMERGENCY_CARD_KEY = 'ai-disaster-offline-emergency-card';
 
 async function requestFamilyApi(url, { method = 'GET', body, accessToken } = {}) {
   const response = await fetch(url, {
@@ -82,6 +92,8 @@ export default function App() {
   const [authUser, setAuthUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [offlineEmergencyCard, setOfflineEmergencyCard] = useState(null);
+  const [showOfflineEmergencyCard, setShowOfflineEmergencyCard] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isSafetyShareActive, setIsSafetyShareActive] = useState(false);
   const [safetyShareDetails, setSafetyShareDetails] = useState({
@@ -123,6 +135,7 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+    setOfflineEmergencyCard(readLocalState(OFFLINE_EMERGENCY_CARD_KEY, null));
     fetch('/api/auth/session', { cache: 'no-store', credentials: 'same-origin' })
       .then(async response => {
         const result = await response.json();
@@ -435,22 +448,45 @@ export default function App() {
     setAuthUser(current => current ? { ...current, ...user } : current);
   }, []);
 
-  // PRD Screen Index mapping for demo reviewer
-  const screenList = [
-    { id: 'onboarding', num: '01', name: 'Onboarding' },
-    { id: 'home', num: '02', name: 'Home Dashboard' },
-    { id: 'input', num: '03', name: 'Situation Input' },
-    { id: 'review', num: '04', name: 'Review Input' },
-    { id: 'assessment', num: '05', name: 'Panduan Skenario' },
-    { id: 'emergency', num: '06', name: 'Panduan Darurat', highlight: true },
-    { id: 'family', num: '07', name: 'Family Safety' },
-    { id: 'route', num: '08', name: 'Safe Route' },
-    { id: 'checklist', num: '09', name: 'Emergency Checklist' },
-    { id: 'confirm_safe', num: '10', name: 'Safe Confirmation' },
-    { id: 'safety_map', num: '11', name: 'Global Safety Map' },
-    { id: 'share_status', num: '12', name: 'Share Status & Report Abuse' },
-    ...(authUser?.role === 'sar' ? [{ id: 'sar_dashboard', num: '13', name: 'Panel Tim SAR' }] : []),
-    { id: 'settings', num: '14', name: 'Pengaturan' }
+  const handleSaveOfflineEmergencyCard = card => {
+    window.localStorage.setItem(OFFLINE_EMERGENCY_CARD_KEY, JSON.stringify(card));
+    setOfflineEmergencyCard(card);
+  };
+
+  const handleClearOfflineEmergencyCard = () => {
+    try {
+      window.localStorage.removeItem(OFFLINE_EMERGENCY_CARD_KEY);
+      setOfflineEmergencyCard(null);
+      setShowOfflineEmergencyCard(false);
+      setCurrentScreen('settings');
+    } catch (error) {
+      console.error('Gagal menghapus kartu identitas darurat offline:', error);
+      setAuthError('Salinan offline tidak dapat dihapus. Coba lagi dari pengaturan browser.');
+    }
+  };
+
+  // Modular Screen Categories for Modern Navigation Drawer
+  const secondaryGroups = [
+    {
+      category: 'Alur Panduan Evakuasi',
+      items: [
+        { id: 'assessment', name: 'Panduan Skenario', desc: 'Instruksi terstruktur sesuai jenis bahaya', icon: Compass },
+        { id: 'route', name: 'Rute Aman & Posko', desc: 'Navigasi jalan riil bebas rintangan', icon: Navigation },
+        { id: 'input', name: 'Input Situasi Bahaya', desc: 'Asesmen awal kondisi rumah & keluarga', icon: AlertTriangle },
+        { id: 'review', name: 'Tinjau Rincian Bahaya', desc: 'Periksa formulir dan data yang dikirim', icon: CheckSquare },
+        { id: 'confirm_safe', name: 'Konfirmasi Selamat', desc: 'Tandai status Anda dan keluarga aman', icon: CheckCircle2 }
+      ]
+    },
+    {
+      category: 'Operasi & Alat Pendukung',
+      items: [
+        ...(authUser?.role === 'sar' ? [{ id: 'sar_dashboard', name: 'Panel Komando SAR', desc: 'Radar triase korban & penetapan zona bencana', icon: ShieldAlert, highlight: true }] : []),
+        { id: 'share_status', name: 'Bagikan Status Warga', desc: 'Siarkan kondisi terkini ke warga sekitar', icon: Radio },
+        { id: 'settings', name: 'Pengaturan Profil', desc: 'Kelola akun, kontak darurat & data lokal', icon: Settings },
+        ...(offlineEmergencyCard ? [{ id: 'emergency_card', name: 'Kartu Medis Offline', desc: 'Identitas medis darurat tanpa internet', icon: Heart }] : []),
+        { id: 'onboarding', name: 'Panduan Penggunaan', desc: 'Pengenalan alur aplikasi Evacu8', icon: Info }
+      ]
+    }
   ];
 
   const primaryNavigation = [
@@ -460,15 +496,22 @@ export default function App() {
     { id: 'checklist', label: 'Tas Siaga', icon: CheckSquare },
   ];
 
-  const secondaryScreens = screenList.filter(screen => (
-    !primaryNavigation.some(item => item.id === screen.id) && screen.id !== 'emergency'
-  ));
+  const secondaryScreens = secondaryGroups.flatMap(group => group.items);
 
   const isMoreScreen = secondaryScreens.some(screen => screen.id === currentScreen)
     || currentScreen === 'emergency';
 
   if (!authReady) {
     return <main className="flex min-h-dvh items-center justify-center text-sm font-semibold text-slate-600">Memeriksa sesi akun…</main>;
+  }
+  if (showOfflineEmergencyCard) {
+    return (
+      <EmergencyIdentityCard
+        card={offlineEmergencyCard}
+        onBack={() => setShowOfflineEmergencyCard(false)}
+        onClear={handleClearOfflineEmergencyCard}
+      />
+    );
   }
   if (!authUser) {
     return (
@@ -478,6 +521,19 @@ export default function App() {
           setAuthUser({ id: 'guest-local', name: 'Pengguna tamu', role: 'user', canManageRoles: false, isGuest: true });
           setAuthError('');
         }}
+        onContinueGuestSar={() => {
+          setAuthUser({
+            id: 'guest-sar-demo',
+            name: 'Petugas SAR (Demo)',
+            role: 'sar',
+            canManageRoles: true,
+            isGuest: true
+          });
+          setAuthError('');
+          setCurrentScreen('sar_dashboard');
+        }}
+        offlineCardAvailable={Boolean(offlineEmergencyCard)}
+        onOpenOfflineCard={() => setShowOfflineEmergencyCard(true)}
         initialError={authError}
       />
     );
@@ -519,8 +575,35 @@ export default function App() {
           </button>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            {authUser.isGuest && (
+              <button
+                type="button"
+                onClick={() => {
+                  const nextRole = authUser.role === 'sar' ? 'user' : 'sar';
+                  setAuthUser(curr => ({
+                    ...curr,
+                    role: nextRole,
+                    name: nextRole === 'sar' ? 'Petugas SAR (Demo)' : 'Pengguna tamu (Demo)'
+                  }));
+                  if (nextRole === 'sar') {
+                    setCurrentScreen('sar_dashboard');
+                  } else if (currentScreen === 'sar_dashboard') {
+                    setCurrentScreen('home');
+                  }
+                }}
+                className={`rounded-xl border px-2 sm:px-2.5 py-1.5 text-[11px] font-extrabold transition-all shadow-xs cursor-pointer ${
+                  authUser.role === 'sar'
+                    ? 'border-blue-600 bg-blue-50 text-[#0D47A1] hover:bg-blue-100'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+                title="Beralih peran demo antara Tim SAR dan Pengguna biasa"
+              >
+                <span className="hidden sm:inline">{authUser.role === 'sar' ? '🛡️ Mode: Tim SAR' : '👤 Mode: Warga'}</span>
+                <span className="sm:hidden">{authUser.role === 'sar' ? '🛡️ SAR' : '👤 Warga'}</span>
+              </button>
+            )}
             {authUser.role === 'sar' && (
-              <button onClick={() => setCurrentScreen('sar_dashboard')} className="hidden rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-[#0D47A1] sm:block">
+              <button onClick={() => setCurrentScreen('sar_dashboard')} className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold text-[#0D47A1] hover:bg-blue-50">
                 Panel SAR
               </button>
             )}
@@ -689,6 +772,17 @@ export default function App() {
             onSignOut={handleSignOut}
             onBack={() => setCurrentScreen('home')}
             onProfileUpdated={handleProfileUpdated}
+            savedOfflineCard={offlineEmergencyCard}
+            onSaveOfflineCard={handleSaveOfflineEmergencyCard}
+            onOpenEmergencyCard={() => setCurrentScreen('emergency_card')}
+          />
+        )}
+
+        {currentScreen === 'emergency_card' && (
+          <EmergencyIdentityCard
+            card={offlineEmergencyCard}
+            onBack={() => setCurrentScreen('settings')}
+            onClear={handleClearOfflineEmergencyCard}
           />
         )}
       </main>
@@ -696,28 +790,62 @@ export default function App() {
       {currentScreen !== 'emergency' && (
         <div className="bottom-dock-wrap">
           {isMoreMenuOpen && (
-            <div className="dock-more-menu animate-fadeIn" role="menu" aria-label="Layar prototype lainnya">
-              <div className="flex items-center justify-between px-2 pb-2 border-b border-slate-200/70">
-                <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-500">Layar lainnya</span>
-                <button type="button" className="dock-close" onClick={() => setIsMoreMenuOpen(false)} aria-label="Tutup menu layar lainnya">
+            <div className="dock-more-menu animate-fadeIn max-h-[75vh] overflow-y-auto" role="menu" aria-label="Layar dan fitur lainnya">
+              <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 flex items-center justify-between px-2 pb-2.5 border-b border-slate-200">
+                <div>
+                  <span className="text-xs font-black text-slate-800">Menu & Fitur Evacu8</span>
+                  <p className="text-[10px] text-slate-500">Pilih panduan evakuasi atau alat pendukung</p>
+                </div>
+                <button type="button" className="dock-close" onClick={() => setIsMoreMenuOpen(false)} aria-label="Tutup menu">
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-1.5 pt-2">
-                {secondaryScreens.map(screen => (
-                  <button
-                    key={screen.id}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setCurrentScreen(screen.id);
-                      setIsMoreMenuOpen(false);
-                    }}
-                    className={`dock-more-item ${screen.id === currentScreen ? 'dock-more-item-active' : ''}`}
-                  >
-                    <span className="text-[10px] font-extrabold text-blue-500">{screen.num}</span>
-                    <span>{screen.name}</span>
-                  </button>
+
+              <div className="space-y-4 pt-3 pb-2">
+                {secondaryGroups.map(group => (
+                  <div key={group.category} className="space-y-1.5">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1">
+                      {group.category}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {group.items.map(item => {
+                        const IconComponent = item.icon || Layers;
+                        const isActive = currentScreen === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setCurrentScreen(item.id);
+                              setIsMoreMenuOpen(false);
+                            }}
+                            className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all ${
+                              isActive
+                                ? 'bg-blue-50 border-blue-300 text-[#0D47A1] shadow-xs'
+                                : item.highlight
+                                  ? 'bg-rose-50/70 border-rose-200 text-rose-950 hover:bg-rose-100/70'
+                                  : 'bg-white border-slate-200/80 text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span className={`p-1.5 rounded-lg shrink-0 ${
+                              isActive
+                                ? 'bg-blue-600 text-white'
+                                : item.highlight
+                                  ? 'bg-rose-600 text-white'
+                                  : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              <IconComponent className="w-4 h-4" />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-xs font-extrabold truncate">{item.name}</p>
+                              <p className="text-[10px] text-slate-500 line-clamp-1">{item.desc}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

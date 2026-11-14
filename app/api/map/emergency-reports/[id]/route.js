@@ -35,9 +35,14 @@ export async function PATCH(request, { params }) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status } = body;
+    const { status, dispatch_team, eta_minutes, sar_notes } = body;
 
-    const updated = await updateReportStatus(id, status);
+    const updated = await updateReportStatus(id, status, {
+      dispatch_team,
+      eta_minutes: typeof eta_minutes === 'number' ? eta_minutes : (eta_minutes ? Number(eta_minutes) : undefined),
+      dispatched_at: status === 'in_progress' ? new Date().toISOString() : undefined,
+      sar_notes
+    });
 
     if (!updated) {
       return NextResponse.json(

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Camera, LogOut, Save, ShieldCheck, UserRound } from 'lucide-react';
+import { emergencyCardText } from '../lib/emergencyCard.js';
 
 const EMPTY_PROFILE = {
   profilePhoto: '',
@@ -14,6 +15,18 @@ const EMPTY_PROFILE = {
   medicalInfo: '',
   homeArea: ''
 };
+
+const OFFLINE_CARD_FIELDS = [
+  { field: 'profilePhoto', label: 'Foto profil', defaultChecked: false },
+  { field: 'dateOfBirth', label: 'Tanggal lahir', defaultChecked: false },
+  { field: 'phone', label: 'Nomor telepon', defaultChecked: true },
+  { field: 'emergencyContactName', label: 'Nama kontak darurat', defaultChecked: true },
+  { field: 'emergencyContactPhone', label: 'Nomor kontak darurat', defaultChecked: true },
+  { field: 'bloodType', label: 'Golongan darah', defaultChecked: true },
+  { field: 'gender', label: 'Jenis kelamin', defaultChecked: false },
+  { field: 'medicalInfo', label: 'Riwayat kesehatan dan alergi', defaultChecked: true },
+  { field: 'homeArea', label: 'Domisili', defaultChecked: false }
+];
 
 async function prepareProfilePhoto(file) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
@@ -55,12 +68,24 @@ function ProfileField({ label, children, className = '' }) {
   );
 }
 
-export default function SettingsScreen({ currentUser, onSignOut, onBack, onProfileUpdated }) {
+export default function SettingsScreen({
+  currentUser,
+  onSignOut,
+  onBack,
+  onProfileUpdated,
+  savedOfflineCard,
+  onSaveOfflineCard,
+  onOpenEmergencyCard
+}) {
   const isGuest = currentUser.isGuest === true;
   const [name, setName] = useState(currentUser.name || '');
   const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [loading, setLoading] = useState(!isGuest);
   const [saving, setSaving] = useState(false);
+  const [savingOfflineCard, setSavingOfflineCard] = useState(false);
+  const [offlineFields, setOfflineFields] = useState(() => Object.fromEntries(
+    OFFLINE_CARD_FIELDS.map(({ field, defaultChecked }) => [field, defaultChecked])
+  ));
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -124,6 +149,37 @@ export default function SettingsScreen({ currentUser, onSignOut, onBack, onProfi
       setError(saveError.message || 'Profil tidak dapat disimpan. Coba lagi.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveOfflineCard = async () => {
+    setSavingOfflineCard(true);
+    setError('');
+    setNotice('');
+    try {
+      const selectedProfile = Object.fromEntries(
+        OFFLINE_CARD_FIELDS
+          .filter(({ field }) => offlineFields[field] && profile[field])
+          .map(({ field }) => [field, profile[field]])
+      );
+      const card = {
+        version: 1,
+        name: name.trim(),
+        profile: selectedProfile,
+        savedAt: new Date().toISOString()
+      };
+      const { default: QRCode } = await import('qrcode');
+      card.qrImage = await QRCode.toDataURL(emergencyCardText(card), {
+        width: 280,
+        margin: 2,
+        errorCorrectionLevel: 'M'
+      });
+      onSaveOfflineCard(card);
+      setNotice('Kartu pilihanmu disimpan di perangkat ini untuk dibuka saat offline.');
+    } catch (saveError) {
+      setError(saveError.message || 'Kartu offline tidak dapat disimpan di perangkat ini.');
+    } finally {
+      setSavingOfflineCard(false);
     }
   };
 
@@ -266,6 +322,51 @@ export default function SettingsScreen({ currentUser, onSignOut, onBack, onProfi
           <li>{isGuest ? 'Mode tamu tidak menyinkronkan data keluarga ke akun.' : 'Data keluarga hanya disinkronkan ke server jika grup keluarga dibuat atau diikuti.'}</li>
           <li>Data peta, rute, dan panduan pada prototype bukan informasi darurat real-time.</li>
         </ul>
+      </section>
+
+      <section className="rounded-2xl border border-rose-100 bg-white p-5 shadow-sm" aria-labelledby="settings-offline-card-title">
+        <div>
+          <h2 id="settings-offline-card-title" className="font-extrabold text-slate-900">Kartu identitas darurat offline</h2>
+          <p className="mt-1 text-sm leading-relaxed text-slate-600">
+            Simpan salinan pilihanmu di perangkat ini agar bisa dibuka tanpa koneksi internet. Nama selalu disertakan; centang hanya informasi yang ingin kamu tampilkan.
+          </p>
+        </div>
+        {isGuest ? (
+          <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Masuk ke akun untuk membuat kartu offline.</p>
+        ) : loading ? (
+          <p className="mt-4 text-sm text-slate-600">Memuat profil…</p>
+        ) : (
+          <>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {OFFLINE_CARD_FIELDS.map(({ field, label }) => (
+                <label key={field} className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={offlineFields[field]}
+                    onChange={event => setOfflineFields(current => ({ ...current, [field]: event.target.checked }))}
+                    className="h-4 w-4 accent-blue-700"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-950">
+              Salinan hanya ada di perangkat ini, tidak terenkripsi, dan dapat dilihat siapa pun yang membuka perangkat. Perubahan profil tidak memperbarui salinan ini otomatis; simpan ulang setelah mengubah profil. Data yang dibagikan lewat QR tidak dapat ditarik kembali.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button type="button" onClick={handleSaveOfflineCard} disabled={savingOfflineCard || !name.trim()} className="primary-action disabled:opacity-60">
+                <Save className="h-4 w-4" />
+                {savingOfflineCard ? 'Menyimpan…' : savedOfflineCard ? 'Perbarui salinan offline' : 'Simpan kartu offline'}
+              </button>
+              {savedOfflineCard && (
+                <button type="button" onClick={onOpenEmergencyCard} className="secondary-action">
+                  Buka kartu offline
+                </button>
+              )}
+            </div>
+            {savedOfflineCard && <p className="mt-2 text-xs text-slate-500">Salinan saat ini dibuat {new Date(savedOfflineCard.savedAt).toLocaleString('id-ID')}.</p>}
+          </>
+        )}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

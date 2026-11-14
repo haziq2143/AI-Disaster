@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { isRouteEligiblePosko } from '../lib/poskoManagement.js';
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -271,11 +272,32 @@ export default function LeafletMapCanvas({
 
       // 2. RENDER DATABASE POSKO MARKERS (Shelters)
       poskoList.forEach(posko => {
-        const isUnverifiedContribution = posko.source_type === 'sar_contribution' || posko.status === 'unverified';
-        const poskoLabel = posko.source_type === 'sar_contribution'
-          ? 'KONTRIBUSI TIM SAR • BELUM DIVERIFIKASI'
-          : 'CONTOH POSKO • BELUM DIVERIFIKASI';
-        const iconColor = isUnverifiedContribution ? 'bg-amber-600 ring-amber-300' : 'bg-emerald-600 ring-emerald-300';
+        const isSarContribution = posko.source_type === 'sar_contribution';
+        const isSarChecked = posko.verification_status === 'sar_checked';
+        const isClosed = posko.operational_status === 'closed';
+        const isOpen = posko.operational_status === 'open';
+        const isManagedPosko = Object.hasOwn(posko, 'operational_status');
+        const canRoute = isManagedPosko
+          ? isRouteEligiblePosko(posko)
+          : !isClosed;
+        const isVerifiedStatic = !isManagedPosko && posko.status !== 'unverified';
+        const poskoLabel = isClosed
+          ? 'POSKO DITUTUP'
+          : isManagedPosko && !isOpen
+            ? 'STATUS POSKO BELUM DIKONFIRMASI'
+          : isSarChecked
+            ? 'DICEK TIM SAR • BUKAN VERIFIKASI INSTANSI'
+            : isSarContribution
+              ? 'KONTRIBUSI TIM SAR • MENUNGGU PENGECEKAN'
+              : 'CONTOH POSKO • BELUM DIVERIFIKASI';
+        const iconColor = isClosed
+          ? 'bg-slate-600 ring-slate-300'
+          : canRoute && (isSarChecked || isVerifiedStatic)
+            ? 'bg-emerald-600 ring-emerald-300'
+            : 'bg-amber-600 ring-amber-300';
+        const checkedAt = posko.last_checked_at
+          ? `${new Date(posko.last_checked_at).toLocaleString('id-ID')}${posko.last_checked_by ? ` oleh ${posko.last_checked_by}` : ''}`
+          : 'Belum dicek Tim SAR';
         const poskoIcon = L.divIcon({
           className: 'custom-leaflet-marker',
           html: `
@@ -298,12 +320,15 @@ export default function LeafletMapCanvas({
             <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[10px]">${poskoLabel}</span>
             <p class="font-extrabold text-slate-900 mt-1">${escapeHtml(posko.name)}</p>
             <p class="text-slate-600 text-[11px]">${escapeHtml(posko.address)}</p>
+            <p class="text-[11px] font-semibold ${isClosed ? 'text-rose-800' : 'text-slate-700'}">Status: ${isClosed ? 'Ditutup' : isOpen ? 'Buka' : 'Belum dikonfirmasi'}</p>
             <p class="text-[11px] text-emerald-800 font-semibold">Kapasitas: ${escapeHtml(posko.capacity)}</p>
             <p class="text-[10px] text-slate-500">Fasilitas: ${escapeHtml(posko.facilities?.join(', '))}</p>
             <p class="text-[10px] text-slate-500">Kontak: ${escapeHtml(posko.contact)}</p>
-            <p class="text-[10px] text-slate-500">Dicatat: ${escapeHtml(posko.verified_at || 'tidak tersedia')}</p>
+            <p class="text-[10px] text-slate-500">Pengecekan Tim SAR: ${escapeHtml(checkedAt)}</p>
             <p class="text-[10px] font-bold text-blue-700">Jarak: ${escapeHtml(posko.distanceFormatted)} (${escapeHtml(posko.estWalkTime)} jalan kaki)</p>
-            <button onclick="window.__leafNavigateRoute('${encodeRoutePayload(posko)}')" class="w-full mt-2 py-1 px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer">🧭 Arahkan Rute ke Posko Ini</button>
+            ${canRoute
+              ? `<button onclick="window.__leafNavigateRoute('${encodeRoutePayload(posko)}')" class="w-full mt-2 py-2 px-2 bg-emerald-800 hover:bg-emerald-900 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer" style="min-height:44px">Arahkan rute ke posko</button>`
+              : '<p class="mt-2 text-[10px] font-semibold text-amber-900">Rute tersedia setelah status posko dikonfirmasi buka dan dicek Tim SAR.</p>'}
           </div>
         `);
         marker.on('click', () => onSelectItem({ ...posko, itemType: 'posko' }));
@@ -396,6 +421,37 @@ export default function LeafletMapCanvas({
         `);
         reportMarker.on('click', () => onSelectItem({ ...report, itemType: 'laporan_darurat' }));
         layerGroup.addLayer(reportMarker);
+      });
+
+      // 5. RENDER DISASTER ZONES (Zona Bencana & Level Bahaya dari Tim SAR)
+      const disasterZoneList = Array.isArray(dbMarkers.zona_bencana) ? dbMarkers.zona_bencana : [];
+      disasterZoneList.forEach(zone => {
+        if (zone.status !== 'active') return;
+        const isLevel3 = zone.severity_level === 'level_3_critical';
+        const isLevel2 = zone.severity_level === 'level_2_warning';
+        const zoneColor = isLevel3 ? '#DC2626' : isLevel2 ? '#D97706' : '#2563EB';
+
+        const circle = L.circle([zone.lat, zone.lng], {
+          radius: (zone.radius_km || 2) * 1000,
+          color: zoneColor,
+          fillColor: zoneColor,
+          fillOpacity: isLevel3 ? 0.16 : 0.10,
+          weight: isLevel3 ? 3 : 2,
+          dashArray: isLevel3 ? '6, 6' : undefined
+        });
+
+        circle.bindPopup(`
+          <div class="text-xs space-y-1.5 max-w-[240px]">
+            <span class="px-2 py-0.5 rounded font-black text-[10px] text-white ${isLevel3 ? 'bg-rose-600' : isLevel2 ? 'bg-amber-600' : 'bg-blue-600'}">
+              ${escapeHtml(zone.severity_label || 'ZONA BENCANA')}
+            </span>
+            <h4 class="font-extrabold text-slate-900 text-sm mt-1">${escapeHtml(zone.name)}</h4>
+            <p class="text-slate-600 text-[11px] leading-relaxed">${escapeHtml(zone.description || '')}</p>
+            <p class="text-[10px] text-slate-500 font-semibold">Radius: ${zone.radius_km} km · Ditetapkan oleh: ${escapeHtml(zone.declared_by || 'Tim SAR')}</p>
+            ${isLevel3 ? '<p class="text-[10px] font-bold text-rose-700 bg-rose-50 p-1.5 rounded-lg border border-rose-200">⚠️ Pengawasan korban terjebak (PASS Dead-Man Switch) aktif di area ini.</p>' : ''}
+          </div>
+        `);
+        layerGroup.addLayer(circle);
       });
     }
 

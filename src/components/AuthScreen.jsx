@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { AlertCircle, ArrowRight, ShieldAlert } from 'lucide-react';
 import GuardianShieldLogo from './GuardianShieldLogo';
 
-export default function AuthScreen({ onAuthenticated, onContinueGuest, initialError = '' }) {
+export default function AuthScreen({ onAuthenticated, onContinueGuest, onContinueGuestSar, onOpenOfflineCard, offlineCardAvailable = false, initialError = '' }) {
   const [mode, setMode] = useState('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -195,10 +195,21 @@ export default function AuthScreen({ onAuthenticated, onContinueGuest, initialEr
         <p className="mt-3 rounded-xl bg-amber-50 p-3 text-[11px] leading-relaxed text-amber-900">
           Reset password demo langsung menampilkan tautan di halaman dan hanya tersedia saat development; email tidak dikirim. Untuk server produksi, pemulihan password belum dikonfigurasi. Untuk bahaya segera, hubungi layanan darurat resmi; aplikasi bukan kanal dispatch.
         </p>
-        <button type="button" onClick={onContinueGuest} className="mt-4 min-h-11 w-full rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
-          Lanjut sebagai tamu
-        </button>
-        <p className="mt-2 text-center text-[11px] text-slate-500">Mode tamu tetap bisa memakai panduan lokal dan mengirim SOS anonim dengan persetujuan lokasi, tetapi tidak dapat sinkronisasi keluarga atau membuka panel SAR.</p>
+        <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <button type="button" onClick={onContinueGuest} className="min-h-11 w-full rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+            Lanjut Tamu (Warga)
+          </button>
+          <button type="button" onClick={onContinueGuestSar} className="min-h-11 w-full rounded-xl border border-blue-600 bg-blue-50 px-4 py-2 text-sm font-bold text-[#0D47A1] hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+            <ShieldAlert className="h-4 w-4 text-[#0D47A1]" />
+            Demo Tim SAR (1-Klik)
+          </button>
+        </div>
+        {offlineCardAvailable && (
+          <button type="button" onClick={onOpenOfflineCard} className="mt-2 min-h-11 w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-bold text-rose-800 hover:bg-rose-100">
+            Buka kartu identitas darurat offline
+          </button>
+        )}
+        <p className="mt-2 text-center text-[11px] text-slate-500">Mode tamu memungkinkan simulasi cepat. Pilih <strong>Demo Tim SAR</strong> untuk mengelola zona bahaya & memantau korban, atau <strong>Lanjut Tamu (Warga)</strong> untuk panduan evakuasi warga.</p>
       </section>
     </main>
   );

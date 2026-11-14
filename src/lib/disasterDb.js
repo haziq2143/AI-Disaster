@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { mutateDocument, readDocument } from './database.js';
+import { applyPoskoUpdate, normalizePosko } from './poskoManagement.js';
 
 const STORE_KEY = 'disaster_database';
 
@@ -12,9 +13,11 @@ export const INITIAL_DATABASE = {
       lat: -6.8872,
       lng: 107.5948,
       address: 'Jl. Sukajadi No. 142, RT 04 / RW 04',
-      capacity: 'Tidak tersedia · data demo',
-      facilities: [],
-      contact: 'Tidak tersedia · data demo',
+      capacity: 'Kapasitas 100 jiwa',
+      current_occupancy: 45,
+      max_capacity: 100,
+      facilities: ['Dapur Umum', 'Tenda Medis', 'Listrik Genset'],
+      contact: '0812-3456-7890 (Ketua RW 04)',
       status: 'unverified',
       verified_by: 'DATA DEMO — bukan verifikasi instansi',
       verified_at: 'Contoh statis — bukan waktu pembaruan',
@@ -26,9 +29,11 @@ export const INITIAL_DATABASE = {
       lat: -6.8835,
       lng: 107.5910,
       address: 'Jl. Sukamaju No. 8, Sukajadi',
-      capacity: 'Tidak tersedia · data demo',
-      facilities: [],
-      contact: 'Tidak tersedia · data demo',
+      capacity: 'Kapasitas 150 jiwa',
+      current_occupancy: 120,
+      max_capacity: 150,
+      facilities: ['Ambulans Siaga', 'Logistik Logis', 'Toilet Portabel'],
+      contact: '0821-9876-5432 (Posko Kecamatan)',
       status: 'unverified',
       verified_by: 'DATA DEMO — bukan verifikasi instansi',
       verified_at: 'Contoh statis — bukan waktu pembaruan',
@@ -40,9 +45,11 @@ export const INITIAL_DATABASE = {
       lat: -6.8920,
       lng: 107.6045,
       address: 'Jl. Karang Tineung Timur No. 45',
-      capacity: 'Tidak tersedia · data demo',
-      facilities: [],
-      contact: 'Tidak tersedia · data demo',
+      capacity: 'Kapasitas 250 jiwa',
+      current_occupancy: 25,
+      max_capacity: 250,
+      facilities: ['Helipad Darurat', 'Tenda Pengungsi Besar', 'Tangki Air Bersih'],
+      contact: '0855-1122-3344 (Sekretariat Lapangan)',
       status: 'unverified',
       verified_by: 'DATA DEMO — bukan verifikasi instansi',
       verified_at: 'Contoh statis — bukan waktu pembaruan',
@@ -185,6 +192,22 @@ export const INITIAL_DATABASE = {
       block_threshold: 5,
       updated_at: new Date().toISOString()
     }
+  ],
+  disaster_zones: [
+    {
+      id: 'zone-sukajadi-1',
+      name: 'Zona Merah Gempa Sukajadi',
+      hazard_type: 'gempa',
+      severity_level: 'level_3_critical', // 'level_1_advisory' | 'level_2_warning' | 'level_3_critical'
+      severity_label: 'AWAS (Tingkat Kritis)',
+      lat: -6.8880,
+      lng: 107.5940,
+      radius_km: 2.0,
+      description: 'Guncangan M6.2 dengan kerusakan struktur parah. Pengawasan korban terjebak diaktifkan.',
+      status: 'active',
+      declared_by: 'Tim SAR Kantor Bandung',
+      declared_at: new Date().toISOString()
+    }
   ]
 };
 
@@ -305,7 +328,7 @@ export async function getAllMarkers(userCoords = null) {
   const userLat = userCoords?.lat ?? -5.9860;
   const userLng = userCoords?.lng ?? 106.0520;
 
-  let poskoList = [...db.posko];
+  let poskoList = db.posko.map(normalizePosko);
   let wargaList = [...db.warga];
   let reportsList = [...db.laporan_darurat];
 
@@ -321,10 +344,13 @@ export async function getAllMarkers(userCoords = null) {
       };
     });
 
+  const zoneList = Array.isArray(db.disaster_zones) ? db.disaster_zones : [];
+
   return {
     posko: withDistance(poskoList).sort((a, b) => a.distanceMeters - b.distanceMeters),
     warga: withDistance(wargaList).sort((a, b) => a.distanceMeters - b.distanceMeters),
     laporan_darurat: withDistance(reportsList).sort((a, b) => a.distanceMeters - b.distanceMeters),
+    zona_bencana: withDistance(zoneList).sort((a, b) => a.distanceMeters - b.distanceMeters),
     user_location: {
       ...db.user_location,
       lat: userLat,
@@ -367,6 +393,7 @@ export function addEmergencyReport(report) {
 }
 
 export function addPosko(posko) {
+  const now = new Date().toISOString();
   const newPosko = {
     id: `posko-${randomUUID()}`,
     name: posko.name,
@@ -377,9 +404,16 @@ export function addPosko(posko) {
     facilities: [],
     contact: posko.contact || 'Belum diinformasikan',
     status: 'unverified',
-    verified_by: `Kontribusi akun SAR: ${posko.created_by}`,
-    verified_at: new Date().toISOString(),
-    source_type: 'sar_contribution'
+    verified_by: null,
+    verified_at: null,
+    source_type: 'sar_contribution',
+    created_by: posko.created_by,
+    created_at: now,
+    updated_at: now,
+    operational_status: 'unknown',
+    verification_status: 'pending',
+    last_checked_by: null,
+    last_checked_at: null
   };
   return mutateDocument(STORE_KEY, INITIAL_DATABASE, db => {
     db.posko.unshift(newPosko);
@@ -387,8 +421,17 @@ export function addPosko(posko) {
   });
 }
 
-// Update report status
-export async function updateReportStatus(id, status) {
+export function updatePosko(id, updates, actor) {
+  return mutateDocument(STORE_KEY, INITIAL_DATABASE, db => {
+    const posko = db.posko.find(item => item.id === id);
+    if (!posko) return null;
+    Object.assign(posko, applyPoskoUpdate(posko, updates, actor));
+    return normalizePosko(posko);
+  });
+}
+
+// Update report status & dispatch details
+export async function updateReportStatus(id, status, dispatchDetails = {}) {
   if (!['waiting_rescue', 'in_progress', 'resolved'].includes(status)) {
     throw new Error('Status laporan tidak valid.');
   }
@@ -396,6 +439,87 @@ export async function updateReportStatus(id, status) {
     const report = db.laporan_darurat.find(r => r.id === id);
     if (!report) return null;
     report.status = status;
+    if (dispatchDetails && typeof dispatchDetails === 'object') {
+      if (dispatchDetails.dispatch_team) report.dispatch_team = dispatchDetails.dispatch_team;
+      if (dispatchDetails.eta_minutes !== undefined) report.eta_minutes = dispatchDetails.eta_minutes;
+      report.dispatched_at = dispatchDetails.dispatched_at || (status === 'in_progress' ? new Date().toISOString() : null);
+      if (dispatchDetails.sar_notes) report.sar_notes = dispatchDetails.sar_notes;
+    }
     return report;
+  });
+}
+
+// Disaster Zones Management (Zona Bencana & Level Bahaya)
+export async function getDisasterZones() {
+  const db = await readDb();
+  return Array.isArray(db.disaster_zones) ? db.disaster_zones : [];
+}
+
+export async function addDisasterZone(zoneData, actor = 'Tim SAR') {
+  if (!zoneData.name || typeof zoneData.lat !== 'number' || typeof zoneData.lng !== 'number') {
+    throw new Error('Data zona bencana wajib memiliki nama dan koordinat valid.');
+  }
+
+  const validSeverities = ['level_1_advisory', 'level_2_warning', 'level_3_critical'];
+  const severity = validSeverities.includes(zoneData.severity_level) ? zoneData.severity_level : 'level_2_warning';
+  
+  const severityLabels = {
+    level_1_advisory: 'WASPADA (Tingkat Rendah)',
+    level_2_warning: 'SIAGA (Tingkat Sedang)',
+    level_3_critical: 'AWAS (Tingkat Kritis)'
+  };
+
+  const newZone = {
+    id: `zone-${randomUUID().slice(0, 8)}`,
+    name: zoneData.name.trim(),
+    hazard_type: zoneData.hazard_type || 'gempa',
+    severity_level: severity,
+    severity_label: severityLabels[severity],
+    lat: zoneData.lat,
+    lng: zoneData.lng,
+    radius_km: Number(zoneData.radius_km) || 1.5,
+    description: zoneData.description ? zoneData.description.trim() : 'Zona bencana aktif ditetapkan oleh Tim SAR.',
+    status: 'active',
+    declared_by: actor?.name || actor || 'Tim SAR',
+    declared_at: new Date().toISOString()
+  };
+
+  return mutateDocument(STORE_KEY, INITIAL_DATABASE, db => {
+    if (!Array.isArray(db.disaster_zones)) db.disaster_zones = [];
+    db.disaster_zones.unshift(newZone);
+    return newZone;
+  });
+}
+
+export async function updateDisasterZone(id, updates, actor = 'Tim SAR') {
+  return mutateDocument(STORE_KEY, INITIAL_DATABASE, db => {
+    if (!Array.isArray(db.disaster_zones)) db.disaster_zones = [];
+    const zone = db.disaster_zones.find(z => z.id === id);
+    if (!zone) return null;
+
+    if (updates.status !== undefined) zone.status = updates.status;
+    if (updates.severity_level !== undefined) {
+      zone.severity_level = updates.severity_level;
+      zone.severity_label = updates.severity_level === 'level_3_critical'
+        ? 'AWAS (Tingkat Kritis)'
+        : updates.severity_level === 'level_2_warning'
+          ? 'SIAGA (Tingkat Sedang)'
+          : 'WASPADA (Tingkat Rendah)';
+    }
+    if (updates.radius_km !== undefined) zone.radius_km = Number(updates.radius_km);
+    if (updates.description !== undefined) zone.description = updates.description.trim();
+
+    zone.updated_at = new Date().toISOString();
+    zone.updated_by = actor?.name || actor || 'Tim SAR';
+    return zone;
+  });
+}
+
+export async function deleteDisasterZone(id) {
+  return mutateDocument(STORE_KEY, INITIAL_DATABASE, db => {
+    if (!Array.isArray(db.disaster_zones)) return false;
+    const initialLen = db.disaster_zones.length;
+    db.disaster_zones = db.disaster_zones.filter(z => z.id !== id);
+    return db.disaster_zones.length < initialLen;
   });
 }

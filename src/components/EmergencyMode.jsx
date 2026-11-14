@@ -13,8 +13,13 @@ import {
   Volume2,
   ChevronRight,
   LogOut,
-  Sparkles
+  Sparkles,
+  Radio,
+  MessageSquare
 } from 'lucide-react';
+import SignalBeaconModal from './SignalBeaconModal';
+import FallbackSosModal from './FallbackSosModal';
+import { speakIndonesian, stopSpeaking } from '../lib/speechVoice.js';
 
 export default function EmergencyMode({ 
   hazardData, 
@@ -25,6 +30,9 @@ export default function EmergencyMode({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [completedSteps, setCompletedSteps] = useState([]);
   const [unableReason, setUnableReason] = useState(null);
+  const [isBeaconOpen, setIsBeaconOpen] = useState(false);
+  const [isFallbackSosOpen, setIsFallbackSosOpen] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const stepsByHazard = {
     banjir: [
@@ -171,7 +179,15 @@ export default function EmergencyMode({
   const currentStep = currentHazardSteps[currentStepIndex];
   const isLastStep = currentStepIndex === currentHazardSteps.length - 1;
 
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+    };
+  }, []);
+
   const handleNextStep = () => {
+    stopSpeaking();
+    setIsSpeaking(false);
     setUnableReason(null);
     if (!completedSteps.includes(currentStep.id)) {
       setCompletedSteps(prev => [...prev, currentStep.id]);
@@ -186,6 +202,16 @@ export default function EmergencyMode({
 
   const handleUnable = () => {
     setUnableReason(currentStep.fallback);
+  };
+
+  const toggleVoiceGuidance = () => {
+    if (isSpeaking) {
+      stopSpeaking();
+      setIsSpeaking(false);
+    } else {
+      speakIndonesian(`${currentStep.title}. ${currentStep.instruction}. Alasan keselamatan: ${currentStep.why}`);
+      setIsSpeaking(true);
+    }
   };
 
   return (
@@ -242,8 +268,23 @@ export default function EmergencyMode({
       {/* THE PRIMARY ACTION CARD (PRD 4.4: Satu tindakan utama per langkah, tombol besar) */}
       <div className="bg-white rounded-3xl border-3 border-[#2196F3] p-6 sm:p-8 shadow-xl space-y-6">
         <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#E3F2FD] text-[#0D47A1] rounded-full text-xs font-extrabold tracking-wide">
-            <span>LANGKAH UMUM · PERIKSA ARAHAN RESMI</span>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#E3F2FD] text-[#0D47A1] rounded-full text-xs font-extrabold tracking-wide">
+              <span>LANGKAH {currentStepIndex + 1} · PANDUAN EVAKUASI</span>
+            </div>
+            <button
+              type="button"
+              onClick={toggleVoiceGuidance}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer ${
+                isSpeaking
+                  ? 'bg-rose-600 text-white border-rose-500 shadow-xs animate-pulse'
+                  : 'bg-blue-50 border-blue-200 text-[#0D47A1] hover:bg-blue-100'
+              }`}
+              title="Dengarkan panduan audio dalam Bahasa Indonesia"
+            >
+              <Volume2 className="w-3.5 h-3.5" />
+              <span>{isSpeaking ? 'Hentikan Suara' : 'Panduan Suara ID'}</span>
+            </button>
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-snug">
@@ -339,6 +380,37 @@ export default function EmergencyMode({
         </button>
       </div>
 
+      {/* Field Emergency Tools: Audio Beacon & Fallback SOS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => setIsBeaconOpen(true)}
+          className="p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl border border-slate-700 shadow-md flex items-center gap-3 text-left transition-all cursor-pointer"
+        >
+          <div className="w-10 h-10 rounded-xl bg-rose-600/30 border border-rose-500/50 flex items-center justify-center text-rose-400 shrink-0">
+            <Radio className="w-5 h-5 animate-pulse" />
+          </div>
+          <div>
+            <p className="font-extrabold text-sm text-white">Sinyal Peluit & Senter SOS</p>
+            <p className="text-[11px] text-slate-300">Bunyi 3.000 Hz & senter untuk korban terjebak</p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsFallbackSosOpen(true)}
+          className="p-4 bg-amber-50 hover:bg-amber-100 text-amber-950 rounded-2xl border border-amber-300 shadow-md flex items-center gap-3 text-left transition-all cursor-pointer"
+        >
+          <div className="w-10 h-10 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center shrink-0">
+            <MessageSquare className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="font-extrabold text-sm text-amber-950">Kirim SOS via SMS / WhatsApp</p>
+            <p className="text-[11px] text-amber-800">Kirim koordinat akurat saat sinyal lemah / 2G</p>
+          </div>
+        </button>
+      </div>
+
       {/* Emergency Hotline Direct Bar */}
       <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200 flex flex-wrap items-center justify-between gap-2 text-xs">
         <div className="flex min-w-0 flex-1 items-center gap-2 text-rose-900 font-semibold">
@@ -352,6 +424,20 @@ export default function EmergencyMode({
           Panggil 112
         </a>
       </div>
+
+      {/* Modals */}
+      <SignalBeaconModal 
+        isOpen={isBeaconOpen} 
+        onClose={() => setIsBeaconOpen(false)} 
+      />
+
+      <FallbackSosModal
+        isOpen={isFallbackSosOpen}
+        onClose={() => setIsFallbackSosOpen(false)}
+        hazardType={hazardData?.type || 'darurat'}
+        userLocation={hazardData?.location}
+        userName={hazardData?.userName || 'Warga'}
+      />
     </div>
   );
 }
