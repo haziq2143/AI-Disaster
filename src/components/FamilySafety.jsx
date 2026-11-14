@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { 
@@ -18,10 +20,15 @@ import {
   ScanLine,
   Camera,
   RefreshCw,
-  UserCheck,
-  HelpCircle,
-  Plus,
-  Navigation
+  Navigation,
+  AlertTriangle,
+  HeartHandshake,
+  Check,
+  Shield,
+  PhoneForwarded,
+  Info,
+  ChevronRight,
+  X
 } from 'lucide-react';
 import { EMERGENCY_CONTACTS } from '../data/mockData';
 
@@ -45,6 +52,7 @@ export default function FamilySafety({
   onNavigateScreen,
   onNavigateRoute
 }) {
+  const [activeTab, setActiveTab] = useState('members'); // 'members' | 'plan' | 'contacts'
   const [showAddModal, setShowAddModal] = useState(false);
   const [addMode, setAddMode] = useState('invite');
   const [inviteToken, setInviteToken] = useState('');
@@ -75,7 +83,7 @@ export default function FamilySafety({
   };
 
   const handleJoinGroup = async (event) => {
-    e.preventDefault();
+    event.preventDefault();
     setActionError('');
     try {
       const joined = await onJoinFamilyInvite(extractInviteToken(inviteToken), {
@@ -209,6 +217,7 @@ export default function FamilySafety({
     try {
       await navigator.clipboard.writeText(value);
       setCopyStatus(`${label} disalin.`);
+      setTimeout(() => setCopyStatus(''), 2500);
     } catch (error) {
       console.error(`Gagal menyalin ${label.toLowerCase()}:`, error);
       setCopyStatus('Gagal menyalin. Pilih dan salin teks secara manual.');
@@ -219,7 +228,10 @@ export default function FamilySafety({
     setFamilyMembers(prev => prev.filter(m => m.id !== id));
   };
 
-  const checkedInCount = familyMembers.filter(m => checkInStatus(m) !== 'unconfirmed').length;
+  const safeCount = familyMembers.filter(m => checkInStatus(m) === 'safe').length;
+  const helpCount = familyMembers.filter(m => checkInStatus(m) === 'help').length;
+  const unconfirmedCount = familyMembers.filter(m => checkInStatus(m) === 'unconfirmed').length;
+
   const essentialItems = checklistItems.filter(item => item.essential);
   const readyEssentials = essentialItems.filter(item => item.completed).length;
   const readinessTasks = [
@@ -241,137 +253,246 @@ export default function FamilySafety({
   }));
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-fadeIn pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-[#0D47A1] bg-[#E3F2FD] px-2.5 py-1 rounded-md">
-            Screen 07: Family Safety
-          </span>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mt-2">
-            Pemantauan Keselamatan Keluarga
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Kelola kebutuhan khusus pendampingan secara manual tanpa ketergantungan sinyal GPS.
-          </p>
-          <p className="mt-1 max-w-xl text-[11px] leading-relaxed text-slate-500">
-            {currentUser.isGuest
-              ? 'Masuk atau buat akun untuk membuat QR undangan dan menyinkronkan data keluarga antar perangkat.'
-              : <>Tekan <strong>Tambah Anggota</strong> untuk langsung membuat QR/token. Data keluarga akan disimpan di server agar bisa disinkronkan ke perangkat yang bergabung.</>}
+    <div className="max-w-3xl mx-auto space-y-6 animate-fadeIn pb-16">
+      
+      {/* 1. HEADER SECTION (Clean, Aesthetic, Light) */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1.5 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-black uppercase tracking-wider">
+              <Users className="w-3.5 h-3.5 text-blue-600" />
+              <span>Status Keselamatan Keluarga</span>
+            </span>
+
+            {/* Sync Status Badge */}
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+              familySyncStatus === 'synced'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : familySyncStatus === 'error'
+                  ? 'bg-rose-50 text-rose-800 border-rose-200'
+                  : 'bg-slate-50 text-slate-600 border-slate-200'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                familySyncStatus === 'synced' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+              }`} />
+              <span>
+                {familySyncStatus === 'synced' ? 'Tersinkronisasi Online' : 'Penyimpanan Lokal'}
+              </span>
+            </span>
+          </div>
+
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            Koordinasi & Pemantauan Keluarga
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-normal max-w-xl">
+            Kelola kebutuhan khusus, pantau status check-in kerabat tanpa ketergantungan pulsa, dan koordinasikan rute evakuasi mandiri.
           </p>
         </div>
 
         <button
           type="button"
           onClick={currentUser.isGuest ? onRequireAccount : handleOpenInvite}
-          aria-label={currentUser.isGuest ? 'Masuk untuk menambah anggota' : 'Tambah Anggota'}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0D47A1] hover:bg-[#1565C0] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold rounded-2xl shadow-sm shadow-blue-600/25 transition-all cursor-pointer hover:scale-102 active:scale-98"
         >
           <UserPlus className="w-4 h-4" />
-          <span>{currentUser.isGuest ? 'Masuk untuk tambah anggota' : 'Tambah Anggota'}</span>
+          <span>{currentUser.isGuest ? 'Masuk untuk Tambah' : 'Tambah Anggota'}</span>
         </button>
       </div>
 
-      {/* Summary Tracker Pill */}
-      <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#E3F2FD] text-[#0D47A1] flex items-center justify-center">
-            <Users className="w-5 h-5" />
+      {/* 2. STATS SUMMARY BENTO GRID */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Total</span>
+            <Users className="w-4 h-4 text-blue-600" />
           </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-500">Status Pendampingan</p>
-            <p className="text-sm font-bold text-slate-900">
-              {checkedInCount} dari {familyMembers.length} Anggota Sudah Check-in
-            </p>
-          </div>
+          <p className="text-2xl font-black text-slate-900">{familyMembers.length}</p>
+          <p className="text-[11px] text-slate-500 font-medium">Anggota terdaftar</p>
         </div>
-        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-          checkedInCount === familyMembers.length
-            ? 'bg-emerald-100 text-emerald-800' 
-            : 'bg-amber-100 text-amber-900'
-        }`}>
-          {checkedInCount === familyMembers.length ? 'Semua Check-in' : 'Ada yang Belum'}
-        </span>
+
+        <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-emerald-800">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Aman</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          </div>
+          <p className="text-2xl font-black text-emerald-900">{safeCount}</p>
+          <p className="text-[11px] text-emerald-700 font-medium">Sudah check-in aman</p>
+        </div>
+
+        <div className="p-4 bg-rose-50/60 rounded-2xl border border-rose-200 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-rose-800">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Perhatian</span>
+            <AlertTriangle className="w-4 h-4 text-rose-600" />
+          </div>
+          <p className="text-2xl font-black text-rose-900">{helpCount + unconfirmedCount}</p>
+          <p className="text-[11px] text-rose-700 font-medium">
+            {helpCount > 0 ? `${helpCount} butuh bantuan` : `${unconfirmedCount} belum check-in`}
+          </p>
+        </div>
       </div>
 
-      <section className="rounded-2xl border border-blue-200 bg-blue-50/80 p-4 text-xs leading-relaxed text-blue-950">
-        <strong>Check-in manual (simulasi)</strong>
-        <p className="mt-1">
-          {familySyncStatus === 'synced'
-            ? 'Status tersinkron ke anggota grup saat online. Tidak mengirim pesan, notifikasi, atau lokasi.'
-            : 'Status hanya tersimpan di perangkat ini sampai grup keluarga tersambung. Tidak mengirim pesan, lokasi, atau notifikasi.'}
-        </p>
-      </section>
+      {/* 3. SEGMENTED TAB NAVIGATION */}
+      <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl">
+        <button
+          type="button"
+          onClick={() => setActiveTab('members')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'members'
+              ? 'bg-white text-blue-700 shadow-xs font-extrabold'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>Anggota Keluarga ({familyMembers.length})</span>
+        </button>
 
-      <section className={`rounded-2xl border p-4 text-xs ${
-        familySyncStatus === 'synced'
-          ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-          : familySyncStatus === 'error'
-            ? 'border-rose-200 bg-rose-50 text-rose-900'
-            : 'border-slate-200 bg-white text-slate-700'
-      }`}>
-        <p className="font-bold">
-          {familySyncStatus === 'synced'
-            ? 'Keluarga tersambung · perubahan dibagikan ke perangkat anggota'
-            : familySyncStatus === 'error'
-              ? 'Sinkronisasi keluarga bermasalah'
-              : familyAccess
-                ? 'Menyambungkan ke grup keluarga…'
-                : 'Data keluarga hanya tersimpan di perangkat ini'}
-        </p>
-        {familySyncError && <p className="mt-1">{familySyncError}</p>}
-        {familyAccess && familySyncStatus === 'synced' && (
-          <p className="mt-1">Periksa status secara manual; aplikasi tidak mengirim notifikasi atau melacak lokasi.</p>
-        )}
-      </section>
+        <button
+          type="button"
+          onClick={() => setActiveTab('plan')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'plan'
+              ? 'bg-white text-blue-700 shadow-xs font-extrabold'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <MapPin className="w-3.5 h-3.5" />
+          <span>Titik Kumpul & Rencana</span>
+        </button>
 
-      {/* List of Family Members */}
-      <div className="space-y-3">
-        {familyMembers.map((member) => {
-          const status = checkInStatus(member);
-          const statusInfo = {
-            safe: { label: 'Saya aman', style: 'border-emerald-300 bg-emerald-50 text-emerald-800' },
-            help: { label: 'Butuh bantuan', style: 'border-rose-300 bg-rose-50 text-rose-800' },
-            unconfirmed: { label: 'Belum dikonfirmasi', style: 'border-amber-300 bg-amber-50 text-amber-900' }
-          }[status];
-          const isTogether = status === 'safe';
-          return (
-            <div
-              key={member.id}
-              className={`p-4 sm:p-5 rounded-2xl border transition-all bg-white ${
-                isTogether 
-                  ? 'border-emerald-200 shadow-xs ring-1 ring-emerald-100' 
-                  : 'border-amber-200 bg-amber-50/20'
-              }`}
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex min-w-0 flex-1 items-start gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
-                    isTogether ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {member.name.charAt(0)}
-                  </div>
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-bold text-slate-900 text-base">{member.name}</h4>
-                      <span className="text-[11px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-medium">
-                        {member.relationship}
-                      </span>
+        <button
+          type="button"
+          onClick={() => setActiveTab('contacts')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'contacts'
+              ? 'bg-white text-blue-700 shadow-xs font-extrabold'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <PhoneCall className="w-3.5 h-3.5" />
+          <span>Kontak Darurat</span>
+        </button>
+      </div>
+
+      {/* 4. TAB 1: MEMBERS LIST */}
+      {activeTab === 'members' && (
+        <div className="space-y-3 animate-fadeIn">
+          {familyMembers.map((member) => {
+            const status = checkInStatus(member);
+            const statusConfig = {
+              safe: {
+                label: 'Aman di Posko / Bersama',
+                badge: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+                dot: 'bg-emerald-500',
+                avatarBg: 'bg-emerald-100 text-emerald-800'
+              },
+              help: {
+                label: 'Butuh Bantuan Segera',
+                badge: 'bg-rose-50 text-rose-800 border-rose-300',
+                dot: 'bg-rose-500 animate-ping',
+                avatarBg: 'bg-rose-100 text-rose-800'
+              },
+              unconfirmed: {
+                label: 'Belum Terkonfirmasi',
+                badge: 'bg-amber-50 text-amber-800 border-amber-300',
+                dot: 'bg-amber-500',
+                avatarBg: 'bg-amber-100 text-amber-800'
+              }
+            }[status];
+
+            return (
+              <div
+                key={member.id}
+                className="p-5 bg-white rounded-2xl border border-slate-200/90 hover:border-blue-300 shadow-2xs transition-all space-y-4"
+              >
+                {/* Header row: Avatar, Info, Status pill, Delete */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 shadow-2xs ${statusConfig.avatarBg}`}>
+                      {member.name.charAt(0)}
                     </div>
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-extrabold text-slate-900 text-base">{member.name}</h3>
+                        <span className="text-[11px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-semibold">
+                          {member.relationship}
+                        </span>
+                      </div>
 
-                    <div className="text-xs text-slate-600 flex items-start gap-1.5 pt-0.5">
-                      <Heart className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
-                      <span className="font-medium text-slate-700">Kebutuhan Bantuan:</span>
-                      <span className="text-slate-600">{member.supportNeeds}</span>
+                      {/* Support Needs */}
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                        <HeartHandshake className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        <span className="font-semibold text-slate-700">Kebutuhan:</span>
+                        <span className="text-slate-600 truncate">{member.supportNeeds}</span>
+                      </div>
+
+                      {/* Status Badge */}
+                      <div className="pt-0.5">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[11px] font-bold ${statusConfig.badge}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} />
+                          <span>{statusConfig.label}</span>
+                          {member.checkedInAt && (
+                            <span className="text-slate-400 font-normal">
+                              · {new Date(member.checkedInAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </span>
+                      </div>
                     </div>
-                    <p className={`inline-flex rounded-lg border px-2 py-1 text-[11px] font-bold ${statusInfo.style}`}>
-                      {statusInfo.label}
-                      {member.checkedInAt && ` · ${new Date(member.checkedInAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}`}
-                    </p>
                   </div>
+
+                  {member.id !== 'f1' && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteMember(member.id)}
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer shrink-0"
+                      title="Hapus data anggota"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
-                <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:max-w-[16rem] sm:justify-end">
+                {/* Action Bar: Status Toggle & Direct Route */}
+                <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-bold text-slate-400 mr-1">Ubah Status:</span>
+                    <div className="inline-flex rounded-xl bg-slate-100 p-0.5 border border-slate-200 gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => handleCheckIn(member.id, 'safe')}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          status === 'safe'
+                            ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                            : 'text-slate-600 hover:text-emerald-800'
+                        }`}
+                      >
+                        Aman
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCheckIn(member.id, 'help')}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          status === 'help'
+                            ? 'bg-rose-600 text-white shadow-2xs font-extrabold'
+                            : 'text-slate-600 hover:text-rose-800'
+                        }`}
+                      >
+                        Butuh Bantuan
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCheckIn(member.id, 'unconfirmed')}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          status === 'unconfirmed'
+                            ? 'bg-amber-600 text-white shadow-2xs font-extrabold'
+                            : 'text-slate-600 hover:text-amber-800'
+                        }`}
+                      >
+                        Belum Tahu
+                      </button>
+                    </div>
+                  </div>
+
                   {member.id !== 'f1' && (
                     <button
                       type="button"
@@ -390,385 +511,190 @@ export default function FamilySafety({
                           onNavigateScreen('route');
                         }
                       }}
-                      className="min-h-9 rounded-lg border border-blue-200 bg-blue-50 px-2 text-[11px] font-bold text-blue-700 hover:bg-blue-100 flex items-center gap-1 transition-all cursor-pointer shadow-xs"
-                      title="Arahkan rute evakuasi ke anggota keluarga ini"
+                      className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ml-auto"
+                      title="Arahkan navigasi rute ke anggota keluarga ini"
                     >
                       <Navigation className="w-3.5 h-3.5" />
-                      <span>Rute</span>
-                    </button>
-                  )}
-                  <button type="button" onClick={() => handleCheckIn(member.id, 'safe')} className="min-h-9 rounded-lg border border-emerald-200 bg-white px-2 text-[11px] font-bold text-emerald-800 hover:bg-emerald-50">
-                    Aman
-                  </button>
-                  <button type="button" onClick={() => handleCheckIn(member.id, 'help')} className="min-h-9 rounded-lg border border-rose-200 bg-white px-2 text-[11px] font-bold text-rose-800 hover:bg-rose-50">
-                    Butuh bantuan
-                  </button>
-                  <button type="button" onClick={() => handleCheckIn(member.id, 'unconfirmed')} className="min-h-9 rounded-lg border border-amber-200 bg-white px-2 text-[11px] font-bold text-amber-900 hover:bg-amber-50">
-                    Belum tahu
-                  </button>
-                  {member.id !== 'f1' && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteMember(member.id)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                      title="Hapus anggota"
-                      aria-label={`Hapus ${member.name}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
+                      <span>Arahkan Rute</span>
                     </button>
                   )}
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <section className="glass-card p-4 sm:p-5 space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <span className="eyebrow">Rencana sebelum bencana</span>
-            <h3 className="mt-2 flex items-center gap-2 text-base font-extrabold text-slate-900">
-              <MapPin className="h-4 w-4 text-blue-700" />
-              Titik kumpul & kontak cadangan
-            </h3>
-            <p className="mt-1 text-xs text-slate-600">
-              {familySyncStatus === 'synced'
-                ? 'Rencana ini disinkronkan ke perangkat anggota grup saat online.'
-                : 'Rencana ini disimpan di perangkat dan belum dibagikan ke anggota lain.'}
-            </p>
-          </div>
-          <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-900">{readinessCount}/4 siap</span>
+            );
+          })}
         </div>
-
-        <label className="block text-xs font-bold text-slate-700">
-          Nama titik kumpul keluarga
-          <input
-            value={familyPlan.meetingPoint || ''}
-            onChange={event => updatePlanField('meetingPoint', event.target.value)}
-            placeholder="Contoh: lapangan dekat kantor kelurahan"
-            className="form-control mt-1.5"
-          />
-        </label>
-        <label className="block text-xs font-bold text-slate-700">
-          Alamat atau petunjuk lokasi
-          <textarea
-            value={familyPlan.meetingArea || ''}
-            onChange={event => updatePlanField('meetingArea', event.target.value)}
-            placeholder="Tulis patokan yang mudah dikenali dan jalur alternatif"
-            rows={2}
-            className="form-control mt-1.5"
-          />
-        </label>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          {(familyPlan.backupContacts || ['', '']).map((contact, index) => (
-            <label key={index} className="block text-xs font-bold text-slate-700">
-              Kontak cadangan {index + 1}
-              <input
-                type="tel"
-                inputMode="tel"
-                value={contact}
-                onChange={event => updateBackupContact(index, event.target.value)}
-                placeholder="Nomor keluarga / tetangga tepercaya"
-                className="form-control mt-1.5"
-              />
-            </label>
-          ))}
-        </div>
-        <p className="text-[11px] text-slate-500">
-          Simpan nomor di perangkat keluarga masing-masing juga. Di dalam grup tersambung, rencana dibagikan kepada anggota grup; aplikasi tidak mengirim pesan atau notifikasi check-in.
-        </p>
-
-        <div className="border-t border-slate-200/80 pt-4">
-          <h4 className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-            <ClipboardCheck className="h-4 w-4 text-blue-700" />
-            Kesiapan keluarga sebelum bencana
-          </h4>
-          <ul className="mt-3 space-y-2">
-            {readinessTasks.map(task => (
-              <li key={task.label} className="flex items-center gap-2 text-xs">
-                <CheckCircle2 className={`h-4 w-4 shrink-0 ${task.done ? 'text-emerald-600' : 'text-slate-300'}`} />
-                <span className={task.done ? 'text-slate-700' : 'text-slate-500'}>{task.label}</span>
-              </li>
-            ))}
-          </ul>
-          <button type="button" onClick={() => onNavigateScreen('checklist')} className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-700 px-3 py-2 text-xs font-bold text-white hover:bg-blue-800">
-            <ClipboardCheck className="h-4 w-4" />
-            Periksa tas siaga
-          </button>
-        </div>
-      </section>
-
-      <section className="glass-card p-4 sm:p-5 space-y-3">
-        <div>
-          <span className="eyebrow">Direktori kontak darurat</span>
-          <h3 className="mt-2 flex items-center gap-2 text-base font-extrabold text-slate-900">
-            <PhoneCall className="h-4 w-4 text-rose-600" />
-            Nomor umum Indonesia — cek ketersediaan daerah
-          </h3>
-        </div>
-        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950">
-          Ketersediaan nomor dapat berbeda menurut wilayah dan operator. Nomor di bawah belum diverifikasi untuk lokasi Anda. Periksa situs resmi/pemerintah daerah sebelum keadaan darurat.
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {EMERGENCY_CONTACTS.map(contact => (
-            <div key={contact.number} className="rounded-xl border border-slate-200 bg-white/70 p-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-xs font-bold text-slate-800">{contact.name}</p>
-                  <p className="mt-0.5 text-[11px] text-slate-500">{contact.source}</p>
-                </div>
-                <a href={`tel:${contact.number}`} className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-lg bg-rose-600 px-3 text-sm font-extrabold text-white hover:bg-rose-700">
-                  <PhoneCall className="h-3.5 w-3.5" />
-                  {contact.number}
-                </a>
-              </div>
-              <p className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-amber-800">
-                <Clock3 className="h-3 w-3" />
-                Cek daerah: belum diverifikasi
-              </p>
-              {contact.url && (
-                <a href={contact.url} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-1 text-[10px] font-semibold text-blue-700 hover:underline">
-                  Sumber resmi <ExternalLink className="h-3 w-3" />
-                </a>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="grid gap-3 border-t border-slate-200/80 pt-4 sm:grid-cols-2">
-          <label className="block text-xs font-bold text-slate-700">
-            Kontak lokal (BPBD / posko)
-            <input value={familyPlan.localEmergencyName || ''} onChange={event => updatePlanField('localEmergencyName', event.target.value)} placeholder="Nama instansi/posko" className="form-control mt-1.5" />
-          </label>
-          <label className="block text-xs font-bold text-slate-700">
-            Nomor kontak lokal
-            <input type="tel" inputMode="tel" value={familyPlan.localEmergencyNumber || ''} onChange={event => updatePlanField('localEmergencyNumber', event.target.value)} placeholder="Nomor yang sudah Anda verifikasi" className="form-control mt-1.5" />
-          </label>
-          <label className="block text-xs font-bold text-slate-700">
-            Sumber resmi / URL
-            <input type="url" value={familyPlan.localEmergencySource || ''} onChange={event => updatePlanField('localEmergencySource', event.target.value)} placeholder="https://situs-resmi-daerah.go.id" className="form-control mt-1.5" />
-          </label>
-          <label className="block text-xs font-bold text-slate-700">
-            Tanggal terakhir Anda mengecek
-            <input type="date" value={familyPlan.localEmergencyCheckedAt || ''} onChange={event => updatePlanField('localEmergencyCheckedAt', event.target.value)} className="form-control mt-1.5" />
-          </label>
-        </div>
-        {familyPlan.localEmergencyNumber && (
-          <a href={`tel:${familyPlan.localEmergencyNumber.replace(/[^\d+]/g, '')}`} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700">
-            <PhoneCall className="h-4 w-4" />
-            Telepon {familyPlan.localEmergencyName || 'kontak lokal'}
-          </a>
-        )}
-        <p className={`text-[11px] font-semibold ${localEmergencyVerified ? 'text-emerald-800' : 'text-amber-800'}`}>
-          {localEmergencyVerified
-            ? `Dicek mandiri ${new Date(`${familyPlan.localEmergencyCheckedAt}T00:00:00`).toLocaleDateString('id-ID')} · ${familyPlan.localEmergencySource}`
-            : 'Kontak lokal belum terverifikasi: isi sumber resmi dan tanggal cek setelah mengonfirmasi sendiri.'}
-        </p>
-      </section>
-
-      {/* Family invitation and join panel */}
-      {showAddModal && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/50 p-3 sm:p-6">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="family-invitation-title"
-            className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-xl space-y-4 overflow-y-auto rounded-2xl border-2 border-[#2196F3] bg-white p-5 shadow-2xl animate-fadeIn"
-          >
-            <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-              <QrCode className="w-4 h-4 text-[#2196F3]" />
-              <span id="family-invitation-title">Undang atau Gabung Keluarga</span>
-            </h3>
-            <button
-              type="button"
-              onClick={() => setShowAddModal(false)}
-              className="text-xs text-slate-400 hover:text-slate-600 font-bold"
-            >
-              Tutup
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
-            <button
-              type="button"
-              onClick={() => { setAddMode('invite'); setScannerOpen(false); setActionError(''); }}
-              className={`rounded-lg px-3 py-2 text-xs font-bold ${addMode === 'invite' ? 'bg-white text-[#0D47A1] shadow-sm' : 'text-slate-600'}`}
-            >
-              Buat undangan
-            </button>
-            <button
-              type="button"
-              onClick={() => { setAddMode('join'); setActionError(''); }}
-              className={`rounded-lg px-3 py-2 text-xs font-bold ${addMode === 'join' ? 'bg-white text-[#0D47A1] shadow-sm' : 'text-slate-600'}`}
-            >
-              Gabung via QR/token
-            </button>
-          </div>
-
-          {addMode === 'invite' ? (
-            <div className="space-y-4">
-              <p className="text-xs leading-relaxed text-slate-600">
-                Buat token satu kali pakai yang berlaku 24 jam. Bagikan QR atau token ini hanya kepada anggota keluarga yang ingin Anda undang.
-              </p>
-              <button
-                type="button"
-                onClick={handleCreateInvite}
-                disabled={isFamilySyncBusy}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0D47A1] px-4 py-3 text-sm font-bold text-white hover:bg-[#1565C0] disabled:cursor-wait disabled:opacity-60"
-              >
-                {isFamilySyncBusy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
-                {isFamilySyncBusy
-                  ? 'Menyiapkan QR undangan…'
-                  : familyInvite
-                    ? 'Buat token undangan baru'
-                    : 'Coba buat token undangan'}
-              </button>
-
-              {familyInvite && (
-                <div className="grid gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                  <div className="min-w-0 space-y-3">
-                    <div>
-                      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Token undangan</p>
-                      <p className="mt-1 break-all font-mono text-lg font-bold tracking-wider text-[#0D47A1]">{familyInvite.token}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(familyInvite.token, 'Token')}
-                        className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                      >
-                        <Copy className="h-4 w-4" /> Salin token
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(familyInvite.url, 'Tautan undangan')}
-                        className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                      >
-                        <ExternalLink className="h-4 w-4" /> Salin tautan
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      Kedaluwarsa {new Date(familyInvite.expiresAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}. Token akan hangus setelah satu anggota bergabung.
-                    </p>
-                  </div>
-                  {qrImage ? (
-                    <img src={qrImage} alt="QR code undangan grup keluarga" className="mx-auto h-40 w-40 rounded-lg bg-white p-2" />
-                  ) : (
-                    <div className="flex h-40 w-40 items-center justify-center rounded-lg bg-white text-xs text-slate-500">
-                      Menyiapkan QR…
-                    </div>
-                  )}
-                </div>
-              )}
-              {copyStatus && <p role="status" className="text-xs text-emerald-800">{copyStatus}</p>}
-            </div>
-          ) : (
-            <form onSubmit={handleJoinGroup} className="space-y-3">
-              <p className="text-xs leading-relaxed text-slate-600">
-                Pindai QR undangan atau masukkan token. Data keluarga di perangkat ini akan diganti dengan data grup setelah berhasil bergabung.
-              </p>
-              <div className="flex gap-2">
-                <label className="min-w-0 flex-1 text-xs font-semibold text-slate-700">
-                  Token undangan
-                  <input
-                    type="text"
-                    required
-                    autoComplete="off"
-                    value={inviteToken}
-                    onChange={event => setInviteToken(event.target.value.toLowerCase())}
-                    placeholder="Tempel token atau tautan undangan"
-                    className="form-control mt-1.5 font-mono"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setScannerOpen(open => !open)}
-                  className="mt-5 inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-[#0D47A1] px-3 py-2 text-xs font-bold text-[#0D47A1] hover:bg-blue-50"
-                >
-                  {scannerOpen ? <Camera className="h-4 w-4" /> : <ScanLine className="h-4 w-4" />}
-                  {scannerOpen ? 'Tutup kamera' : 'Scan QR'}
-                </button>
-              </div>
-
-              {scannerOpen && (
-                <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-950 p-2">
-                  <video ref={videoRef} autoPlay muted playsInline className="max-h-64 w-full rounded-lg object-cover" />
-                  {scannerError && <p role="alert" className="p-2 text-xs text-white">{scannerError}</p>}
-                  {!scannerError && <p className="p-2 text-xs text-white">Arahkan kamera ke QR undangan keluarga.</p>}
-                </div>
-              )}
-
-              <p className="rounded-lg bg-blue-50 p-3 text-xs text-blue-900">
-                Nama anggota akan menggunakan nama akun: <strong>{currentUser.name}</strong>.
-              </p>
-              <label className="block text-xs font-semibold text-slate-700">
-                Hubungan / peran
-                <select
-                  value={newRelationship}
-                  onChange={event => setNewRelationship(event.target.value)}
-                  className="form-control mt-1.5 bg-white"
-                >
-                  <option value="Anggota Keluarga">Anggota Keluarga</option>
-                  <option value="Orang Tua / Lansia">Orang Tua / Lansia</option>
-                  <option value="Anak / Balita">Anak / Balita</option>
-                  <option value="Pasangan">Pasangan</option>
-                  <option value="Kerabat / Tetangga">Kerabat / Tetangga</option>
-                </select>
-              </label>
-              <label className="block text-xs font-semibold text-slate-700">
-                Kebutuhan bantuan khusus (opsional)
-                <input
-                  type="text"
-                  maxLength={500}
-                  value={newNeeds}
-                  onChange={event => setNewNeeds(event.target.value)}
-                  placeholder="Contoh: bantuan mobilitas atau obat rutin"
-                  className="form-control mt-1.5"
-                />
-              </label>
-
-              {(actionError || familySyncError) && (
-                <p role="alert" className="rounded-lg bg-rose-50 p-3 text-xs text-rose-800">
-                  {actionError || familySyncError}
-                </p>
-              )}
-              <button
-                type="submit"
-                disabled={isFamilySyncBusy || !inviteToken.trim()}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0D47A1] px-4 py-3 text-sm font-bold text-white hover:bg-[#1565C0] disabled:cursor-wait disabled:opacity-60"
-              >
-                {isFamilySyncBusy && <RefreshCw className="h-4 w-4 animate-spin" />}
-                Gabung ke grup keluarga
-              </button>
-            </form>
-          )}
-          {familySyncError && addMode === 'invite' && (
-            <p role="alert" className="rounded-lg bg-rose-50 p-3 text-xs text-rose-800">{actionError || familySyncError}</p>
-          )}
-          </section>
-        </div>,
-        document.body
       )}
 
-      {/* Privacy Notice Card (PRD 4.5 & 4.10) */}
-      <div className="p-4 bg-[#E3F2FD] rounded-2xl border border-[#90CAF9] text-xs text-[#0D47A1] space-y-1">
-        <div className="flex items-center gap-1.5 font-bold">
-          <ShieldCheck className="w-4 h-4 text-[#2196F3]" />
-          <span>Kebijakan Privasi & Tanpa Pelacakan GPS Otomatis (PRD 4.5):</span>
+      {/* 5. TAB 2: TITIK KUMPUL & RENCANA KESIAPAN */}
+      {activeTab === 'plan' && (
+        <div className="space-y-4 animate-fadeIn">
+          
+          {/* Card 1: Meeting Point & Contacts */}
+          <div className="p-5 sm:p-6 bg-white rounded-3xl border border-slate-200/90 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-sm">Kesepakatan Titik Kumpul Keluarga</h3>
+                  <p className="text-[11px] text-slate-500">Lokasi evakuasi pertama saat terpisah</p>
+                </div>
+              </div>
+              <span className="text-xs font-extrabold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
+                {readinessCount}/4 Siap
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Nama Tempat / Titik Kumpul:
+                </label>
+                <input
+                  type="text"
+                  value={familyPlan.meetingPoint || ''}
+                  onChange={event => updatePlanField('meetingPoint', event.target.value)}
+                  placeholder="Contoh: Lapangan Balai RW 04, Halaman SDN 01..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 text-xs sm:text-sm text-slate-900 font-semibold outline-none bg-slate-50/50 focus:bg-white transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Alamat / Patokan Alternatif:
+                </label>
+                <input
+                  type="text"
+                  value={familyPlan.meetingArea || ''}
+                  onChange={event => updatePlanField('meetingArea', event.target.value)}
+                  placeholder="Contoh: Depan gapura utama, dekat pohon beringin..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 text-xs sm:text-sm text-slate-900 font-semibold outline-none bg-slate-50/50 focus:bg-white transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {(familyPlan.backupContacts || ['', '']).map((contact, index) => (
+                  <div key={index}>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Kontak Cadangan Darurat {index + 1}:
+                    </label>
+                    <input
+                      type="tel"
+                      value={contact}
+                      onChange={event => updateBackupContact(index, event.target.value)}
+                      placeholder="0812-xxxx-xxxx (Keluarga/Tetangga)"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 text-xs sm:text-sm text-slate-900 font-semibold outline-none bg-slate-50/50 focus:bg-white transition-colors"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Readiness Checklist */}
+          <div className="p-5 sm:p-6 bg-white rounded-3xl border border-slate-200/90 shadow-2xs space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <ClipboardCheck className="w-4 h-4" />
+              </div>
+              <h3 className="font-extrabold text-slate-900 text-sm">Daftar Kesiapan Mandiri Sebelum Krisis</h3>
+            </div>
+
+            <div className="space-y-2">
+              {readinessTasks.map(task => (
+                <div key={task.label} className="p-3 rounded-xl border border-slate-100 bg-slate-50/60 flex items-center gap-2.5">
+                  <CheckCircle2 className={`w-4 h-4 shrink-0 ${task.done ? 'text-emerald-600' : 'text-slate-300'}`} />
+                  <span className={`text-xs font-semibold ${task.done ? 'text-slate-800' : 'text-slate-500'}`}>
+                    {task.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onNavigateScreen('checklist')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-extrabold transition-all cursor-pointer"
+            >
+              <ClipboardCheck className="w-3.5 h-3.5" />
+              <span>Periksa Checklist Tas Siaga Bencana (TSB)</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
-        <p className="text-[11px] text-slate-600 leading-relaxed">
-          Platform tidak mengakses satelit lokasi anggota tanpa persetujuan, dan tidak menyebarkan kontak ke pihak luar. Status keberadaan diperbarui murni secara manual oleh pendamping keluarga.
+      )}
+
+      {/* 6. TAB 3: EMERGENCY DIRECTORY */}
+      {activeTab === 'contacts' && (
+        <div className="space-y-4 animate-fadeIn">
+          <div className="p-5 sm:p-6 bg-white rounded-3xl border border-slate-200/90 shadow-2xs space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                <PhoneCall className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-sm">Nomor Darurat Nasional Resmi</h3>
+                <p className="text-[11px] text-slate-500">Panggilan bebas pulsa dalam kondisi kritis</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {EMERGENCY_CONTACTS.map(contact => (
+                <div key={contact.number} className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50/50 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-extrabold text-slate-800">{contact.name}</p>
+                    <p className="text-[11px] text-slate-500">{contact.source}</p>
+                  </div>
+                  <a
+                    href={`tel:${contact.number}`}
+                    className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black flex items-center gap-1.5 shadow-2xs transition-colors shrink-0"
+                  >
+                    <PhoneCall className="w-3 h-3" />
+                    <span>{contact.number}</span>
+                  </a>
+                </div>
+              ))}
+            </div>
+
+            {/* Local BPBD Contact */}
+            <div className="pt-3 border-t border-slate-100 space-y-3">
+              <h4 className="font-extrabold text-slate-800 text-xs">Kontak Khusus Daerah / BPBD Setempat:</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={familyPlan.localEmergencyName || ''}
+                  onChange={event => updatePlanField('localEmergencyName', event.target.value)}
+                  placeholder="Nama posko/BPBD lokal"
+                  className="px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white"
+                />
+                <input
+                  type="tel"
+                  value={familyPlan.localEmergencyNumber || ''}
+                  onChange={event => updatePlanField('localEmergencyNumber', event.target.value)}
+                  placeholder="Nomor telepon lokal"
+                  className="px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. PRIVACY & SAFETY CARD */}
+      <div className="flex items-start gap-3 p-4 bg-blue-50/70 rounded-2xl border border-blue-200/80 text-xs text-blue-950">
+        <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+        <p className="leading-relaxed">
+          <strong>Privasi Terjaga:</strong> Seluruh catatan pendampingan dan status keluarga disimpan secara lokal pada perangkat Anda dan hanya dibagikan ke anggota grup yang Anda undang secara sadar.
         </p>
       </div>
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between pt-2">
+      {/* 8. BOTTOM NAVIGATION BAR */}
+      <div className="flex items-center justify-between pt-1">
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold text-sm transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-2xs"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Kembali</span>
@@ -777,11 +703,190 @@ export default function FamilySafety({
         <button
           type="button"
           onClick={() => onNavigateScreen('route')}
-          className="flex items-center gap-2 px-6 py-3 bg-[#0D47A1] hover:bg-[#1565C0] text-white rounded-xl font-bold text-sm shadow-md transition-all cursor-pointer"
+          className="flex items-center gap-2 px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs sm:text-sm shadow-md shadow-blue-600/25 transition-all cursor-pointer active:scale-98"
         >
-          <span>Lanjut ke Peta & Rute Evakuasi</span>
+          <span>Lanjut ke Peta & Jalur Evakuasi</span>
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
+
+      {/* 9. FAMILY INVITATION & JOIN MODAL (Portal) */}
+      {showAddModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-900/40 backdrop-blur-xs p-4 sm:p-6 animate-fadeIn">
+          <div className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 space-y-4">
+            
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <QrCode className="w-4 h-4" />
+                </div>
+                <h3 className="font-extrabold text-slate-900 text-sm">Undang atau Gabung Grup Keluarga</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="text-xs font-bold text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Tabs */}
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl">
+              <button
+                type="button"
+                onClick={() => { setAddMode('invite'); setScannerOpen(false); setActionError(''); }}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  addMode === 'invite' ? 'bg-white text-blue-700 shadow-2xs font-extrabold' : 'text-slate-600'
+                }`}
+              >
+                Buat Undangan (QR)
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAddMode('join'); setActionError(''); }}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  addMode === 'join' ? 'bg-white text-blue-700 shadow-2xs font-extrabold' : 'text-slate-600'
+                }`}
+              >
+                Gabung via Token
+              </button>
+            </div>
+
+            {addMode === 'invite' ? (
+              <div className="space-y-4">
+                <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                  Bagikan QR code atau token ini kepada anggota keluarga agar data koordinasi dapat tersinkronkan antar perangkat secara otomatis.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleCreateInvite}
+                  disabled={isFamilySyncBusy}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isFamilySyncBusy ? <RefreshCw className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                  <span>{familyInvite ? 'Perbarui Token Undangan' : 'Buat Token Undangan Baru'}</span>
+                </button>
+
+                {familyInvite && (
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 text-center sm:text-left sm:flex sm:items-center sm:gap-4">
+                    {qrImage && (
+                      <img src={qrImage} alt="QR Undangan" className="w-36 h-36 rounded-xl bg-white p-2 mx-auto sm:mx-0 border border-slate-200" />
+                    )}
+                    <div className="min-w-0 space-y-2 flex-1">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Token Undangan:</span>
+                        <p className="font-mono text-base font-black text-blue-700 break-all">{familyInvite.token}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(familyInvite.token, 'Token')}
+                          className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Salin Token</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(familyInvite.url, 'Tautan')}
+                          className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Salin Tautan</span>
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-slate-400">
+                        Berlaku 24 jam untuk 1 anggota.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {copyStatus && <p className="text-xs text-emerald-700 font-bold">{copyStatus}</p>}
+              </div>
+            ) : (
+              <form onSubmit={handleJoinGroup} className="space-y-3">
+                <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                  Masukkan token undangan yang dibagikan oleh kepala keluarga Anda.
+                </p>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block">Token Undangan:</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      required
+                      value={inviteToken}
+                      onChange={event => setInviteToken(event.target.value.toLowerCase())}
+                      placeholder="Tempel token undangan..."
+                      className="flex-1 px-3 py-2 rounded-xl border border-slate-300 font-mono text-xs outline-none focus:border-blue-500 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setScannerOpen(open => !open)}
+                      className="px-3 py-2 rounded-xl border border-blue-600 text-blue-700 text-xs font-bold hover:bg-blue-50 flex items-center gap-1.5 shrink-0"
+                    >
+                      <Camera className="w-4 h-4" />
+                      <span>{scannerOpen ? 'Tutup' : 'Scan'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {scannerOpen && (
+                  <div className="p-2 bg-slate-900 rounded-2xl space-y-2">
+                    <video ref={videoRef} autoPlay muted playsInline className="w-full max-h-48 rounded-xl object-cover" />
+                    <p className="text-white text-[11px] text-center">Arahkan kamera ke QR code undangan.</p>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block">Peran / Hubungan:</label>
+                  <select
+                    value={newRelationship}
+                    onChange={event => setNewRelationship(event.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white outline-none"
+                  >
+                    <option value="Anggota Keluarga">Anggota Keluarga</option>
+                    <option value="Orang Tua / Lansia">Orang Tua / Lansia</option>
+                    <option value="Anak / Balita">Anak / Balita</option>
+                    <option value="Pasangan">Pasangan</option>
+                    <option value="Kerabat / Tetangga">Kerabat / Tetangga</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block">Kebutuhan Bantuan Khusus (Opsional):</label>
+                  <input
+                    type="text"
+                    value={newNeeds}
+                    onChange={event => setNewNeeds(event.target.value)}
+                    placeholder="Contoh: Butuh obat rutin, bantuan kursi roda..."
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none bg-white"
+                  />
+                </div>
+
+                {actionError && (
+                  <p className="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-bold">
+                    {actionError}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isFamilySyncBusy || !inviteToken.trim()}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Gabung ke Grup Keluarga
+                </button>
+              </form>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 }

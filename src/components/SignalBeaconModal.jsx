@@ -9,7 +9,9 @@ import {
   Play, 
   Square, 
   Sparkles,
-  Zap
+  Zap,
+  BatteryCharging,
+  Smartphone
 } from 'lucide-react';
 
 export default function SignalBeaconModal({ isOpen, onClose }) {
@@ -251,8 +253,14 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        <div className="text-center space-y-4 my-auto">
-          <div className="text-6xl font-black font-mono tracking-widest text-rose-500">
+        <div className="text-center space-y-4 my-auto relative">
+          {isPlayingAudio && (
+            <div className="absolute inset-0 -m-8 flex items-center justify-center pointer-events-none">
+              <div className="w-36 h-36 rounded-full border border-rose-600/30 animate-ping" style={{ animationDuration: '1.5s' }} />
+              <div className="w-52 h-52 rounded-full border border-rose-500/15 animate-ping" style={{ animationDuration: '2.5s' }} />
+            </div>
+          )}
+          <div className="text-6xl font-black font-mono tracking-widest text-rose-500 relative z-10">
             {isPlayingAudio ? 'SOS' : 'IDLE'}
           </div>
           <p className="text-sm text-slate-400 max-w-xs mx-auto">
@@ -354,7 +362,8 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
             <label className="text-xs font-semibold text-slate-400">Pola Bunyi & Sinyal:</label>
             {isHapticSupported && (
               <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold">
-                📳 Getar Morse Aktif
+                <Smartphone className="w-3 h-3 text-emerald-400" />
+                <span>Getar Morse Aktif</span>
               </span>
             )}
           </div>
@@ -445,8 +454,22 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
           onClick={() => setIsEcoMode(true)}
           className="w-full py-2.5 px-3 rounded-xl border border-emerald-500/40 bg-emerald-950/30 hover:bg-emerald-900/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
         >
-          <span>🔋 Aktifkan Mode Hemat Daya Ekstrem (OLED Black)</span>
+          <BatteryCharging className="w-4 h-4 text-emerald-400" />
+          <span>Aktifkan Mode Hemat Daya Ekstrem (OLED Black)</span>
         </button>
+
+        {/* Visual Sonar Radar Ripple Wave when Audio is Playing */}
+        {isPlayingAudio && (
+          <div className="relative flex items-center justify-center py-4 my-1 overflow-hidden">
+            <div className="absolute w-28 h-28 rounded-full bg-rose-500/20 animate-ping" style={{ animationDuration: '1.2s' }} />
+            <div className="absolute w-40 h-40 rounded-full border border-rose-500/40 animate-pulse" style={{ animationDuration: '0.8s' }} />
+            <div className="absolute w-52 h-52 rounded-full border border-rose-500/20 animate-ping" style={{ animationDuration: '2s' }} />
+            <div className="relative z-10 px-3.5 py-1.5 rounded-full bg-rose-950/90 border border-rose-500/60 text-rose-300 text-[11px] font-mono font-bold flex items-center gap-2 shadow-lg shadow-rose-950/80">
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+              <span>FREKUENSI 3.000 HZ AKTIF · RADAR SUARA TEMBUS PUING</span>
+            </div>
+          </div>
+        )}
 
         {/* BIG ACTION TOGGLE BUTTON */}
         <div className="pt-2">

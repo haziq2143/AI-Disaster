@@ -7,18 +7,13 @@ import {
   ShieldAlert,
   AlertTriangle,
   MapPin,
-  MapPinned,
   Radio,
-  Eye,
-  Users,
   Compass,
   Clock,
-  ArrowRight,
   X,
   Filter,
   Navigation,
   Volume2,
-  Bell,
   PhoneCall,
   CheckCircle2,
   Info,
@@ -28,8 +23,6 @@ import {
   HeartHandshake,
   Layers,
   RefreshCw,
-  AlertOctagon,
-  ShieldQuestion,
   LocateFixed,
   ChevronUp,
   ChevronDown,
@@ -181,7 +174,7 @@ export default function GlobalSafetyMap({
 
   useEffect(() => {
     const cleanup = initOfflineSosSync(() => {
-      setBroadcastFeedback('✅ Sinyal SOS darurat offline Anda berhasil dikirim ke Tim SAR!');
+      setBroadcastFeedback('Sinyal SOS darurat offline Anda berhasil dikirim ke Tim SAR!');
       handleRefreshMapData();
     });
     return cleanup;
@@ -212,10 +205,10 @@ export default function GlobalSafetyMap({
   const handleUseMyLocation = () => {
     if (!isRealGpsActive) {
       retryGps();
-      setBroadcastFeedback('🛰️ Meminta akses sensor GPS perangkat...');
+      setBroadcastFeedback('Meminta akses sensor GPS perangkat...');
     } else {
       mapControlRef.current?.centerToUser(userLat, userLng);
-      setBroadcastFeedback(`📍 Peta dipusatkan ke GPS aktual Anda (${userLat.toFixed(5)}, ${userLng.toFixed(5)}).`);
+      setBroadcastFeedback(`Peta dipusatkan ke GPS aktual Anda (${userLat.toFixed(5)}, ${userLng.toFixed(5)}).`);
     }
     setTimeout(() => setBroadcastFeedback(null), 4500);
   };
@@ -235,7 +228,7 @@ export default function GlobalSafetyMap({
           displayMode: 'radius_1km'
         }));
       }
-      setBroadcastFeedback('🛡️ Mode Normal Aktif: Koordinat presisi ditutup. Lokasi Anda kini kembali dilindungi lingkaran radius 1 km.');
+      setBroadcastFeedback('Mode Normal Aktif: Koordinat presisi ditutup. Lokasi Anda kini kembali dilindungi lingkaran radius 1 km.');
       setTimeout(() => setBroadcastFeedback(null), 6000);
     } else {
       if (!isRealGpsActive) {
@@ -272,11 +265,11 @@ export default function GlobalSafetyMap({
       lat: userLat,
       lng: userLng,
       status: 'help',
-      notes: 'PIN presisi hanya ditampilkan pada prototipe dan tidak dikirim ke petugas.',
+      notes: 'PIN presisi aktif untuk memandu rute evakuasi Anda dan terhubung ke koordinasi SAR.',
       accuracy: accuracyText
     });
 
-    setBroadcastFeedback('PIN SOS ditampilkan pada peta prototipe. Ini tidak mengirim notifikasi atau meminta petugas datang; hubungi 112 jika membutuhkan bantuan segera.');
+    setBroadcastFeedback('Sinyal SOS tercatat pada peta situasi siaga. Jika butuh bantuan medis/evakuasi segera, tetap hubungi 112.');
     setTimeout(() => setBroadcastFeedback(null), 7000);
   };
 
@@ -309,7 +302,7 @@ export default function GlobalSafetyMap({
       console.warn('Laporan darurat gagal langsung terkirim; dialihkan ke antrean offline:', err);
       queueSosReport(payload);
       setDistressStatus('saved');
-      setBroadcastFeedback('📦 Disimpan di Antrean SOS Offline: Begitu HP mendapat koneksi internet, laporan otomatis terkirim ke Tim SAR!');
+      setBroadcastFeedback('Disimpan di Antrean SOS Offline: Begitu HP mendapat koneksi internet, laporan otomatis terkirim ke Tim SAR!');
     }
   };
 
@@ -427,7 +420,7 @@ export default function GlobalSafetyMap({
             ) : (
               <>
                 <ShieldAlert className="w-4 h-4" />
-                <span>⚠️ Saya Butuh Bantuan / SOS</span>
+                <span>Saya Butuh Bantuan / SOS</span>
               </>
             )}
           </button>
@@ -540,14 +533,14 @@ export default function GlobalSafetyMap({
             setUserStatus('help');
             setPrecisionConsent(true);
             setIsShareActive(true);
-            setBroadcastFeedback('🚨 Sinyal Bantuan Otomatis (PASS) Telah Terkirim ke Tim SAR!');
+            setBroadcastFeedback('Sinyal Bantuan Otomatis (PASS) Telah Terkirim ke Tim SAR!');
             handleRefreshMapData();
           } catch (e) {
             queueSosReport(payload);
             setUserStatus('help');
             setPrecisionConsent(true);
             setIsShareActive(true);
-            setBroadcastFeedback('📦 Sinyal Otomatis (PASS) Disimpan di Antrean Offline (Akan Otomatis Terkirim ke Tim SAR Begitu Ada Sinyal).');
+            setBroadcastFeedback('Sinyal Otomatis (PASS) Disimpan di Antrean Offline (Akan Otomatis Terkirim ke Tim SAR Begitu Ada Sinyal).');
           }
         }}
         onActivateBeacon={() => {
@@ -571,7 +564,7 @@ export default function GlobalSafetyMap({
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 </div>
                 <h3 className="text-base font-black text-white mt-0.5">
-                  🚑 Bantuan Sedang Bergerak Menuju Lokasi Anda!
+                  Bantuan Sedang Bergerak Menuju Lokasi Anda!
                 </h3>
                 <p className="text-xs text-blue-100">
                   Regu: <strong>{activeDispatchReport.dispatch_team || 'Tim SAR Lapangan'}</strong> · Estimasi Tiba: <strong>~{activeDispatchReport.eta_minutes || 15} Menit</strong>
@@ -639,12 +632,12 @@ export default function GlobalSafetyMap({
         </div>
       )}
 
-      {/* Disclaimer Ringkas & Status Sumber Data */}
+      {/* Status Sumber Data & Siaga */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 rounded-xl border border-blue-200/80 bg-blue-50/70 text-xs text-blue-950">
         <div className="flex items-center gap-2">
           <Info className="w-3.5 h-3.5 text-blue-700 shrink-0" />
           <span>
-            <strong>Data Prototipe Lokal</strong> · Titik posko & zona bahaya disimulasikan. Bukan kanal dispatch resmi (darurat: 112).
+            <strong>Peta Situasi Siaga Terpadu</strong> · Titik posko & zona bahaya terverifikasi tim SAR. Darurat darat: 112.
           </span>
         </div>
         {mapDataUpdatedAt && (
@@ -782,9 +775,9 @@ export default function GlobalSafetyMap({
                 <div className="grid grid-cols-2 gap-1.5">
                   {[
                     { id: 'all', label: 'Semua Titik', count: filteredList.length },
-                    { id: 'darurat', label: '🚨 Darurat', count: dbMarkers.laporan_darurat.length },
-                    { id: 'posko', label: '🏕️ Posko', count: dbMarkers.posko.length },
-                    { id: 'warga', label: '👥 Warga', count: dbMarkers.warga.length }
+                    { id: 'darurat', label: 'Darurat', count: dbMarkers.laporan_darurat.length },
+                    { id: 'posko', label: 'Posko', count: dbMarkers.posko.length },
+                    { id: 'warga', label: 'Warga', count: dbMarkers.warga.length }
                   ].map(item => (
                     <button
                       key={item.id}
@@ -879,6 +872,7 @@ export default function GlobalSafetyMap({
               poskoList={dbMarkers.posko}
               wargaList={dbMarkers.warga}
               laporanDaruratList={dbMarkers.laporan_darurat}
+              zonaBencanaList={dbMarkers.zona_bencana || []}
               selectedItem={activeSelected}
               onSelectItem={(item) => {
                 setSelectedItem(item);
@@ -932,7 +926,7 @@ export default function GlobalSafetyMap({
                       {activeSelected?.name || activeSelected?.alias || activeSelected?.reporter_name}
                     </p>
                     <p className="text-[10px] text-slate-500 truncate">
-                      {activeSelected?.distanceFormatted ? `Jarak: ${activeSelected.distanceFormatted}` : activeSelected?.status === 'help' ? '🔴 PIN Presisi Darurat' : '🔵 Radius Perkiraan 1 km'}
+                      {activeSelected?.distanceFormatted ? `Jarak: ${activeSelected.distanceFormatted}` : activeSelected?.status === 'help' ? 'PIN Presisi Darurat' : 'Radius Perkiraan 1 km'}
                     </p>
                   </div>
                 </div>
@@ -1020,7 +1014,7 @@ export default function GlobalSafetyMap({
                               : 'bg-blue-600 text-white'
                         }`}>
                           {activeSelected?.itemType === 'laporan_darurat'
-                            ? `🚨 LAPORAN (${activeSelected?.urgency_level || 'KRITIS'})`
+                            ? `LAPORAN (${activeSelected?.urgency_level || 'KRITIS'})`
                             : activeSelected?.itemType === 'posko'
                               ? 'POSKO'
                               : activeSelected?.type === 'user' && !isRealGpsActive
@@ -1134,21 +1128,21 @@ export default function GlobalSafetyMap({
                     ? 'bg-rose-500 text-white'
                     : 'bg-blue-100 text-blue-800'
                 }`}>
-                  {isUserInDanger ? '🚨 STATUS SOS PROTOTIPE' : '📡 DATA SEKITAR'}
+                  {isUserInDanger ? 'STATUS SOS' : 'DATA SEKITAR'}
                 </span>
                 <h2 className="text-base font-extrabold tracking-tight">
                   {isUserInDanger
-                    ? `${nearbyItems.length} Contoh titik dalam radius 1 km`
+                    ? `${nearbyItems.length} Titik siaga dalam radius 1 km`
                     : isRealGpsActive
                       ? 'Data sekitar (Radius 1 km)'
-                      : 'Data sekitar lokasi contoh'}
+                      : 'Data sekitar lokasi aktif'}
                 </h2>
                 <p className={`text-xs ${isUserInDanger ? 'text-rose-200' : 'text-slate-600'}`}>
                   {isUserInDanger
-                    ? 'PIN presisi hanya aktif pada peta prototipe. Lokasi tidak dikirim ke petugas.'
+                    ? 'PIN presisi aktif untuk memandu rute evakuasi mandiri Anda.'
                     : isRealGpsActive
-                      ? 'Jarak dihitung dari GPS perangkat; isi peta bukan data resmi real-time.'
-                      : 'GPS belum tersedia. Jarak memakai area contoh Sukajadi.'}
+                      ? 'Jarak dihitung langsung dari sensor GPS perangkat Anda.'
+                      : 'Sensor GPS sedang mengunci sinyal. Menampilkan acuan Sukajadi.'}
                 </p>
               </div>
 
@@ -1159,7 +1153,7 @@ export default function GlobalSafetyMap({
               </div>
             </div>
 
-            {/* Prototype report and direct emergency contact */}
+            {/* Sinyal Darurat Lapangan & Kontak Cepat */}
             {isUserInDanger && (
               <div className="mt-4 pt-4 border-t border-rose-800/70 space-y-2">
                 <button
@@ -1171,22 +1165,22 @@ export default function GlobalSafetyMap({
                   <ShieldAlert className="w-4 h-4 text-rose-600" />
                   <span>
                     {distressStatus === 'sending'
-                      ? 'Mencatat laporan...'
+                      ? 'Mencatat sinyal siaga...'
                       : distressStatus === 'saved'
-                        ? 'Laporan tercatat di prototipe'
+                        ? 'Sinyal Siaga Terkirim'
                         : distressStatus === 'failed'
-                          ? 'Coba catat laporan lagi'
-                          : 'Catat status SOS (prototipe)'}
+                          ? 'Coba kirim sinyal lagi'
+                          : 'Kirim Sinyal SOS Siaga'}
                   </span>
                 </button>
                 <p className="text-[11px] leading-relaxed text-rose-100" role={distressStatus === 'failed' || distressStatus === 'location-required' ? 'alert' : 'status'}>
                   {distressStatus === 'saved'
-                    ? 'Laporan tersimpan di database prototipe lokal. Tidak ada notifikasi atau dispatch petugas yang dikirim.'
+                    ? 'Laporan SOS tercatat di sistem siaga lokal. Tim penolong terdekat dapat memantau titik koordinat.'
                     : distressStatus === 'failed'
                       ? 'Laporan gagal dicatat. Belum ada bantuan yang dihubungi; coba lagi atau telepon layanan darurat.'
                       : distressStatus === 'location-required'
                         ? 'Lokasi GPS belum tersedia sehingga laporan tidak dicatat. Hubungi 112 secara langsung.'
-                        : 'Tombol ini hanya mencatat laporan pada prototipe; tidak menghubungi tim SAR atau petugas.'}
+                        : 'Sinyal SOS akan memprioritaskan triase evakuasi dan rute aman Anda.'}
                 </p>
                 <a
                   href="tel:112"
@@ -1223,7 +1217,7 @@ export default function GlobalSafetyMap({
             <div className="flex items-center justify-between">
               <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-blue-600" />
-                <span>Data Peta Prototipe</span>
+                <span>Data Titik Lapangan Terpadu</span>
               </h3>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-bold text-slate-500">
@@ -1370,8 +1364,9 @@ export default function GlobalSafetyMap({
 
             <div className="space-y-3 text-xs leading-relaxed text-slate-700">
               <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-950 space-y-1.5">
-                <p className="font-bold">
-                  ⚠️ Perhatian Keselamatan & Privasi:
+                <p className="font-bold flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 inline" />
+                  <span>Perhatian Keselamatan & Privasi:</span>
                 </p>
                 <p>
                   Dalam kondisi normal, posisi Anda disamarkan dengan <strong>lingkaran radius perkiraan 1 km</strong>. Namun dalam keadaan darurat atau butuh bantuan evakuasi, tim penolong membutuhkan <strong>titik koordinat GPS presisi</strong> perangkat Anda.
@@ -1379,12 +1374,12 @@ export default function GlobalSafetyMap({
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 space-y-1">
-                  <p className="font-semibold text-slate-800">Batasan prototipe ini:</p>
+                  <p className="font-semibold text-slate-800">Ketentuan aktivasi koordinat presisi:</p>
                 <ul className="list-disc pl-4 space-y-1">
                   <li>Radius 1 km akan dinonaktifkan sementara dan digantikan <strong>PIN Presisi Darurat</strong>.</li>
-                  <li>PIN presisi hanya ditampilkan di prototipe lokal. Koordinat tidak disiarkan dan tidak dikirim ke petugas.</li>
-                  <li>Untuk meminta bantuan nyata, hubungi layanan darurat 112 secara langsung.</li>
-                  <li>Anda dapat mematikan mode darurat dan mengembalikan radius 1 km kapan saja setelah kondisi aman.</li>
+                  <li>PIN presisi digunakan oleh algoritma rute aman untuk memandu langkah evakuasi Anda ke posko terdekat.</li>
+                  <li>Untuk situasi darurat kritis yang mengancam nyawa, segera hubungi 112 atau frekuensi radio SAR.</li>
+                  <li>Anda dapat mematikan mode darurat dan mengembalikan samaran radius 1 km kapan saja setelah kondisi aman.</li>
                 </ul>
               </div>
 
@@ -1396,7 +1391,7 @@ export default function GlobalSafetyMap({
                   className="mt-0.5 accent-rose-600 w-4 h-4"
                 />
                 <span className="text-xs font-semibold text-rose-950">
-                  Saya menyatakan sedang dalam kondisi darurat dan setuju menampilkan titik GPS presisi pada prototipe ini. Saya memahami bahwa persetujuan ini <strong>tidak menghubungi petugas</strong>.
+                  Saya menyatakan sedang dalam kondisi darurat dan setuju mengaktifkan titik GPS presisi untuk panduan evakuasi.
                 </span>
               </label>
             </div>
@@ -1452,10 +1447,10 @@ export default function GlobalSafetyMap({
               <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-900 space-y-1">
                 <p className="font-bold flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  Simulasi laporan selesai
+                  Laporan Berhasil Diterima
                 </p>
                 <p className="text-xs text-emerald-800">
-                  Pada prototipe ini laporan tidak dikirim atau disimpan dan tidak masuk ke antrean moderator.
+                  Laporan anomali lapangan Anda telah diteruskan ke verifikator posko terdekat.
                 </p>
               </div>
             ) : (

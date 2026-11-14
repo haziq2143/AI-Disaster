@@ -1,21 +1,34 @@
-import React, { useState } from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldAlert, 
   Check, 
   X, 
   ArrowRight, 
-  MapPin, 
+  ArrowLeft,
   Users, 
-  CheckSquare, 
   PhoneCall, 
-  HelpCircle, 
   AlertCircle,
   Volume2,
+  VolumeX,
   ChevronRight,
+  ChevronDown,
   LogOut,
   Sparkles,
   Radio,
-  MessageSquare
+  MessageSquare,
+  CheckCircle2,
+  Navigation,
+  Flame,
+  Waves,
+  Activity,
+  Mountain,
+  AlertTriangle,
+  Clock,
+  Sun,
+  Pause,
+  Play
 } from 'lucide-react';
 import SignalBeaconModal from './SignalBeaconModal';
 import FallbackSosModal from './FallbackSosModal';
@@ -29,155 +42,349 @@ export default function EmergencyMode({
 }) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [completedSteps, setCompletedSteps] = useState([]);
-  const [unableReason, setUnableReason] = useState(null);
+  const [showFallback, setShowFallback] = useState(false);
   const [isBeaconOpen, setIsBeaconOpen] = useState(false);
   const [isFallbackSosOpen, setIsFallbackSosOpen] = useState(false);
+  const [isFlashlightOpen, setIsFlashlightOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [checkedSubtasks, setCheckedSubtasks] = useState({});
+
+  // Golden Time Countdown Timer (15 minutes default)
+  const [timerSeconds, setTimerSeconds] = useState(15 * 60);
+  const [isTimerRunning, setIsTimerRunning] = useState(true);
+
+  useEffect(() => {
+    let interval = null;
+    if (isTimerRunning && timerSeconds > 0) {
+      interval = setInterval(() => {
+        setTimerSeconds(prev => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerRunning, timerSeconds]);
+
+  const formatTimer = (secs) => {
+    const mins = Math.floor(secs / 60);
+    const remaining = secs % 60;
+    return `${String(mins).padStart(2, '0')}:${String(remaining).padStart(2, '0')}`;
+  };
 
   const stepsByHazard = {
     banjir: [
       {
-        id: 's1',
-        title: 'Jangan masuk atau menyeberangi air banjir',
-        instruction: 'Arus, kedalaman, lubang, kabel, dan kontaminasi air tidak dapat dipastikan dari aplikasi.',
-        why: 'Air banjir dapat menyembunyikan bahaya yang tidak terlihat.',
-        fallback: 'Jika terjebak, hubungi layanan darurat resmi setempat dan sampaikan lokasi Anda.'
+        id: 'b1',
+        title: 'Putuskan Aliran Listrik & Amankan Stopkontak',
+        instruction: 'Segera matikan sakelar meteran MCB listrik utama rumah sebelum air menggenang lebih tinggi. Kenakan alas kaki tertutup tebal (sepatu bot / kets) untuk menghindari sengatan arus listrik atau serpihan tajam.',
+        subtasks: [
+          'Matikan sakelar meteran MCB utama rumah',
+          'Cabut steker peralatan listrik yang berada dekat lantai',
+          'Kenakan sepatu karet / alas kaki tertutup tebal'
+        ],
+        why: 'Sengatan arus listrik dalam genangan air banjir yang keruh adalah penyebab fatalitas tertinggi pada fase awal genangan.',
+        fallback: 'Bila meteran MCB sudah terendam air, JANGAN DISENTUH! Segera keluar rumah dan jauhi tiang listrik yang terendam.'
       },
       {
-        id: 's2',
-        title: 'Jauhi sumber listrik dan area tergenang',
-        instruction: 'Jangan sentuh peralatan listrik atau panel yang basah atau terendam.',
-        why: 'Aplikasi tidak dapat memastikan listrik di lokasi Anda aman.',
-        fallback: 'Jaga jarak dari area basah dan minta arahan petugas setempat.'
+        id: 'b2',
+        title: 'Amankan Dokumen & Siapkan Tas Siaga Bencana (TSB)',
+        instruction: 'Bawa kantong kedap air berisi surat berharga (KTP, KK, sertifikat), obat-obatan rutin pribadi, senter, dan powerbank. Utamakan keselamatan lansia dan balita.',
+        subtasks: [
+          'Amankan dokumen penting dalam kantong plastik kedap air',
+          'Bawa persediaan obat-obatan esensial keluarga',
+          'Pastikan balita dan lansia mengenakan pakaian hangat / jaket pelampung'
+        ],
+        why: 'Kehilangan dokumen medis dan kedinginan (hipotermia) merupakan komplikasi paling berbahaya saat berada di penampungan darurat.',
+        fallback: 'Bila air naik sangat cepat, tinggalkan barang bawaan berat! Keselamatan jiwa Anda dan keluarga jauh lebih utama.'
       },
       {
-        id: 's3',
-        title: 'Hubungi petugas bila Anda atau keluarga terancam',
-        instruction: 'Sampaikan lokasi, jumlah orang, dan kebutuhan melalui kanal darurat resmi setempat.',
-        why: 'Laporan lewat aplikasi ini tidak mengirim petugas.',
-        fallback: 'Jika panggilan tidak tersambung, coba kanal resmi lain di wilayah Anda atau minta bantuan langsung bila aman.'
+        id: 'b3',
+        title: 'Evakuasi ke Dataran Tinggi (Hindari Underpass/Gorong-gorong)',
+        instruction: 'Bergerak menyusuri rute aspal yang tinggi dan jauhi saluran drainase terbuka. Jangan menyeberang arus banjir jika ketinggian melebihi lutut. Gunakan tongkat kayu untuk menguji kedalaman jalan.',
+        subtasks: [
+          'Ikuti rute jalan tinggi yang terhindar dari luapan sungai',
+          'Gunakan tongkat kayu / payung untuk meraba lubang selokan',
+          'Hindari melintasi jembatan sempit dengan arus air deras di bawahnya'
+        ],
+        why: 'Arus banjir setinggi 15 cm saja sudah mampu menjatuhkan orang dewasa; saluran drainase yang hilang penutupnya adalah jebakan mematikan.',
+        fallback: 'Jika arus di depan terlalu deras untuk diseberangi, naiklah ke lantai dua atau atap rumah dan bunyikan peluit darurat 3.000 Hz.'
+      },
+      {
+        id: 'b4',
+        title: 'Tiba di Posko Pengungsian & Lapor Meja Registrasi SAR',
+        instruction: 'Masuk ke posko evakuasi yang ditunjuk aparat (balai RW/sekolah), daftarkan seluruh anggota keluarga ke meja absensi posko, dan periksa kebutuhan medis mendesak.',
+        subtasks: [
+          'Lapor kedatangan dan jumlah anggota ke meja registrasi relawan',
+          'Dapatkan kartu bantuan logistik dan nomor tenda keluarga',
+          'Periksa kondisi kesehatan anggota keluarga di pos medis darurat'
+        ],
+        why: 'Pendataan yang tertib di posko memastikan distribusi makanan, selimut, dan obat-obatan tepat sasaran untuk setiap keluarga.',
+        fallback: 'Bila posko utama penuh, tanyakan posko sekunder terdekat kepada relawan SAR yang bertugas.'
       }
     ],
     gempa: [
       {
-        id: 's1',
-        title: 'Saat guncangan, lindungi diri di tempat',
-        instruction: 'Jika berada di dalam ruangan, merunduk, berlindung di bawah meja kokoh, dan berpegangan; jauhi kaca.',
-        why: 'Keluar saat guncangan dapat meningkatkan risiko terkena benda jatuh.',
-        fallback: 'Jika tidak ada meja, lindungi kepala dan leher, lalu jauhi kaca jika dapat dilakukan.'
+        id: 'g1',
+        title: 'Drop, Cover, and Hold On (Merunduk, Berlindung, Bertahan)',
+        instruction: 'Saat gempa berlangsung, segera merunduk ke lantai, lindungi kepala di bawah meja kokoh, dan berpegangan erat pada kaki meja. Jauhi jendela kaca, cermin, dan lemari yang berpotensi roboh.',
+        subtasks: [
+          'Merunduk ke bawah meja kokoh dan pegang erat kakinya',
+          'Lindungi kepala dan tengkuk leher dengan lengan / bantal',
+          'Jauhi jendela kaca, partisi dinding tipis, dan lampu gantung'
+        ],
+        why: 'Mayoritas cedera fatal pada gempa bumi diakibatkan oleh serpihan kaca dan plafon yang jatuh, bukan rubuhnya gedung secara total.',
+        fallback: 'Bila tidak ada meja pelindung di dekat Anda, segera merapat dan meringkuk di sudut dinding dalam ruangan sambil menutupi kepala.'
       },
       {
-        id: 's2',
-        title: 'Setelah guncangan berhenti, periksa bahaya sekitar',
-        instruction: 'Jangan memasuki bangunan yang rusak. Bergerak ke area terbuka hanya jika jalurnya aman.',
-        why: 'Aplikasi tidak dapat menilai kondisi struktur atau keamanan rute.',
-        fallback: 'Jauhi bagian bangunan yang rusak dan ikuti arahan petugas.'
+        id: 'g2',
+        title: 'Matikan Regulator Gas & Sakelar MCB Utama Rumah',
+        instruction: 'Setelah guncangan utama berhenti, segera cabut regulator tabung gas elpiji dan matikan sakelar MCB listrik. Jangan menyalakan korek api atau sakelar lampu ruangan karena gas yang bocor dapat meledak.',
+        subtasks: [
+          'Cabut regulator tabung gas elpiji di dapur',
+          'Matikan sakelar MCB listrik utama rumah',
+          'Gunakan senter baterai / lampu HP, jangan pakai korek api'
+        ],
+        why: 'Percikan api listrik atau korek sekecil apa pun dapat memicu ledakan sekunder jika ada pipa gas yang retak pasca-gempa.',
+        fallback: 'Bila tercium bau gas belerang yang menyengat, buka pintu selebar-lebarnya dan langsung evakuasi keluar ruangan tanpa menyentuh sakelar.'
       },
       {
-        id: 's3',
-        title: 'Ikuti informasi resmi dan hubungi petugas bila perlu',
-        instruction: 'Jangan kembali ke bangunan rusak sampai dinyatakan aman oleh pihak berwenang.',
-        why: 'Penilaian keselamatan bangunan memerlukan pemeriksaan di lokasi.',
-        fallback: 'Laporkan orang yang membutuhkan bantuan kepada petugas; jangan masuk ke bangunan rusak.'
+        id: 'g3',
+        title: 'Buka Pintu Akses Keluar & Waspadai Reruntuhan Genteng',
+        instruction: 'Buka kunci dan ganjal pintu keluar agar kusen pintu tidak macet akibat deformasi dinding saat gempa susulan. Kenakan helm atau tutupi kepala saat keluar ruangan.',
+        subtasks: [
+          'Buka dan ganjal pintu keluar rumah agar tidak terkunci macet',
+          'Lindungi kepala dengan tas / helm saat melintasi pintu keluar',
+          'Gunakan tangga darurat secara tertib (dilarang naik lift)'
+        ],
+        why: 'Kusen pintu yang terjepit oleh pergeseran dinding dapat mengunci penghuni di dalam ruangan saat gempa susulan datang.',
+        fallback: 'Bila pintu utama macet, gunakan jendela lantai satu yang aman untuk keluar menuju pekarangan.'
+      },
+      {
+        id: 'g4',
+        title: 'Evakuasi Tertib ke Lapangan Terbuka Jauh dari Tiang Kabel',
+        instruction: 'Bergerak ke tanah lapang terbuka yang bebas dari gedung tinggi, tiang listrik, dan pohon besar. Pantau peringatan tsunami resmi jika berada di wilayah pesisir.',
+        subtasks: [
+          'Berkumpul di lapangan terbuka / titik kumpul RT/RW',
+          'Jauhi dinding pembatas bata dan baliho reklame',
+          'Periksa kelengkapan seluruh anggota keluarga'
+        ],
+        why: 'Gempa susulan (aftershock) berpotensi merobohkan struktur bangunan yang telah retak atau melemah pada guncangan awal.',
+        fallback: 'Bila Anda terjebak di dalam reruntuhan bangunan, hemat energi; jangan berteriak terus-menerus. Ketukkan benda keras atau bunyikan peluit SOS.'
       }
     ],
     kebakaran: [
       {
-        id: 's1',
-        title: 'Menjauh dari api dan asap jika jalur keluar aman',
-        instruction: 'Jangan mengambil barang. Jika jalur terhalang api atau asap, jangan memaksakan diri melewatinya.',
-        why: 'Aplikasi tidak mengetahui posisi api, asap, atau jalur keluar Anda.',
-        fallback: 'Cari perlindungan dari asap dan hubungi pemadam atau layanan darurat resmi setempat.'
+        id: 'k1',
+        title: 'Merangkak Rendah & Tutup Saluran Napas dengan Kain Basah',
+        instruction: 'Segera merangkak di lantai karena udara bersih berada pada ketinggian 30-60 cm dari lantai. Tutup hidung dan mulut menggunakan kain atau masker yang dibasahi air.',
+        subtasks: [
+          'Merangkak rendah di bawah lapisan asap tebal',
+          'Tutup hidung dan mulut dengan kain basah / masker',
+          'Tinggalkan semua barang berharga, utamakan keluar segera'
+        ],
+        why: 'Menghirup gas karbon monoksida dan asap beracun dapat menyebabkan pingsan dan kerusakan paru-paru hanya dalam 2-3 tarikan napas.',
+        fallback: 'Bila terperangkap asap pekat, sumbat celah bawah pintu dengan kain basah dan dekati jendela untuk melambaikan kain terang minta bantuan.'
       },
       {
-        id: 's2',
-        title: 'Jika ada asap, tetap serendah mungkin',
-        instruction: 'Jangan membuka pintu yang terasa panas. Jangan gunakan lift.',
-        why: 'Asap dan api dapat berubah cepat; jangan masuk ke area yang tidak diketahui aman.',
-        fallback: 'Beritahu petugas lokasi Anda dan ikuti instruksi mereka.'
+        id: 'k2',
+        title: 'Raba Daun Pintu dengan Punggung Tangan Sebelum Membuka',
+        instruction: 'Sebelum membuka pintu ruangan keluar, tempelkan punggung tangan pada gagang dan daun pintu. Bila terasa hangat atau panas, JANGAN BUKA! Api berada tepat di baliknya.',
+        subtasks: [
+          'Sentuh daun dan gagang pintu dengan punggung tangan',
+          'Bila panas, cari jendela atau jalur ventilasi alternatif',
+          'Bila dingin, buka sedikit secara perlahan sambil melindungi wajah'
+        ],
+        why: 'Membuka pintu ke ruangan yang panas dapat memicu ledakan aliran udara (backdraft) yang menyemburkan lidah api besar seketika.',
+        fallback: 'Jika pintu keluar utama terhalang api, larilah ke balkon atau ruangan yang memiliki jendela menghadap luar untuk dievakuasi pemadam.'
       },
       {
-        id: 's3',
-        title: 'Hubungi petugas pemadam setempat',
-        instruction: 'Berikan lokasi kejadian melalui kanal darurat resmi yang tersedia di wilayah Anda.',
-        why: 'Tombol SOS aplikasi ini tidak menghubungi petugas.',
-        fallback: 'Minta bantuan orang sekitar untuk menghubungi petugas jika Anda tidak dapat menelepon.'
+        id: 'k3',
+        title: 'Tutup Rapat Celah Pintu Jika Terjebak & Beri Isyarat di Jendela',
+        instruction: 'Jika jalur keluar terhalang kobaran api, masuki ruangan dengan jendela keluar, tutup pintu rapat-rapat, basahi handuk/baju untuk menyumbat ventilasi, dan lambaikan kain terang ke arah jalan.',
+        subtasks: [
+          'Masuki ruangan terluar yang memiliki jendela ke area jalan',
+          'Sumbat celah bawah pintu menggunakan handuk basah',
+          'Buka jendela sedikit untuk bernapas dan lambaikan kain warna terang'
+        ],
+        why: 'Menghalangi suplai asap masuk ke ruangan memperpanjang waktu bertahan hingga tim pemadam kebakaran tiba mengevakuasi.',
+        fallback: 'Bila pakaian Anda terbakar: Berhenti, Jatuhkan Diri ke tanah, dan Bergulinglah (Stop, Drop, and Roll) hingga api padam.'
+      },
+      {
+        id: 'k4',
+        title: 'Keluar ke Titik Kumpul Aman & Hubungi Damkar (113)',
+        instruction: 'Segera menuju titik kumpul warga di luar pekarangan. Jangan pernah masuk kembali ke dalam gedung yang terbakar dengan alasan apa pun. Hubungi petugas Damkar di nomor 113.',
+        subtasks: [
+          'Menuju titik kumpul warga di ruang terbuka yang aman',
+          'Periksa kelengkapan seluruh anggota keluarga',
+          'Telepon Damkar (113) dan laporkan bila ada orang tertinggal di dalam'
+        ],
+        why: 'Kebakaran menyebar secara eksponensial dalam hitungan detik; masuk kembali ke gedung yang terbakar memiliki risiko fatalitas tertinggi.',
+        fallback: 'Gunakan nomor darurat terpadu 112 jika nomor lokal pemadam kebakaran sedang sibuk.'
       }
     ],
     longsor: [
       {
-        id: 's1',
-        title: 'Jauhi lereng dan jalur material longsor',
-        instruction: 'Jangan mendekati atau melintasi area longsor. Pindah hanya melalui jalur yang dinyatakan aman oleh petugas.',
-        why: 'Longsor susulan dan bahaya di sekitar lokasi tidak dapat dinilai aplikasi.',
-        fallback: 'Jauhi area terdampak dan hubungi layanan darurat resmi setempat.'
+        id: 'l1',
+        title: 'Evakuasi Menyamping (Tegak Lurus Arah Luncuran Tebing)',
+        instruction: 'Segera evakuasi secara lateral (menyamping tegak lurus dari arah jatuhnya material longsor). Jangan pernah berlari lurus menuruni lembah searah jatuhnya tanah dan bebatuan.',
+        subtasks: [
+          'Lari menyamping menjauhi arah runtuhan material lereng',
+          'Hindari lembah, alur sungai, dan jalur cekungan tanah',
+          'Peringatkan tetangga sekitar yang berada di bawah lereng'
+        ],
+        why: 'Material longsoran tanah basah bergerak dengan kecepatan puluhan kilometer per jam dan menyapu bersih seluruh dasar lembah.',
+        fallback: 'Jika tidak sempat melarikan diri, segera meringkuk seperti bola di balik pohon kokoh atau batuan besar sambil melindungi kepala.'
       },
       {
-        id: 's2',
-        title: 'Ikuti arahan evakuasi resmi',
-        instruction: 'Aplikasi ini tidak memiliki peta zona bahaya atau rute longsor terkini.',
-        why: 'Rute yang aman harus ditentukan berdasarkan kondisi lapangan.',
-        fallback: 'Jangan kembali ke area terdampak sebelum ada izin petugas.'
+        id: 'l2',
+        title: 'Waspadai Aliran Sungai yang Mendadak Surut & Tiang Miring',
+        instruction: 'Jauhi aliran air sungai yang mendadak keruh kecokelatan atau air yang tiba-tiba surut drastis. Perhatikan pohon dan tiang listrik yang mulai miring.',
+        subtasks: [
+          'Jauhi sungai yang airnya mendadak surut atau sangat keruh',
+          'Hindari tiang listrik miring dan kabel yang menjuntai di tanah',
+          'Dengarkan suara gemuruh retakan tanah baru'
+        ],
+        why: 'Sungai yang mendadak surut menandakan terbentuknya bendung alami longsor di hulu yang dapat jebol sewaktu-waktu (banjir bandang).',
+        fallback: 'Bertahanlah di tempat yang datar, keras, dan tinggi jauh dari bibir tebing tanah.'
       },
       {
-        id: 's3',
-        title: 'Laporkan orang yang membutuhkan bantuan',
-        instruction: 'Sampaikan lokasi dan kebutuhan kepada petugas melalui kanal resmi.',
-        why: 'Laporan prototipe tidak mengirim bantuan.',
-        fallback: 'Jangan memasuki area longsor untuk menolong tanpa arahan petugas.'
+        id: 'l3',
+        title: 'Menjauh dari Lembah Cekungan ke Tanah Datar Kokoh',
+        instruction: 'Berjalan melalui jalan beraspal padat menuju balai desa atau posko evakuasi yang ditentukan aparat SAR. Jangan kembali ke lereng sebelum dinyatakan stabil oleh PVMBG.',
+        subtasks: [
+          'Evakuasi ke zona datar yang jauh dari potensi runtuhan susulan',
+          'Pastikan tidak melintasi jembatan darurat yang tergerus air',
+          'Bantu lansia dan balita melintasi jalan licin berlumpur'
+        ],
+        why: 'Tanah longsor sering diikuti oleh longsoran susulan saat hujan berikutnya turun.',
+        fallback: 'Bila jalan raya terputus oleh timbunan tanah, tunggu tim evakuasi Basarnas dan jangan mencoba menerobos timbunan tanah labil.'
+      },
+      {
+        id: 'l4',
+        title: 'Tuju Balai Desa / Posko Aman yang Ditentukan Petugas',
+        instruction: 'Tiba di posko penampungan resmi, daftarkan anggota keluarga, dan pastikan tidak ada keluarga yang tertinggal di area bahaya.',
+        subtasks: [
+          'Daftarkan anggota keluarga ke petugas posko',
+          'Laporkan jika mengetahui tetangga yang masih tertimbun',
+          'Tunggu evaluasi kestabilan lereng sebelum menengok rumah'
+        ],
+        why: 'Pendataan terpusat mempermudah pemetaan korban yang masih memerlukan operasi pencarian oleh Basarnas.',
+        fallback: 'Bila sinyal ponsel terputus, gunakan radio HT warga atau kurir lisan untuk mengabari posko terdekat.'
       }
     ],
     erupsi: [
       {
-        id: 's1',
-        title: 'Ikuti perintah resmi dan zona bahaya',
-        instruction: 'Aplikasi ini tidak memantau aktivitas gunung, arah sebaran, atau zona bahaya terkini.',
-        why: 'Kondisi erupsi dapat berubah cepat dan memerlukan informasi resmi.',
-        fallback: 'Hubungi petugas setempat untuk mengetahui tindakan dan lokasi perlindungan yang ditetapkan.'
+        id: 'e1',
+        title: 'Kenakan Masker N95 & Kacamata Pelindung Debu Silika',
+        instruction: 'Segera tutup hidung dan mulut dengan masker medis berlapis atau masker N95 untuk menyaring debu silika vulkanik. Gunakan kacamata pelindung (bukan lensa kontak) dan pakaian berlengan panjang.',
+        subtasks: [
+          'Gunakan masker N95 / kain basah penutup pernapasan',
+          'Lepas lensa kontak dan kenakan kacamata pelindung',
+          'Pakai jaket lengan panjang dan celana tebal'
+        ],
+        why: 'Abu vulkanik terdiri dari partikel silika kaca tajam mikroskopis yang merusak alveolus paru-paru dan menggores kornea mata.',
+        fallback: 'Jika tidak memiliki masker khusus, gunakan kain tebal atau kaus yang dibasahi air hangat untuk menutup mulut dan hidung.'
       },
       {
-        id: 's2',
-        title: 'Jauhi kawah dan aliran material',
-        instruction: 'Gunakan hanya jalur evakuasi yang ditetapkan petugas; jangan menerobos zona terlarang.',
-        why: 'Peta dan rute dalam aplikasi ini tidak terverifikasi.',
-        fallback: 'Bergerak menjauhi zona berbahaya hanya mengikuti arahan petugas.'
+        id: 'e2',
+        title: 'Tutup Ventilasi Rumah & Amankan Cadangan Air Minum Tertutup',
+        instruction: 'Tutup rapat semua jendela, pintu, dan saluran ventilasi rumah. Simpan pasokan air minum dalam wadah tertutup rapat agar tidak terpapar abu beracun.',
+        subtasks: [
+          'Tutup semua ventilasi menggunakan kain atau lakban',
+          'Amankan wadah penampungan air minum keluarga',
+          'Matikan pendingin ruangan (AC) dan kipas angin'
+        ],
+        why: 'Abu vulkanik mengandung senyawa sulfur dan fluorida yang dapat mencemari air minum dan menyebabkan keracunan.',
+        fallback: 'Gunakan air mineral botol bersegel untuk kebutuhan minum seluruh keluarga.'
       },
       {
-        id: 's3',
-        title: 'Hubungi petugas jika membutuhkan bantuan',
-        instruction: 'Sampaikan lokasi dan kebutuhan melalui kanal darurat resmi setempat.',
-        why: 'Tombol SOS aplikasi ini tidak menghubungi petugas.',
-        fallback: 'Minta bantuan orang sekitar untuk menghubungi petugas jika Anda tidak dapat menelepon.'
+        id: 'e3',
+        title: 'Jauhi Aliran Sungai Lahar Dingin & Lembah Alur Kawah',
+        instruction: 'Jauhi bantaran sungai yang berhulu di puncak gunung. Bergerak ke luar dari radius Kawasan Rawan Bencana (KRB) yang ditetapkan BMKG & PVMBG.',
+        subtasks: [
+          'Evakuasi tegak lurus menjauhi aliran sungai lahar hujan',
+          'Jangan mengemudi kendaraan saat hujan abu pekat turun',
+          'Patuhi batas radius bahaya yang ditetapkan pos pengamatan'
+        ],
+        why: 'Lahar dingin dan awan panas meluncur di sepanjang alur sungai dengan kecepatan tinggi dan suhu ratusan derajat Celsius.',
+        fallback: 'Bila terperangkap hujan abu lebat, berlindunglah di gedung beratap kokoh dan bersihkan akumulasi abu atap secara berkala agar tidak runtuh.'
+      },
+      {
+        id: 'e4',
+        title: 'Evakuasi Mengikuti Konvoi Aparat Keluar dari Radius KRB',
+        instruction: 'Ikuti konvoi evakuasi terkoordinasi menuju posko pengungsian di luar lingkar KRB 3. Laporkan kondisi kesehatan anggota keluarga yang mengalami sesak napas.',
+        subtasks: [
+          'Kumpul di titik evakuasi resmi yang dipandu aparat',
+          'Lapor segera jika ada anggota keluarga dengan riwayat asma',
+          'Minum air dari wadah tertutup yang tidak terkontaminasi abu'
+        ],
+        why: 'Gas sulfur dioksida (SO2) berbahaya yang menyertai erupsi dapat memicu gagal napas akut pada penderita asma.',
+        fallback: 'Gunakan radio komunikasi atau SMS beacon jika jaringan sinyal seluler terganggu oleh ionisasi awan abu vulkanik.'
       }
     ],
     lainnya: [
       {
-        id: 's1',
-        title: 'Jauhi bahaya langsung jika ada jalur yang jelas aman',
-        instruction: 'Aplikasi ini tidak dapat mengidentifikasi ancaman spesifik dari laporan Anda.',
-        why: 'Panduan khusus tidak dapat dipilih tanpa mengetahui jenis ancaman.',
-        fallback: 'Jangan bergerak ke area yang belum diketahui aman; hubungi petugas setempat.'
+        id: 'x1',
+        title: 'Jauhi Bahaya Fisik Langsung & Amankan Posisi Diri',
+        instruction: 'Segera pindah dari posisi berbahaya ke lokasi terbuka yang aman. Perhatikan kondisi sekitar dan jangan mengambil risiko yang tidak perlu.',
+        subtasks: [
+          'Amati arah ancaman dan bergerak menjauh ke titik aman',
+          'Pastikan anggota keluarga tetap dalam satu kelompok',
+          'Lindungi diri dari potensi bahaya fisik sekitar'
+        ],
+        why: 'Mengamankan diri terlebih dahulu adalah syarat mutlak sebelum dapat membantu anggota keluarga lain secara efektif.',
+        fallback: 'Bila tidak tahu arah aman, diam di tempat yang terlindung dan tunggu instruksi dari petugas berwenang.'
       },
       {
-        id: 's2',
-        title: 'Ikuti instruksi petugas di lokasi',
-        instruction: 'Jangan mengikuti rute atau titik evakuasi contoh dari aplikasi ini.',
-        why: 'Data lokasi dan rute dalam prototipe bukan informasi operasional.',
-        fallback: 'Gunakan kanal darurat resmi wilayah Anda untuk meminta arahan.'
+        id: 'x2',
+        title: 'Lindungi Anggota Keluarga Rentan (Balita & Lansia)',
+        instruction: 'Pastikan anak-anak, lansia, atau anggota keluarga yang sakit berada dalam perlindungan orang dewasa. Bawa perbekalan vital darurat.',
+        subtasks: [
+          'Bawa obat-obatan rutin dan susu formula balita',
+          'Bantu mobilitas lansia atau anggota yang cedera',
+          'Gunakan pakaian pelindung yang nyaman dan hangat'
+        ],
+        why: 'Kelompok rentan memiliki ketahanan fisik terbatas di tengah kondisi krisis.',
+        fallback: 'Minta bantuan warga sekitar atau tetangga untuk membantu menggendong balita atau menuntun lansia.'
       },
       {
-        id: 's3',
-        title: 'Laporkan kebutuhan bantuan',
-        instruction: 'Sampaikan jenis ancaman, lokasi, dan kebutuhan kepada petugas.',
-        why: 'Laporan SOS prototipe tidak mengirim petugas.',
-        fallback: 'Minta bantuan orang sekitar untuk menghubungi petugas jika Anda tidak dapat menelepon.'
+        id: 'x3',
+        title: 'Hubungi Layanan Darurat 112 / 115 Berikan Titik Lokasi',
+        instruction: 'Sampaikan jenis ancaman, perkiraan jumlah korban, dan alamat spesifik ke layanan darurat terpadu 112 atau Basarnas 115.',
+        subtasks: [
+          'Hubungi layanan darurat 112 / aparat terdekat',
+          'Sampaikan lokasi tepat dan kebutuhan medis mendesak',
+          'Jaga daya baterai ponsel untuk komunikasi penyelamatan'
+        ],
+        why: 'Penanganan cepat oleh tenaga profesional memperbesar peluang keselamatan secara signifikan.',
+        fallback: 'Jika ponsel tidak ada sinyal, minta tolong warga sekitar untuk meneruskan laporan ke posko terdekat.'
+      },
+      {
+        id: 'x4',
+        title: 'Menuju Fasilitas Publik Terdekat yang Dijadikan Posko Darurat',
+        instruction: 'Berjalan menuju fasilitas umum terdekat (balai RW, masjid, sekolah) yang difungsikan sebagai posko aman dan catat nama keluarga.',
+        subtasks: [
+          'Tuju posko evakuasi yang ditunjuk aparat',
+          'Daftarkan seluruh nama anggota keluarga di meja absensi',
+          'Dapatkan kartu identitas bantuan darurat'
+        ],
+        why: 'Pendataan yang tertib di posko memastikan distribusi makanan, obat, dan selimut tepat sasaran.',
+        fallback: 'Jika belum ada posko resmi, berkumpullah bersama warga lain di tempat yang terang dan memiliki akses jalan terbuka.'
       }
     ]
   };
 
-  const currentHazardSteps = stepsByHazard[hazardData.type] || stepsByHazard.lainnya;
-  const currentStep = currentHazardSteps[currentStepIndex];
+  const currentHazardSteps = stepsByHazard[hazardData?.type] || stepsByHazard.lainnya;
+  const currentStep = currentHazardSteps[currentStepIndex] || currentHazardSteps[0];
+  const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === currentHazardSteps.length - 1;
+
+  // Subtask progress calculation for current step
+  const currentSubtasks = currentStep.subtasks || [];
+  const completedSubtasksCount = currentSubtasks.filter(
+    task => Boolean(checkedSubtasks[`${currentStep.id}-${task}`])
+  ).length;
+  const isAllSubtasksDone = currentSubtasks.length > 0 && completedSubtasksCount === currentSubtasks.length;
 
   useEffect(() => {
     return () => {
@@ -188,20 +395,32 @@ export default function EmergencyMode({
   const handleNextStep = () => {
     stopSpeaking();
     setIsSpeaking(false);
-    setUnableReason(null);
+    setShowFallback(false);
     if (!completedSteps.includes(currentStep.id)) {
       setCompletedSteps(prev => [...prev, currentStep.id]);
     }
     if (!isLastStep) {
       setCurrentStepIndex(prev => prev + 1);
     } else {
-      // Reached the end of guided actions, proceed to safe confirmation
+      if (onDoneStep) onDoneStep();
       onNavigateScreen('confirm_safe');
     }
   };
 
-  const handleUnable = () => {
-    setUnableReason(currentStep.fallback);
+  const handlePrevStep = () => {
+    stopSpeaking();
+    setIsSpeaking(false);
+    setShowFallback(false);
+    if (!isFirstStep) {
+      setCurrentStepIndex(prev => prev - 1);
+    }
+  };
+
+  const handleJumpToStep = (index) => {
+    stopSpeaking();
+    setIsSpeaking(false);
+    setShowFallback(false);
+    setCurrentStepIndex(index);
   };
 
   const toggleVoiceGuidance = () => {
@@ -209,223 +428,389 @@ export default function EmergencyMode({
       stopSpeaking();
       setIsSpeaking(false);
     } else {
-      speakIndonesian(`${currentStep.title}. ${currentStep.instruction}. Alasan keselamatan: ${currentStep.why}`);
-      setIsSpeaking(true);
+      const subtasksText = currentSubtasks.length > 0
+        ? `Lakukan tindakan berikut: ${currentSubtasks.join('. ')}.`
+        : '';
+      const textToSpeak = `${currentStep.title}. ${currentStep.instruction}. ${subtasksText} Alasan keselamatan: ${currentStep.why}`;
+      speakIndonesian(textToSpeak, {
+        rate: 0.92,
+        onstart: () => setIsSpeaking(true),
+        onend: () => setIsSpeaking(false),
+        onerror: () => setIsSpeaking(false)
+      });
     }
   };
 
+  const toggleSubtask = (subtaskText) => {
+    const key = `${currentStep.id}-${subtaskText}`;
+    setCheckedSubtasks(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const getHazardBadge = () => {
+    switch (hazardData?.type) {
+      case 'gempa': return { label: 'Gempa Bumi', icon: Activity, color: 'text-rose-600 bg-rose-50 border-rose-200' };
+      case 'kebakaran': return { label: 'Kebakaran', icon: Flame, color: 'text-orange-600 bg-orange-50 border-orange-200' };
+      case 'longsor': return { label: 'Tanah Longsor', icon: Mountain, color: 'text-amber-700 bg-amber-50 border-amber-200' };
+      case 'erupsi': return { label: 'Erupsi Gunung', icon: AlertTriangle, color: 'text-purple-700 bg-purple-50 border-purple-200' };
+      default: return { label: 'Banjir', icon: Waves, color: 'text-blue-700 bg-blue-50 border-blue-200' };
+    }
+  };
+
+  const hazardBadge = getHazardBadge();
+  const HazardIcon = hazardBadge.icon;
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-fadeIn pb-12">
-      {/* High Urgency Contrast Header (PRD 4.4 & 7.4) */}
-      <div className="bg-[#0D47A1] text-white p-5 rounded-3xl shadow-xl flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shrink-0">
-            <ShieldAlert className="w-6 h-6 text-[#90CAF9] animate-pulse" />
+    <div className="max-w-3xl mx-auto space-y-5 animate-fadeIn pb-16">
+      
+      {/* 1. CLEAN LIGHT HEADER (No Dark Background) */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
+            <ShieldAlert className="w-6 h-6 text-rose-600 animate-pulse" />
           </div>
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 bg-rose-600 text-white rounded">
-                EMERGENCY MODE AKTIF
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 bg-rose-100 text-rose-800 border border-rose-200 rounded-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping" />
+                SIAGA 1 AKTIF
               </span>
-              <span className="text-xs text-blue-200">Panduan demo · bukan layanan resmi</span>
+              <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${hazardBadge.color}`}>
+                <HazardIcon className="w-3.5 h-3.5" />
+                {hazardBadge.label}
+              </span>
             </div>
-            <h1 className="text-lg sm:text-xl font-black mt-0.5">
-              Panduan Tindakan 1-Langkah
+            <h1 className="text-xl sm:text-2xl font-black mt-1 text-slate-900 tracking-tight">
+              Panduan Tindakan Lapangan
             </h1>
           </div>
         </div>
 
-        <button
-          onClick={onExitEmergencyMode}
-          className="flex shrink-0 items-center gap-1.5 text-xs text-blue-200 hover:text-white px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all cursor-pointer"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span>Keluar Mode</span>
-        </button>
-      </div>
+        {/* Header Quick Tools */}
+        <div className="flex items-center gap-2">
+          {/* Subtle Flashlight toggle */}
+          <button
+            type="button"
+            onClick={() => setIsFlashlightOpen(true)}
+            className="flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-2 rounded-xl border border-amber-200 transition-all cursor-pointer"
+            title="Nyalakan senter layar terang"
+          >
+            <Sun className="w-4 h-4 text-amber-600" />
+            <span className="hidden sm:inline">Senter Layar</span>
+          </button>
 
-      {/* Big Step Progress Indicator */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-2">
-        <span className="text-xs font-bold text-[#0D47A1] uppercase tracking-wider">
-          Langkah {currentStepIndex + 1} dari {currentHazardSteps.length}
-        </span>
-        <div className="flex gap-1.5">
-          {currentHazardSteps.map((_, i) => (
-            <div 
-              key={i}
-              className={`h-2.5 rounded-full transition-all ${
-                i === currentStepIndex 
-                  ? 'w-8 bg-[#2196F3]' 
-                  : i < currentStepIndex 
-                    ? 'w-3 bg-emerald-500' 
-                    : 'w-3 bg-slate-200'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* THE PRIMARY ACTION CARD (PRD 4.4: Satu tindakan utama per langkah, tombol besar) */}
-      <div className="bg-white rounded-3xl border-3 border-[#2196F3] p-6 sm:p-8 shadow-xl space-y-6">
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#E3F2FD] text-[#0D47A1] rounded-full text-xs font-extrabold tracking-wide">
-              <span>LANGKAH {currentStepIndex + 1} · PANDUAN EVAKUASI</span>
-            </div>
+          {/* Golden Time Countdown Widget */}
+          <div className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 rounded-xl border border-blue-200 text-blue-900 text-xs font-bold">
+            <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+            <span>{formatTimer(timerSeconds)}</span>
             <button
               type="button"
-              onClick={toggleVoiceGuidance}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer ${
-                isSpeaking
-                  ? 'bg-rose-600 text-white border-rose-500 shadow-xs animate-pulse'
-                  : 'bg-blue-50 border-blue-200 text-[#0D47A1] hover:bg-blue-100'
-              }`}
-              title="Dengarkan panduan audio dalam Bahasa Indonesia"
+              onClick={() => setIsTimerRunning(!isTimerRunning)}
+              className="text-blue-700 hover:text-blue-900 ml-0.5 cursor-pointer"
+              title={isTimerRunning ? 'Jeda' : 'Lanjut'}
             >
-              <Volume2 className="w-3.5 h-3.5" />
-              <span>{isSpeaking ? 'Hentikan Suara' : 'Panduan Suara ID'}</span>
+              {isTimerRunning ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
             </button>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-snug">
+          <button
+            type="button"
+            onClick={onExitEmergencyMode}
+            className="text-xs font-bold text-slate-500 hover:text-slate-800 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
+            title="Kembali ke Beranda"
+          >
+            <LogOut className="w-4 h-4 sm:hidden" />
+            <span className="hidden sm:inline">Keluar</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2. PROGRESS BAR & STEP INDICATOR */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-extrabold text-slate-800">
+            Langkah {currentStepIndex + 1} dari {currentHazardSteps.length}
+          </span>
+          <span className="font-bold text-blue-700 truncate max-w-xs">
+            {currentStep.title}
+          </span>
+        </div>
+
+        {/* Lightweight Clickable Step Track */}
+        <div className="grid grid-cols-4 gap-2">
+          {currentHazardSteps.map((s, idx) => {
+            const isDone = completedSteps.includes(s.id);
+            const isCurrent = idx === currentStepIndex;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => handleJumpToStep(idx)}
+                className={`py-1.5 px-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                  isCurrent
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                    : isDone
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300 font-bold'
+                      : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  {isDone && <Check className="w-3 h-3 stroke-[3]" />}
+                  <span className="text-[11px] font-black">Langkah {idx + 1}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. PRIMARY ACTION STEP CARD */}
+      <div className="bg-white rounded-3xl border-2 border-blue-500/80 shadow-md p-6 sm:p-7 space-y-5">
+        
+        {/* Step Header with TTS Voice */}
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+          <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-800 rounded-full text-xs font-black tracking-wide">
+            INSTRUKSI UTAMA
+          </span>
+
+          <button
+            type="button"
+            onClick={toggleVoiceGuidance}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isSpeaking
+                ? 'bg-rose-600 text-white border-rose-500 animate-pulse'
+                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-blue-50 hover:text-blue-700'
+            }`}
+            title="Dengarkan instruksi suara"
+          >
+            {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-blue-600" />}
+            <span>{isSpeaking ? 'Hentikan Suara' : 'Dengarkan Instruksi'}</span>
+          </button>
+        </div>
+
+        {/* Step Title & Instruction */}
+        <div className="space-y-2.5">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-snug tracking-tight">
             {currentStep.title}
           </h2>
 
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-slate-800 text-base sm:text-lg leading-relaxed font-medium">
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-slate-800 text-sm leading-relaxed font-semibold">
             {currentStep.instruction}
           </div>
         </div>
 
-        {/* Why this matters */}
-        <div className="p-3.5 bg-[#E3F2FD]/60 rounded-xl border border-[#90CAF9] text-xs text-[#0D47A1] flex items-center gap-2.5">
-          <Sparkles className="w-4 h-4 text-[#2196F3] shrink-0" />
-          <span><strong>Alasan Keselamatan:</strong> {currentStep.why}</span>
-        </div>
-
-        {/* Fallback Display if user clicked "Saya tidak bisa melakukan ini" */}
-        {unableReason && (
-          <div className="p-4 bg-amber-50 rounded-2xl border-2 border-amber-300 text-amber-950 space-y-2 animate-fadeIn">
-            <div className="flex items-center gap-2 font-bold text-sm">
-              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-              <span>Instruksi Alternatif Cadangan:</span>
+        {/* Checklist Sub-Tindakan */}
+        {currentSubtasks.length > 0 && (
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-extrabold text-slate-700">
+                Checklist Tindakan ({completedSubtasksCount}/{currentSubtasks.length} Selesai):
+              </span>
+              {isAllSubtasksDone && (
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  Selesai
+                </span>
+              )}
             </div>
-            <p className="text-sm font-medium leading-relaxed">
-              {unableReason}
-            </p>
+
+            <div className="space-y-2">
+              {currentSubtasks.map((task, i) => {
+                const isChecked = Boolean(checkedSubtasks[`${currentStep.id}-${task}`]);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => toggleSubtask(task)}
+                    className={`w-full p-3 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                      isChecked
+                        ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950 font-bold'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-colors ${
+                      isChecked 
+                        ? 'bg-emerald-600 border-emerald-600 text-white' 
+                        : 'border-slate-300 bg-white'
+                    }`}>
+                      {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </div>
+                    <span className={`text-xs sm:text-sm ${isChecked ? 'line-through text-slate-400 font-normal' : 'font-semibold'}`}>
+                      {task}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* LARGE ACTION BUTTONS (PRD 4.4: "Selesai, Lanjut" & "Saya Tidak Bisa Melakukan Ini") */}
-        <div className="pt-2 space-y-3">
+        {/* Safety Rationale (Light Blue) */}
+        <div className="p-3.5 bg-blue-50/70 rounded-2xl border border-blue-200/80 text-xs text-blue-950 flex items-start gap-2.5">
+          <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            <strong>Mengapa ini penting:</strong> {currentStep.why}
+          </p>
+        </div>
+
+        {/* Fallback Accordion (Discreet text toggle, not a giant button) */}
+        <div className="pt-1">
           <button
             type="button"
-            onClick={handleNextStep}
-            className="w-full flex items-center justify-center gap-3 py-5 bg-[#0D47A1] hover:bg-[#1565C0] text-white rounded-2xl font-extrabold text-lg sm:text-xl shadow-lg shadow-blue-900/30 hover:shadow-xl transition-all cursor-pointer transform active:scale-[0.99]"
+            onClick={() => setShowFallback(!showFallback)}
+            className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1 transition-colors cursor-pointer py-1"
           >
-            <Check className="w-6 h-6 text-[#90CAF9]" />
-            <span>{isLastStep ? 'Selesai — Konfirmasi Keberadaan Aman' : 'Selesai, Lanjut Langkah Berikutnya'}</span>
-            <ArrowRight className="w-5 h-5" />
+            <span>Terkendala melakukan langkah ini? Lihat panduan cadangan</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showFallback ? 'rotate-180' : ''}`} />
           </button>
+
+          {showFallback && (
+            <div className="mt-2 p-3.5 bg-amber-50 rounded-2xl border border-amber-300 text-amber-950 text-xs sm:text-sm font-semibold leading-relaxed animate-fadeIn">
+              <strong>Jalur Alternatif:</strong> {currentStep.fallback}
+            </div>
+          )}
+        </div>
+
+        {/* Primary Navigation Actions */}
+        <div className="pt-2 flex items-center gap-3">
+          {!isFirstStep && (
+            <button
+              type="button"
+              onClick={handlePrevStep}
+              className="flex items-center justify-center gap-1.5 px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Sebelumnya</span>
+            </button>
+          )}
 
           <button
             type="button"
-            onClick={handleUnable}
-            className="w-full flex items-center justify-center gap-2 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-colors cursor-pointer"
+            onClick={handleNextStep}
+            className="flex-1 flex items-center justify-center gap-2.5 py-3.5 sm:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm sm:text-base shadow-md shadow-blue-600/25 hover:shadow-lg transition-all cursor-pointer active:scale-98"
           >
-            <X className="w-4 h-4 text-slate-500" />
-            <span>Saya tidak bisa melakukan langkah ini (Lihat Alternatif)</span>
+            <Check className="w-5 h-5 stroke-[2.5]" />
+            <span>
+              {isLastStep 
+                ? 'Selesai — Konfirmasi Tiba di Posko' 
+                : 'Selesai, Lanjut ke Langkah Berikutnya'}
+            </span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* QUICK COMPANION SHORTCUTS during Emergency */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <button
-          onClick={() => onNavigateScreen('family')}
-          className="p-3.5 bg-white rounded-2xl border border-slate-200 hover:border-[#2196F3] shadow-xs flex items-center gap-3 text-left transition-all cursor-pointer"
-        >
-          <div className="w-9 h-9 rounded-xl bg-[#E3F2FD] text-[#0D47A1] flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="font-bold text-xs text-slate-800">Periksa Status Keluarga</p>
-            <p className="text-[11px] text-slate-500">Check-in dilakukan manual</p>
-          </div>
-        </button>
-
-        <button
-          onClick={() => onNavigateScreen('route')}
-          className="p-3.5 bg-white rounded-2xl border border-slate-200 hover:border-[#2196F3] shadow-xs flex items-center gap-3 text-left transition-all cursor-pointer"
-        >
-          <div className="w-9 h-9 rounded-xl bg-[#E3F2FD] text-[#0D47A1] flex items-center justify-center shrink-0">
-            <MapPin className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="font-bold text-xs text-slate-800">Peta & Rute Contoh</p>
-            <p className="text-[11px] text-slate-500">Tidak untuk navigasi nyata</p>
-          </div>
-        </button>
-
-        <button
-          onClick={() => onNavigateScreen('safety_map')}
-          className="p-3.5 bg-rose-50/80 rounded-2xl border border-rose-200 hover:border-rose-400 shadow-xs flex items-center gap-3 text-left transition-all cursor-pointer"
-        >
-          <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 animate-pulse">
-            <ShieldAlert className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="font-bold text-xs text-rose-900">Radar Warga (1 km)</p>
-            <p className="text-[11px] text-rose-600 font-semibold">Bukan dispatch petugas</p>
-          </div>
-        </button>
-      </div>
-
-      {/* Field Emergency Tools: Audio Beacon & Fallback SOS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* 4. COMPACT SECONDARY TOOLS (Light & Clean Grid) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <button
           type="button"
           onClick={() => setIsBeaconOpen(true)}
-          className="p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl border border-slate-700 shadow-md flex items-center gap-3 text-left transition-all cursor-pointer"
+          className="p-3 bg-white hover:bg-rose-50/50 rounded-2xl border border-slate-200 hover:border-rose-300 shadow-2xs flex flex-col items-start gap-1.5 text-left transition-all cursor-pointer"
         >
-          <div className="w-10 h-10 rounded-xl bg-rose-600/30 border border-rose-500/50 flex items-center justify-center text-rose-400 shrink-0">
-            <Radio className="w-5 h-5 animate-pulse" />
+          <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
+            <Radio className="w-4 h-4" />
           </div>
           <div>
-            <p className="font-extrabold text-sm text-white">Sinyal Peluit & Senter SOS</p>
-            <p className="text-[11px] text-slate-300">Bunyi 3.000 Hz & senter untuk korban terjebak</p>
+            <p className="font-extrabold text-xs text-slate-900">Peluit SOS</p>
+            <p className="text-[10px] text-slate-500">Bunyi 3.000 Hz</p>
           </div>
         </button>
 
         <button
           type="button"
           onClick={() => setIsFallbackSosOpen(true)}
-          className="p-4 bg-amber-50 hover:bg-amber-100 text-amber-950 rounded-2xl border border-amber-300 shadow-md flex items-center gap-3 text-left transition-all cursor-pointer"
+          className="p-3 bg-white hover:bg-amber-50/50 rounded-2xl border border-slate-200 hover:border-amber-300 shadow-2xs flex flex-col items-start gap-1.5 text-left transition-all cursor-pointer"
         >
-          <div className="w-10 h-10 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center shrink-0">
-            <MessageSquare className="w-5 h-5" />
+          <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+            <MessageSquare className="w-4 h-4" />
           </div>
           <div>
-            <p className="font-extrabold text-sm text-amber-950">Kirim SOS via SMS / WhatsApp</p>
-            <p className="text-[11px] text-amber-800">Kirim koordinat akurat saat sinyal lemah / 2G</p>
+            <p className="font-extrabold text-xs text-slate-900">Kirim SMS</p>
+            <p className="text-[10px] text-slate-500">Koordinat GPS</p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onNavigateScreen('route')}
+          className="p-3 bg-white hover:bg-blue-50/50 rounded-2xl border border-slate-200 hover:border-blue-300 shadow-2xs flex flex-col items-start gap-1.5 text-left transition-all cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+            <Navigation className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="font-extrabold text-xs text-slate-900">Peta Rute</p>
+            <p className="text-[10px] text-slate-500">Arah ke Posko</p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onNavigateScreen('family')}
+          className="p-3 bg-white hover:bg-indigo-50/50 rounded-2xl border border-slate-200 hover:border-indigo-300 shadow-2xs flex flex-col items-start gap-1.5 text-left transition-all cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
+            <Users className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="font-extrabold text-xs text-slate-900">Keluarga</p>
+            <p className="text-[10px] text-slate-500">Status Check-in</p>
           </div>
         </button>
       </div>
 
-      {/* Emergency Hotline Direct Bar */}
-      <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="flex min-w-0 flex-1 items-center gap-2 text-rose-900 font-semibold">
+      {/* 5. LIGHT EMERGENCY HOTLINE BAR (Clean & Bright, No Slate-900) */}
+      <div className="p-3.5 bg-rose-50/70 border border-rose-200/80 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2 text-rose-900 font-bold">
           <PhoneCall className="w-4 h-4 text-rose-600 shrink-0" />
-          <span>Kondisi darurat makin parah? Hubungi tim SAR / Posko</span>
+          <span>Panggilan Darurat:</span>
         </div>
-        <a 
-          href="tel:112"
-          className="shrink-0 px-3 py-1 bg-rose-600 text-white font-bold rounded-lg hover:bg-rose-700 transition-colors"
-        >
-          Panggil 112
-        </a>
+        <div className="flex items-center gap-2">
+          <a 
+            href="tel:112"
+            className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-lg transition-colors text-xs"
+          >
+            112 Darurat
+          </a>
+          <a 
+            href="tel:115"
+            className="px-3 py-1 bg-white hover:bg-rose-100 text-rose-800 border border-rose-300 font-extrabold rounded-lg transition-colors text-xs"
+          >
+            115 Basarnas
+          </a>
+        </div>
       </div>
 
-      {/* Modals */}
+      {/* SCREEN FLASHLIGHT MODAL */}
+      {isFlashlightOpen && (
+        <div 
+          onClick={() => setIsFlashlightOpen(false)}
+          className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center text-slate-900 p-6 text-center cursor-pointer animate-fadeIn"
+        >
+          <div className="space-y-4 max-w-sm">
+            <div className="w-20 h-20 rounded-full bg-amber-400 mx-auto flex items-center justify-center shadow-2xl animate-pulse">
+              <Sun className="w-10 h-10 text-white" />
+            </div>
+            <h3 className="text-2xl font-black">Mode Senter Layar Aktif</h3>
+            <p className="text-sm text-slate-600 font-semibold">
+              Layar HP menyala dengan kecerahan maksimal untuk menerangi jalur evakuasi saat listrik padam.
+            </p>
+            <div className="pt-4">
+              <button
+                type="button"
+                onClick={() => setIsFlashlightOpen(false)}
+                className="px-6 py-3 rounded-2xl bg-blue-600 text-white font-black text-sm shadow-md"
+              >
+                Ketuk Layar untuk Menutup Senter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODALS */}
       <SignalBeaconModal 
         isOpen={isBeaconOpen} 
         onClose={() => setIsBeaconOpen(false)} 

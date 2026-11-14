@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { 
   ShieldAlert, 
+  ShieldCheck,
   Home, 
   Users, 
   MapPin,
@@ -16,7 +17,9 @@ import {
   Radio,
   Settings,
   Heart,
-  Info
+  Info,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 
 import OnboardingScreen from './components/OnboardingScreen';
@@ -36,6 +39,7 @@ import SarDashboard from './components/SarDashboard';
 import SettingsScreen from './components/SettingsScreen';
 import EmergencyIdentityCard from './components/EmergencyIdentityCard';
 import GuardianShieldLogo from './components/GuardianShieldLogo';
+import LandingPage from './components/LandingPage';
 
 import { INITIAL_CHECKLIST, INITIAL_FAMILY } from './data/mockData';
 
@@ -92,6 +96,8 @@ export default function App() {
   const [authUser, setAuthUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [hasEnteredApp, setHasEnteredApp] = useState(false);
+  const [authModalState, setAuthModalState] = useState({ isOpen: false, mode: 'login' });
   const [offlineEmergencyCard, setOfflineEmergencyCard] = useState(null);
   const [showOfflineEmergencyCard, setShowOfflineEmergencyCard] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -126,6 +132,21 @@ export default function App() {
   const [isFamilySyncBusy, setIsFamilySyncBusy] = useState(false);
   const [pendingFamilyInvite, setPendingFamilyInvite] = useState('');
   const [navigationTarget, setNavigationTarget] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsOnline(navigator.onLine);
+      const handleOnline = () => setIsOnline(true);
+      const handleOffline = () => setIsOnline(false);
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    }
+  }, []);
   const currentFamilyRef = useRef({ familyMembers, familyPlan });
   const lastSyncedFamilyRef = useRef(null);
   const familySyncReadyRef = useRef(false);
@@ -143,6 +164,9 @@ export default function App() {
         if (active) {
           setAuthUser(result.user);
           setAuthError('');
+          if (result.user?.role === 'sar') {
+            setCurrentScreen('sar_dashboard');
+          }
         }
       })
       .catch(error => {
@@ -513,13 +537,97 @@ export default function App() {
       />
     );
   }
+
+  // JIKA BELUM KLIK MASUK KE APLIKASI (Belum lewat Landing Page)
+  if (!hasEnteredApp && !authUser) {
+    if (authModalState.isOpen) {
+      return (
+        <AuthScreen
+          initialMode={authModalState.mode}
+          onAuthenticated={user => {
+            setAuthUser(user);
+            setAuthError('');
+            setHasEnteredApp(true);
+            setAuthModalState({ isOpen: false, mode: 'login' });
+            if (user?.role === 'sar') {
+              setCurrentScreen('sar_dashboard');
+            } else {
+              setCurrentScreen('home');
+            }
+          }}
+          onContinueGuest={() => {
+            setAuthUser({ id: 'guest-local', name: 'Pengguna tamu', role: 'user', canManageRoles: false, isGuest: true });
+            setAuthError('');
+            setHasEnteredApp(true);
+            setAuthModalState({ isOpen: false, mode: 'login' });
+          }}
+          onContinueGuestSar={() => {
+            setAuthUser({
+              id: 'guest-sar-demo',
+              name: 'Petugas SAR (Demo)',
+              role: 'sar',
+              canManageRoles: true,
+              isGuest: true
+            });
+            setAuthError('');
+            setHasEnteredApp(true);
+            setAuthModalState({ isOpen: false, mode: 'login' });
+            setCurrentScreen('sar_dashboard');
+          }}
+          onBackToLanding={() => setAuthModalState({ isOpen: false, mode: 'login' })}
+          offlineCardAvailable={Boolean(offlineEmergencyCard)}
+          onOpenOfflineCard={() => setShowOfflineEmergencyCard(true)}
+          initialError={authError}
+        />
+      );
+    }
+
+    return (
+      <LandingPage
+        onEnterApp={() => {
+          setAuthUser({ id: 'guest-local', name: 'Pengguna tamu', role: 'user', canManageRoles: false, isGuest: true });
+          setHasEnteredApp(true);
+          setCurrentScreen('home');
+        }}
+        onQuickExplore={() => {
+          setAuthUser({ id: 'guest-local', name: 'Pengguna tamu', role: 'user', canManageRoles: false, isGuest: true });
+          setHasEnteredApp(true);
+          setCurrentScreen('input');
+        }}
+        onLoginClick={() => setAuthModalState({ isOpen: true, mode: 'login' })}
+        onRegisterClick={() => setAuthModalState({ isOpen: true, mode: 'register' })}
+        onSarDemoClick={() => {
+          setAuthUser({
+            id: 'guest-sar-demo',
+            name: 'Petugas SAR (Demo)',
+            role: 'sar',
+            canManageRoles: true,
+            isGuest: true
+          });
+          setHasEnteredApp(true);
+          setCurrentScreen('sar_dashboard');
+        }}
+      />
+    );
+  }
+
   if (!authUser) {
     return (
       <AuthScreen
-        onAuthenticated={user => { setAuthUser(user); setAuthError(''); }}
+        onAuthenticated={user => {
+          setAuthUser(user);
+          setAuthError('');
+          setHasEnteredApp(true);
+          if (user?.role === 'sar') {
+            setCurrentScreen('sar_dashboard');
+          } else {
+            setCurrentScreen('home');
+          }
+        }}
         onContinueGuest={() => {
           setAuthUser({ id: 'guest-local', name: 'Pengguna tamu', role: 'user', canManageRoles: false, isGuest: true });
           setAuthError('');
+          setHasEnteredApp(true);
         }}
         onContinueGuestSar={() => {
           setAuthUser({
@@ -530,6 +638,7 @@ export default function App() {
             isGuest: true
           });
           setAuthError('');
+          setHasEnteredApp(true);
           setCurrentScreen('sar_dashboard');
         }}
         offlineCardAvailable={Boolean(offlineEmergencyCard)}
@@ -539,19 +648,44 @@ export default function App() {
     );
   }
 
+  // TAMPILAN FULL-SCREEN KETIKA ROLE SAR MEMBUKA DASHBOARD (100vw, 100vh)
+  if (currentScreen === 'sar_dashboard' && authUser?.role === 'sar') {
+    return (
+      <SarDashboard
+        currentUser={authUser}
+        onSwitchToCitizenView={() => setCurrentScreen('home')}
+      />
+    );
+  }
+
   return (
     <div className="app-shell min-h-dvh text-slate-800 flex flex-col font-sans">
-      {/* Top Demo Bar / Screen Switcher Pill for UI/UX Evaluation */}
-      <div className="demo-bar text-white text-xs px-4 py-2 border-b border-[#2196F3]/30">
+      {/* Top Live Connectivity & Disaster Network Status Bar */}
+      <div className={`text-white text-xs px-4 py-2 border-b transition-colors ${
+        isOnline ? 'bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-900 border-blue-700/50' : 'bg-slate-900 border-amber-500/50'
+      }`}>
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.9)]">
+            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-amber-400'}`}>
             </span>
-            <span className="font-extrabold tracking-[0.14em] uppercase text-[10px] text-blue-100">
-              Prototype interaktif · Data simulasi
+            <span className="font-black tracking-wider uppercase text-[10px] text-blue-100">
+              {isOnline ? 'Sistem Siaga Bencana Terpadu' : 'Mode Mandiri Aktif (PWA Terisolasi)'}
             </span>
           </div>
-          <span className="hidden sm:inline text-[10px] font-medium text-blue-200">Informasi pada prototype bukan data real-time</span>
+          <div className="flex items-center gap-2">
+            {isOnline ? (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-blue-200">
+                <Wifi className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="hidden sm:inline">Sensor BMKG & Jaringan SAR Terhubung</span>
+                <span className="sm:hidden">Online Siaga</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-300">
+                <WifiOff className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>Offline · Database Lokal Aktif</span>
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -583,7 +717,7 @@ export default function App() {
                   setAuthUser(curr => ({
                     ...curr,
                     role: nextRole,
-                    name: nextRole === 'sar' ? 'Petugas SAR (Demo)' : 'Pengguna tamu (Demo)'
+                    name: nextRole === 'sar' ? 'Petugas SAR Wilayah' : 'Warga Terdaftar'
                   }));
                   if (nextRole === 'sar') {
                     setCurrentScreen('sar_dashboard');
@@ -596,15 +730,28 @@ export default function App() {
                     ? 'border-blue-600 bg-blue-50 text-[#0D47A1] hover:bg-blue-100'
                     : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
-                title="Beralih peran demo antara Tim SAR dan Pengguna biasa"
+                title="Beralih peran antara Tim SAR dan Warga"
               >
-                <span className="hidden sm:inline">{authUser.role === 'sar' ? '🛡️ Mode: Tim SAR' : '👤 Mode: Warga'}</span>
-                <span className="sm:hidden">{authUser.role === 'sar' ? '🛡️ SAR' : '👤 Warga'}</span>
+                <span className="hidden sm:inline-flex items-center gap-1">
+                  {authUser.role === 'sar' ? <ShieldCheck className="w-3.5 h-3.5 text-blue-300" /> : <Users className="w-3.5 h-3.5 text-slate-300" />}
+                  <span>{authUser.role === 'sar' ? 'Mode: Tim SAR' : 'Mode: Warga'}</span>
+                </span>
+                <span className="sm:hidden inline-flex items-center gap-1">
+                  {authUser.role === 'sar' ? <ShieldCheck className="w-3 h-3 text-blue-300" /> : <Users className="w-3 h-3 text-slate-300" />}
+                  <span>{authUser.role === 'sar' ? 'SAR' : 'Warga'}</span>
+                </span>
               </button>
             )}
             {authUser.role === 'sar' && (
-              <button onClick={() => setCurrentScreen('sar_dashboard')} className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold text-[#0D47A1] hover:bg-blue-50">
-                Panel SAR
+              <button
+                type="button"
+                onClick={() => setCurrentScreen('sar_dashboard')}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#0D47A1] hover:bg-blue-800 text-white px-3 py-1.5 text-xs font-black shadow-md shadow-blue-900/20 transition-all cursor-pointer"
+                title="Buka Dashboard Komando SAR Full-Screen"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Dashboard SAR</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               </button>
             )}
             <div className="hidden text-right md:block">
@@ -626,8 +773,9 @@ export default function App() {
         </div>
       </header>
 
-      {/* Screen Render Switcher */}
-      <main className={`app-main flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8 ${currentScreen === 'emergency' ? 'pb-8' : 'pb-32 sm:pb-36'}`}>
+      {/* Screen Render Switcher with Fluid Fade Transition */}
+      <main className={`app-main flex-1 ${currentScreen === 'sar_dashboard' ? 'max-w-[1400px]' : 'max-w-6xl'} w-full mx-auto p-4 sm:p-6 lg:p-8 ${currentScreen === 'emergency' ? 'pb-8' : 'pb-32 sm:pb-36'}`}>
+        <div key={currentScreen} className="animate-fadeIn w-full">
         {currentScreen === 'onboarding' && (
           <OnboardingScreen 
             onStartApp={() => setCurrentScreen('home')}
@@ -753,7 +901,10 @@ export default function App() {
         )}
 
         {currentScreen === 'sar_dashboard' && authUser.role === 'sar' && (
-          <SarDashboard currentUser={authUser} />
+          <SarDashboard
+            currentUser={authUser}
+            onSwitchToCitizenView={() => setCurrentScreen('home')}
+          />
         )}
 
         {currentScreen === 'share_status' && (
@@ -785,12 +936,31 @@ export default function App() {
             onClear={handleClearOfflineEmergencyCard}
           />
         )}
+        </div>
       </main>
+
+      {/* Floating Quick Action: Kembali ke Dashboard SAR saat sedang menjelajahi Tampilan Warga */}
+      {authUser.role === 'sar' && (
+        <div className="fixed bottom-24 right-4 z-40">
+          <button
+            type="button"
+            onClick={() => setCurrentScreen('sar_dashboard')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 text-white text-xs font-black shadow-xl shadow-blue-900/30 border-2 border-white cursor-pointer hover:scale-105 active:scale-95 transition-all"
+            title="Kembali ke Dashboard Komando SAR"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-300" />
+            <span>Kembali ke Dashboard SAR</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          </button>
+        </div>
+      )}
 
       {currentScreen !== 'emergency' && (
         <div className="bottom-dock-wrap">
           {isMoreMenuOpen && (
             <div className="dock-more-menu animate-fadeIn max-h-[75vh] overflow-y-auto" role="menu" aria-label="Layar dan fitur lainnya">
+              {/* Mobile Bottom Sheet Drag Handle */}
+              <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto my-1 sm:hidden" />
               <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 flex items-center justify-between px-2 pb-2.5 border-b border-slate-200">
                 <div>
                   <span className="text-xs font-black text-slate-800">Menu & Fitur Evacu8</span>
@@ -881,32 +1051,33 @@ export default function App() {
         </div>
       )}
 
-      {/* Footer conforming to PRD Principles & Transparency */}
-      <footer className="app-footer border-t border-white/70 py-6 px-4 text-xs text-slate-500">
+      {/* Footer */}
+      <footer className="app-footer border-t border-slate-200/80 bg-white/70 backdrop-blur-xs py-6 px-4 text-xs text-slate-500">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div className="space-y-1">
-            <p className="font-bold text-[#0D47A1]">
-              Evacu8 — Prototype Lomba UI/UX
+            <p className="font-bold text-[#0D47A1] text-sm">
+              Evacu8 — Sistem Respon & Panduan Bencana Cepat
             </p>
-            <p className="text-[11px] text-slate-400">
-              Palet: #0D47A1 (Navy) · #2196F3 (Electric) · #90CAF9 (Sky) · #E3F2FD (Ice Light)
+            <p className="text-[11px] text-slate-500">
+              Dirancang untuk keselamatan warga, panduan terarah, dan koordinasi tanggap darurat saat krisis.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-center text-slate-600 font-medium sm:justify-end sm:text-left">
-            <button onClick={() => setCurrentScreen('onboarding')} className="hover:text-[#0D47A1] cursor-pointer">
-              PRD & Metrik
+            <button onClick={() => setCurrentScreen('onboarding')} className="hover:text-[#0D47A1] transition-colors cursor-pointer">
+              Panduan & Edukasi
             </button>
-            <span className="hidden sm:inline">•</span>
-            <button onClick={() => setCurrentScreen('family')} className="hover:text-[#0D47A1] cursor-pointer">
-              Family Safety
+            <span className="hidden sm:inline text-slate-300">•</span>
+            <button onClick={() => setCurrentScreen('family')} className="hover:text-[#0D47A1] transition-colors cursor-pointer">
+              Status Keluarga
             </button>
-            <span className="hidden sm:inline">•</span>
-            <button onClick={() => setCurrentScreen('route')} className="hover:text-[#0D47A1] cursor-pointer">
-              Safe Route
+            <span className="hidden sm:inline text-slate-300">•</span>
+            <button onClick={() => setCurrentScreen('route')} className="hover:text-[#0D47A1] transition-colors cursor-pointer">
+              Jalur Evakuasi
             </button>
-            <button onClick={() => setCurrentScreen('safety_map')} className="hover:text-[#0D47A1] cursor-pointer">
-              Global Safety Map
+            <span className="hidden sm:inline text-slate-300">•</span>
+            <button onClick={() => setCurrentScreen('safety_map')} className="hover:text-[#0D47A1] transition-colors cursor-pointer">
+              Radar Keselamatan
             </button>
           </div>
         </div>

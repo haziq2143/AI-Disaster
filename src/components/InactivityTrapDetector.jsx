@@ -138,7 +138,7 @@ export default function InactivityTrapDetector({
       reporter_name: userName || 'Warga (Auto-PASS)',
       hazard_type: activeZone?.hazard_type || 'gempa',
       urgency_level: 'KRITIS',
-      needs_description: `⚠️ [AUTO-TRIGGER PASS] Korban terdeteksi TIDAK BERGERAK selama ${isDemoMode ? 'mode uji coba' : '> 1 jam'} di Zona Bencana ${activeZone?.name || 'Kritis'}. Terindikasi tertimbun reruntuhan atau tidak sadarkan diri. Sinyal suara & senter HP diaktifkan otomatis.`,
+      needs_description: `[AUTO-TRIGGER PASS] Korban terdeteksi TIDAK BERGERAK selama ${isDemoMode ? 'mode uji coba' : '> 1 jam'} di Zona Bencana ${activeZone?.name || 'Kritis'}. Terindikasi tertimbun reruntuhan atau tidak sadarkan diri. Sinyal suara & senter HP diaktifkan otomatis.`,
       lat: userLat,
       lng: userLng,
       precision_consent: true,
@@ -197,7 +197,7 @@ export default function InactivityTrapDetector({
               </div>
               <p className="text-[11px] opacity-80 mt-0.5 truncate">
                 {hasAutoTriggered 
-                  ? '🚨 Sinyal SOS & Peluit Otomatis Sedang Memancar!'
+                  ? 'Sinyal SOS & Peluit Otomatis Sedang Memancar!'
                   : `Diam tanpa gerak: ${formattedInactivityMinutes}m ${formattedInactivitySeconds}s / ${isDemoMode ? '20s' : '60m'}`}
               </p>
             </div>

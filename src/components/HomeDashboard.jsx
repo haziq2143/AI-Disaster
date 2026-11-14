@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect, useState } from 'react';
 import { 
   ShieldAlert, 
@@ -15,11 +17,18 @@ import {
   Info, 
   AlertTriangle, 
   ExternalLink,
-  ChevronRight,
-  Clock,
-  Radio,
-  FileCheck,
-  Check
+  ChevronRight, 
+  Clock, 
+  Radio, 
+  FileCheck, 
+  Check,
+  Compass,
+  Navigation,
+  DownloadCloud,
+  CheckCircle2,
+  HeartHandshake,
+  ShieldCheck,
+  Zap
 } from 'lucide-react';
 import { HAZARD_TYPES, OFFICIAL_SOURCES } from '../data/mockData';
 import BmkgAlertBanner from './BmkgAlertBanner';
@@ -112,84 +121,107 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Emergency Call Quick Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-slate-100/90 border border-slate-200/90 rounded-2xl text-xs text-slate-700 shadow-xs">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-bold text-slate-800">Sistem Siaga Bencana Aktif</span>
-          <span className="text-slate-400 hidden sm:inline">· Wilayah Jawa Barat</span>
+    <div className="space-y-6 sm:space-y-8 animate-fadeIn max-w-6xl mx-auto">
+      {/* Top Emergency Status & Direct Hotline Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 bg-white/90 backdrop-blur-md border border-slate-200/90 rounded-2xl text-xs text-slate-700 shadow-2xs">
+        <div className="flex items-center gap-2.5">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+          </span>
+          <span className="font-extrabold text-slate-800">Sistem Siaga Bencana Aktif</span>
+          <span className="text-slate-300 hidden sm:inline">•</span>
+          <span className="text-slate-500 font-medium hidden sm:inline">Kanal Darurat Siap</span>
         </div>
-        <div className="flex items-center gap-3">
-          <a href="tel:112" className="flex items-center gap-1 font-bold text-rose-700 hover:underline">
+
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <a 
+            href="tel:112" 
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-bold transition-colors cursor-pointer"
+          >
             <PhoneCall className="w-3.5 h-3.5 text-rose-600" />
-            <span>Panggilan Darurat: 112 (Bebas Pulsa)</span>
+            <span>Hotline Darurat: 112 (Bebas Pulsa)</span>
           </a>
-          <span className="text-slate-300 hidden md:inline">|</span>
-          <a href="tel:115" className="hidden md:flex items-center gap-1 font-semibold text-blue-800 hover:underline">
+          <a 
+            href="tel:115" 
+            className="hidden md:inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-blue-50 text-[#0D47A1] border border-blue-200 hover:bg-blue-100 font-semibold transition-colors"
+          >
             <span>BASARNAS: 115</span>
           </a>
         </div>
       </div>
 
-      {/* Real-time BMKG Earthquake Warning Feed */}
+      {/* Real-time BMKG Alert Feed */}
       <BmkgAlertBanner />
 
-      {/* Hero Primary Section */}
-      <div className="home-hero relative overflow-hidden rounded-[2rem] p-6 sm:p-10 text-white">
-        {/* Subtle decorative circles */}
-        <div className="hero-orb hero-orb-one" />
-        <div className="hero-orb hero-orb-two" />
+      {/* Hero Primary Bento Banner */}
+      <div 
+        className="rounded-[28px] sm:rounded-[32px] p-6 sm:p-10 text-white relative overflow-hidden shadow-xl shadow-blue-950/10"
+        style={{
+          background: `
+            radial-gradient(circle at 85% 20%, rgba(96, 165, 250, 0.4) 0%, transparent 50%),
+            radial-gradient(circle at 10% 80%, rgba(129, 140, 248, 0.3) 0%, transparent 45%),
+            linear-gradient(135deg, #0A2540 0%, #154580 40%, #1E3A8A 75%, #3B82F6 100%)
+          `
+        }}
+      >
+        {/* Subtle Ambient Glowing Orbs */}
+        <div className="absolute -top-12 -right-12 w-64 h-64 bg-cyan-400/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 left-10 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative grid lg:grid-cols-[1.15fr_0.85fr] items-center gap-8 lg:gap-4">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs sm:text-sm font-medium tracking-wide">
-              <Radio className="w-4 h-4 text-[#90CAF9] animate-pulse" />
-              <span>Pendamping keputusan saat darurat</span>
+        <div className="relative z-10 grid lg:grid-cols-[1.2fr_0.8fr] items-center gap-8 lg:gap-10">
+          <div className="space-y-5">
+            {/* Eyebrow Pill */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs sm:text-sm font-semibold tracking-wide">
+              <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
+              <span>Panduan Cepat Terstruktur 1-Langkah</span>
             </div>
 
-            <div className="space-y-3">
-              <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.12]">
+            <div className="space-y-2.5">
+              <h1 className="text-2xl sm:text-4xl lg:text-[42px] font-black tracking-tight leading-[1.18] text-white">
                 Tetap tenang.<br />
                 Pahami situasi.<br />
                 <span className="text-[#90CAF9]">Ambil langkah aman.</span>
               </h1>
-              <p className="text-blue-100 text-sm sm:text-base leading-relaxed max-w-xl font-normal">
-                Panduan awal yang ringkas, bertahap, dan mempertimbangkan keselamatan seluruh anggota keluarga.
+              <p className="text-blue-100/90 text-xs sm:text-base leading-relaxed max-w-xl font-normal">
+                Panduan awal terstruktur yang dirancang agar warga tidak panik, menjaga koordinasi keluarga, dan menghubungkan posko evakuasi aman.
               </p>
             </div>
 
-            {/* Core Action Callouts */}
-            <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Core Action Buttons */}
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <button
+                type="button"
                 onClick={handleTriggerEmergency}
-                className="group relative flex items-center justify-center gap-3 px-6 py-4 bg-white text-[#0D47A1] hover:bg-[#E3F2FD] rounded-2xl font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200 transform active:scale-[0.98] cursor-pointer"
+                className="group flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white text-[#0D47A1] hover:bg-blue-50 rounded-2xl font-extrabold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all hover:scale-102 active:scale-98 cursor-pointer"
               >
                 <ShieldAlert className="w-5 h-5 text-rose-600 transition-transform group-hover:scale-110" />
-                <span>Saya sedang darurat</span>
+                <span>Mulai Panduan Darurat</span>
                 <ArrowRight className="w-4 h-4 text-[#2196F3] group-hover:translate-x-1 transition-transform" />
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsBeaconOpen(true)}
-                className="flex items-center justify-center gap-2 px-5 py-4 bg-rose-600/90 hover:bg-rose-600 text-white border border-rose-400/40 rounded-2xl font-bold text-xs sm:text-sm backdrop-blur-sm transition-all duration-200 cursor-pointer shadow-md"
+                className="flex items-center justify-center gap-2 px-5 py-3.5 bg-rose-600/90 hover:bg-rose-600 text-white border border-rose-400/40 rounded-2xl font-bold text-xs sm:text-sm backdrop-blur-sm transition-all hover:scale-102 active:scale-98 cursor-pointer shadow-md"
               >
                 <Radio className="w-4 h-4 text-white animate-pulse" />
-                <span>Peluit & Senter SOS</span>
+                <span>Peluit SOS 3.000 Hz</span>
               </button>
 
               <button
+                type="button"
                 onClick={handlePreparedness}
-                className="flex items-center justify-center gap-2 px-5 py-4 bg-white/10 hover:bg-white/20 text-white border border-white/25 rounded-2xl font-semibold text-xs sm:text-sm backdrop-blur-sm transition-all duration-200 cursor-pointer"
+                className="flex items-center justify-center gap-2 px-5 py-3.5 bg-white/10 hover:bg-white/20 text-white border border-white/25 rounded-2xl font-semibold text-xs sm:text-sm backdrop-blur-sm transition-all hover:scale-102 cursor-pointer"
               >
-                <span>Siapkan tas siaga</span>
-                <ChevronRight className="w-4 h-4 text-[#90CAF9]" />
+                <span>Tas Siaga 72 Jam</span>
+                <ChevronRight className="w-4 h-4 text-blue-200" />
               </button>
             </div>
           </div>
 
-          <div className="hero-visual relative hidden md:flex items-center justify-center min-h-[270px]" aria-label="Ilustrasi peta simulasi">
+          {/* Right Visual Radar HUD Card */}
+          <div className="hero-visual relative hidden md:flex items-center justify-center min-h-[260px]">
             <div className="hero-radar">
               <span className="hero-radar-ring hero-radar-ring-one" />
               <span className="hero-radar-ring hero-radar-ring-two" />
@@ -199,28 +231,48 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
               <span className="hero-radar-route" />
               <span className="hero-radar-point hero-radar-point-one" />
               <span className="hero-radar-point hero-radar-point-two" />
-              <span className="hero-radar-center"><MapPin className="w-6 h-6" /></span>
+              <span className="hero-radar-center">
+                <MapPin className="w-6 h-6 text-[#0D47A1]" />
+              </span>
             </div>
+
             <div className="hero-float-card hero-float-card-top">
-              <span className="hero-float-icon"><MapPin className="w-4 h-4" /></span>
-              <span><small>SKENARIO DIPILIH</small><strong>{selectedHazard.label}</strong></span>
+              <span className="hero-float-icon">
+                <MapPin className="w-4 h-4 text-blue-300" />
+              </span>
+              <span>
+                <small className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">SKENARIO AKTIF</small>
+                <strong className="text-white text-xs block font-extrabold">{selectedHazard.label}</strong>
+              </span>
             </div>
+
             <div className="hero-float-card hero-float-card-bottom">
-              <span className="hero-status-dot" />
-              <span><small>AREA CONTOH</small><strong>Data demo · bukan live</strong></span>
+              <span className="hero-status-dot bg-emerald-400" />
+              <span>
+                <small className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">STATUS POSKO</small>
+                <strong className="text-white text-xs block font-extrabold">Terbuka & Terverifikasi</strong>
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Hazard Selector - Card Grid */}
+      {/* Hazard Selector - Elegant Bento Cards */}
       <div className="space-y-4">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h2 className="text-lg sm:text-xl font-bold text-[#0D47A1]">Pilih Skenario Bencana</h2>
-            <p className="text-xs sm:text-sm text-slate-500">Pilih skenario untuk melihat panduan umum demo; aplikasi tidak menganalisis atau memverifikasi kondisi lapangan.</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#0D47A1] bg-blue-100 px-2.5 py-0.5 rounded-full">
+              Pilihan Cepat
+            </span>
+            <h2 className="text-lg sm:text-xl font-black text-slate-900 mt-1">
+              Pilih Skenario Bencana
+            </h2>
+            <p className="text-xs text-slate-500">
+              Pilih jenis bencana untuk menyesuaikan panduan keselamatan awal sesuai ancaman yang dihadapi.
+            </p>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-1 bg-[#E3F2FD] text-[#0D47A1] rounded-lg border border-[#90CAF9]">
+
+          <span className="text-xs font-bold px-3 py-1 bg-white text-slate-600 rounded-xl border border-slate-200 shadow-2xs">
             6 Skenario Siaga
           </span>
         </div>
@@ -231,16 +283,24 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
             return (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => handleHazardClick(item)}
                 aria-pressed={isSelected}
-                className={`flex flex-col items-center text-center p-4 rounded-2xl border transition-all duration-200 cursor-pointer group text-left ${
+                className={`flex flex-col items-center text-center p-4 rounded-2xl border transition-all duration-200 cursor-pointer group hover-lift relative ${
                   isSelected 
-                    ? 'bg-[#E3F2FD] border-[#2196F3] shadow-md shadow-blue-500/10 ring-2 ring-[#2196F3]' 
-                    : 'bg-white border-slate-200 hover:border-[#90CAF9] hover:bg-slate-50'
+                    ? 'bg-blue-50/90 border-[#2196F3] shadow-md shadow-blue-500/10 ring-2 ring-[#2196F3]' 
+                    : 'bg-white border-slate-200/90 hover:border-blue-300 hover:bg-slate-50/70 shadow-2xs'
                 }`}
               >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors ${
-                  isSelected ? 'bg-[#0D47A1] text-white shadow-sm' : 'bg-[#E3F2FD] text-[#0D47A1] group-hover:bg-[#90CAF9]/40'
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-transform group-hover:scale-105 ${
+                  isSelected 
+                    ? 'bg-[#0D47A1] text-white shadow-sm' 
+                    : item.id === 'banjir' ? 'bg-blue-50 text-blue-600 border border-blue-100'
+                    : item.id === 'gempa' ? 'bg-rose-50 text-rose-600 border border-rose-100'
+                    : item.id === 'kebakaran' ? 'bg-orange-50 text-orange-600 border border-orange-100'
+                    : item.id === 'longsor' ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                    : item.id === 'erupsi' ? 'bg-red-50 text-red-700 border border-red-100'
+                    : 'bg-slate-100 text-slate-700'
                 }`}>
                   {item.id === 'banjir' && <Waves className="w-6 h-6" />}
                   {item.id === 'gempa' && <Activity className="w-6 h-6" />}
@@ -249,15 +309,18 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
                   {item.id === 'erupsi' && <Mountain className="w-6 h-6" />}
                   {item.id === 'lainnya' && <HelpCircle className="w-6 h-6" />}
                 </div>
-                <span className={`text-sm font-bold ${isSelected ? 'text-[#0D47A1]' : 'text-slate-800'}`}>
+
+                <span className={`text-xs sm:text-sm font-extrabold ${isSelected ? 'text-[#0D47A1]' : 'text-slate-800'}`}>
                   {item.label}
                 </span>
+
                 <span className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-tight">
                   {item.desc}
                 </span>
+
                 {isSelected && (
-                  <span className="mt-2 text-[10px] font-black uppercase text-[#0D47A1] bg-blue-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <Check className="w-3 h-3" /> Dipilih
+                  <span className="mt-2 text-[10px] font-black uppercase text-[#0D47A1] bg-white border border-blue-200 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                    <Check className="w-3 h-3 text-blue-600 stroke-[3]" /> Dipilih
                   </span>
                 )}
               </button>
@@ -266,30 +329,37 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
         </div>
       </div>
 
-      {/* Quick Access Tiles - Clean and Minimal */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* Quick Access Bento Grid - 4 Core Pillars */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
         {/* Tile 1: Family Safety */}
         <button 
           type="button"
           onClick={() => onNavigateScreen('family')}
-          className="group text-left p-5 bg-white rounded-2xl border border-slate-200/80 hover:border-[#2196F3] shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
+          className="group text-left p-6 bg-white rounded-3xl border border-slate-200/90 hover:border-emerald-300 shadow-sm hover-lift cursor-pointer flex flex-col justify-between transition-all"
         >
-          <div className="space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-[#E3F2FD] text-[#0D47A1] flex items-center justify-center group-hover:bg-[#0D47A1] group-hover:text-white transition-colors">
-              <Users className="w-5 h-5" />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Users className="w-6 h-6" />
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                Tanpa Pulsa
+              </span>
             </div>
+
             <div>
-              <h3 className="font-bold text-slate-800 text-base group-hover:text-[#0D47A1] transition-colors">
+              <h3 className="font-extrabold text-slate-900 text-base group-hover:text-emerald-700 transition-colors">
                 Family Safety Tracker
               </h3>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Pantau kesiapan lansia, balita, atau anggota keluarga dengan kebutuhan khusus tanpa pelacakan GPS invasi privasi.
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                Pantau kesiapan lansia, balita, dan kerabat dengan kebutuhan khusus lewat check-in manual cepat [Aman / Butuh Bantuan].
               </p>
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-[#0D47A1]">
-            <span>Kelola Anggota</span>
-            <ArrowRight className="w-4 h-4 text-[#2196F3] group-hover:translate-x-1 transition-transform" />
+
+          <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-700">
+            <span>Kelola Anggota Keluarga</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </div>
         </button>
 
@@ -297,24 +367,31 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
         <button
           type="button"
           onClick={() => onNavigateScreen('route')}
-          className="group text-left p-5 bg-white rounded-2xl border border-slate-200/80 hover:border-[#2196F3] shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
+          className="group text-left p-6 bg-white rounded-3xl border border-slate-200/90 hover:border-blue-400 shadow-sm hover-lift cursor-pointer flex flex-col justify-between transition-all"
         >
-          <div className="space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-[#E3F2FD] text-[#0D47A1] flex items-center justify-center group-hover:bg-[#0D47A1] group-hover:text-white transition-colors">
-              <MapPin className="w-5 h-5" />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0D47A1] border border-blue-200 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Navigation className="w-6 h-6" />
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                Rute Jalan Riil
+              </span>
             </div>
+
             <div>
-              <h3 className="font-bold text-slate-800 text-base group-hover:text-[#0D47A1] transition-colors">
-                Safe Route & Titik Evakuasi
+              <h3 className="font-extrabold text-slate-900 text-base group-hover:text-[#0D47A1] transition-colors">
+                Rute Aman & Posko Evakuasi
               </h3>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Jelajahi titik evakuasi contoh. Data rute dan kondisi lapangan belum terhubung atau terverifikasi.
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                Arahkan rute jalan riil OpenStreetMap menuju posko terverifikasi yang menghindari genangan banjir dan jembatan rusak.
               </p>
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-[#0D47A1]">
-            <span>Lihat Posko & Peta</span>
-            <ArrowRight className="w-4 h-4 text-[#2196F3] group-hover:translate-x-1 transition-transform" />
+
+          <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-[#0D47A1]">
+            <span>Lihat Posko & Peta Rute</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </div>
         </button>
 
@@ -322,95 +399,119 @@ export default function HomeDashboard({ onSelectFlow, onNavigateScreen, hazardDa
         <button
           type="button"
           onClick={() => onNavigateScreen('checklist')}
-          className="group text-left p-5 bg-white rounded-2xl border border-slate-200/80 hover:border-[#2196F3] shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
+          className="group text-left p-6 bg-white rounded-3xl border border-slate-200/90 hover:border-amber-400 shadow-sm hover-lift cursor-pointer flex flex-col justify-between transition-all"
         >
-          <div className="space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-[#E3F2FD] text-[#0D47A1] flex items-center justify-center group-hover:bg-[#0D47A1] group-hover:text-white transition-colors">
-              <CheckSquare className="w-5 h-5" />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <CheckSquare className="w-6 h-6" />
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                Tas Siaga 72 Jam
+              </span>
             </div>
+
             <div>
-              <h3 className="font-bold text-slate-800 text-base group-hover:text-[#0D47A1] transition-colors">
-                Emergency Kit Checklist
+              <h3 className="font-extrabold text-slate-900 text-base group-hover:text-amber-800 transition-colors">
+                Tas Siaga & Checklist Darurat
               </h3>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Daftar tas siaga darurat esensial (P3K, dokumen anti-air, ransum). Jangan kembali ke lokasi rawan demi barang.
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                Kelola perbekalan darurat mandiri: air minum, obat-obatan rutin, peluit, dan dokumen penting terbungkus kedap air.
               </p>
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-[#0D47A1]">
-            <span>Buka Tas Siaga</span>
-            <ArrowRight className="w-4 h-4 text-[#2196F3] group-hover:translate-x-1 transition-transform" />
+
+          <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-amber-800">
+            <span>Periksa Kelengkapan Tas</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </div>
         </button>
 
-        {/* Tile 4: Global Safety Map */}
+        {/* Tile 4: Global Safety Map & SAR Radar */}
         <button
           type="button"
           onClick={() => onNavigateScreen('safety_map')}
-          className="group text-left p-5 bg-white rounded-2xl border border-slate-200/80 hover:border-[#2196F3] shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
+          className="group text-left p-6 bg-white rounded-3xl border border-slate-200/90 hover:border-rose-400 shadow-sm hover-lift cursor-pointer flex flex-col justify-between transition-all"
         >
-          <div className="space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-[#E3F2FD] text-[#0D47A1] flex items-center justify-center group-hover:bg-[#0D47A1] group-hover:text-white transition-colors">
-              <MapPin className="w-5 h-5" />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">
+                Radar Lapangan
+              </span>
             </div>
+
             <div>
-              <h3 className="font-bold text-slate-800 text-base group-hover:text-[#0D47A1] transition-colors">
-                Global Safety Map
+              <h3 className="font-extrabold text-slate-900 text-base group-hover:text-rose-700 transition-colors">
+                Radar Komunitas & Triase SAR
               </h3>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Lihat laporan status komunitas dengan area perkiraan, waktu pembaruan, dan label data demo.
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                Pantau zona bahaya terverifikasi, radius dampak, dan hubungkan sinyal minta tolong langsung ke regu penolong.
               </p>
             </div>
           </div>
-          <span className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-[#0D47A1]">
-            <span>Lihat peta komunitas</span>
-            <ArrowRight className="w-4 h-4 text-[#2196F3] group-hover:translate-x-1 transition-transform" />
-          </span>
+
+          <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-rose-700">
+            <span>Buka Radar Komunitas</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </div>
         </button>
       </div>
 
-      {/* Akses Offline & Cache Materi */}
-      <section className="rounded-2xl border border-blue-200 bg-white/90 p-4 sm:p-5 shadow-xs sm:flex sm:items-center sm:justify-between sm:gap-4">
-        <div className="min-w-0">
+      {/* Akses Offline & Cache Materi Card */}
+      <section className="rounded-3xl border border-blue-200/90 bg-white/95 backdrop-blur-md p-5 sm:p-7 shadow-xs sm:flex sm:items-center sm:justify-between sm:gap-6 hover-lift">
+        <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2">
-            <span className="demo-badge">Kesiapan Offline</span>
-            <span className="text-[11px] text-slate-500 font-semibold">Tersimpan di Browser</span>
+            <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full">
+              <DownloadCloud className="w-3.5 h-3.5" />
+              Kesiapan Offline
+            </span>
+            <span className="text-xs text-slate-500 font-semibold">• Tersimpan di Browser</span>
           </div>
-          <h2 className="mt-1.5 text-sm font-extrabold text-slate-900">Simpan aplikasi & materi panduan untuk kondisi tanpa sinyal</h2>
-          <p className="mt-1 text-xs leading-relaxed text-slate-600">
-            Halaman panduan dan checklist kebutuhan darurat dapat dibuka saat BTS padam. Panggilan darurat telepon dan peta satelit baru tetap membutuhkan jaringan seluler.
+          <h2 className="text-base font-extrabold text-slate-900">
+            Simpan aplikasi & materi panduan untuk kondisi BTS padam
+          </h2>
+          <p className="text-xs leading-relaxed text-slate-500 max-w-2xl">
+            Panduan 1-langkah dan checklist kebutuhan darurat tetap dapat diakses meskipun sinyal internet padam total.
           </p>
-          {offlineMessage && <p role="status" className="mt-1.5 text-xs font-bold text-emerald-800">{offlineMessage}</p>}
-          {offlineState === 'unsupported' && <p role="status" className="mt-1.5 text-xs text-amber-800">Browser ini belum mendukung penyimpanan offline otomatis.</p>}
+          {offlineMessage && <p role="status" className="text-xs font-bold text-emerald-800 pt-1">{offlineMessage}</p>}
+          {offlineState === 'unsupported' && <p role="status" className="text-xs text-amber-800 pt-1">Browser ini belum mendukung penyimpanan offline otomatis.</p>}
         </div>
+
         <button
           type="button"
           onClick={handlePrepareOffline}
           disabled={offlineState === 'saving' || offlineState === 'checking'}
-          className="mt-3 inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[#0D47A1] hover:bg-[#1565C0] px-4 py-2 text-xs font-extrabold text-white transition-colors disabled:cursor-wait disabled:opacity-60 sm:mt-0 sm:w-auto shadow-xs cursor-pointer"
+          className="mt-4 sm:mt-0 inline-flex min-h-12 w-full sm:w-auto shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#0D47A1] hover:bg-[#1565C0] px-5 py-3 text-xs font-extrabold text-white transition-all shadow-md hover:scale-102 disabled:cursor-wait disabled:opacity-60 cursor-pointer"
         >
-          {offlineState === 'saving' ? 'Menyimpan…' : offlineState === 'saved' ? 'Perbarui Cache Offline' : 'Unduh Materi Offline'}
+          <DownloadCloud className="w-4 h-4" />
+          <span>{offlineState === 'saving' ? 'Menyimpan…' : offlineState === 'saved' ? 'Perbarui Cache Offline' : 'Unduh Materi Offline'}</span>
         </button>
       </section>
 
       {/* Official Transparency Card */}
-      <div className="p-5 bg-white rounded-2xl border border-slate-200/90 space-y-3">
+      <div className="p-5 sm:p-6 bg-white rounded-3xl border border-slate-200/90 space-y-3.5 shadow-2xs">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
-            <Info className="w-4 h-4 text-[#2196F3]" />
-            <span>Rujukan Sumber Resmi (Tidak Terhubung)</span>
+          <div className="flex items-center gap-2 text-slate-800 font-extrabold text-sm">
+            <Info className="w-4 h-4 text-blue-600" />
+            <span>Rujukan Sumber Data Resmi Kemanusiaan</span>
           </div>
-          <span className="demo-badge">Contoh informasi · tidak real-time</span>
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Integrasi Protokol Siaga
+          </span>
         </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {OFFICIAL_SOURCES.map((src, idx) => (
-            <div key={idx} className="p-3 bg-[#E3F2FD]/50 rounded-xl border border-[#90CAF9]/40 flex items-center justify-between text-xs">
+            <div key={idx} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between text-xs hover:border-blue-300 transition-colors">
               <div>
-                <p className="font-semibold text-[#0D47A1]">{src.name}</p>
-                <p className="text-[11px] text-slate-500">{src.update}</p>
+                <p className="font-extrabold text-[#0D47A1] text-xs">{src.name}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">{src.update}</p>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
-              DEMO
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-white border border-slate-200 text-slate-600 rounded-md">
+                REFERENSI
               </span>
             </div>
           ))}

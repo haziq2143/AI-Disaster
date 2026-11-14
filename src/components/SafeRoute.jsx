@@ -22,7 +22,14 @@ import {
   RefreshCw,
   Check,
   Building2,
-  Sparkles
+  Sparkles,
+  Zap,
+  Shuffle,
+  Waves,
+  AlertOctagon,
+  Info,
+  X,
+  Target
 } from 'lucide-react';
 import { useGeolocation } from '../hooks/useGeolocation';
 import RouteMapCanvas from './RouteMapCanvas';
@@ -722,14 +729,14 @@ export default function SafeRoute({
         // Routing engine tidak memberikan rute — pakai fallback kurva
         setDynamicRouteData(null);
         console.warn('[SafeRoute] Routing engine tidak mengembalikan rute, menggunakan estimasi kurva.');
-        setRouteToastMessage('⚠️ Rute jalan nyata tidak tersedia, menampilkan estimasi jalur.');
+        setRouteToastMessage('Rute jalan nyata tidak tersedia, menampilkan estimasi jalur.');
         setTimeout(() => setRouteToastMessage(null), 5000);
       }
     } catch (e) {
       if (e?.name === 'AbortError') return; // fetch dibatalkan secara sengaja, abaikan
       console.error('[SafeRoute] fetchSmartRoutes error:', e?.message || e);
       setDynamicRouteData(null);
-      setRouteToastMessage('⚠️ Koneksi ke routing engine gagal. Menampilkan estimasi jalur.');
+      setRouteToastMessage('Koneksi ke routing engine gagal. Menampilkan estimasi jalur.');
       setTimeout(() => setRouteToastMessage(null), 5000);
     } finally {
       setIsLoadingRoute(false);
@@ -869,7 +876,7 @@ export default function SafeRoute({
       setCurrentStepIndex(totalNavSteps - 1);
       const arrivalMsg = `Selamat! Anda telah tiba di lokasi tujuan: ${selectedPoint.name.split(' (')[0]}. Silakan lapor ke posko atau konfirmasi kondisi aman Anda.`;
       speakInstruction(arrivalMsg);
-      setRouteToastMessage(`🎉 Anda telah tiba di ${selectedPoint.name.split(' (')[0]}!`);
+      setRouteToastMessage(`Anda telah tiba di ${selectedPoint.name.split(' (')[0]}!`);
       return;
     }
 
@@ -906,7 +913,7 @@ export default function SafeRoute({
     setDynamicRouteData(null); // Bersihkan rute tujuan sebelumnya seketika agar tidak tercampur!
     setActiveRouteId('route-0');
 
-    setRouteToastMessage(`🎯 Mengarahkan rute navigasi ke ${point.name}...`);
+    setRouteToastMessage(`Mengarahkan rute navigasi ke ${point.name}...`);
     setTimeout(() => setRouteToastMessage(null), 3500);
 
     fetchSmartRoutes(point);
@@ -926,7 +933,7 @@ export default function SafeRoute({
     if (nextNavigatingState) {
       const firstStepText = `Memulai panduan navigasi evakuasi ke ${selectedPoint.name.split(' (')[0]}. Langkah 1: ${navSteps[0]?.instruction || ''}`;
       speakInstruction(firstStepText);
-      setRouteToastMessage('🧭 Navigasi Suara Otomatis Aktif (Bahasa Indonesia).');
+      setRouteToastMessage('Navigasi Suara Otomatis Aktif (Bahasa Indonesia).');
       setTimeout(() => setRouteToastMessage(null), 3500);
     } else {
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -967,14 +974,14 @@ export default function SafeRoute({
     setMyReportedHazards(new Set());
     await fetchSmartRoutes(poskoPoints[0]);
     setActiveRouteId('route-0');
-    setRouteToastMessage('⚡ Skenario 1: Menghitung rute tercepat bebas hambatan dari GPS Anda ke Posko.');
+    setRouteToastMessage('Skenario 1: Menghitung rute tercepat bebas hambatan dari GPS Anda ke Posko.');
   };
 
   const handleScenario2Alternative = () => {
     setActiveScenarioLabel('Skenario 2: Pilih Rute Alternatif');
     const nextRouteId = activeRouteId === 'route-0' ? 'route-1' : 'route-0';
     setActiveRouteId(nextRouteId);
-    setRouteToastMessage(`🔀 Skenario 2: Beralih ke ${nextRouteId === 'route-1' ? 'Rute 2 (Jalur Alternatif)' : 'Rute 1 (Jalur Utama)'}.`);
+    setRouteToastMessage(`Skenario 2: Beralih ke ${nextRouteId === 'route-1' ? 'Rute 2 (Jalur Alternatif)' : 'Rute 1 (Jalur Utama)'}.`);
   };
 
   const handleScenario3RoadClosure = () => {
@@ -982,7 +989,7 @@ export default function SafeRoute({
     setSelectedPointId('ev-serang');
     setRoadHazards(prev => prev.map(h => h.id === 'hazard-cilegon-drangong' ? { ...h, active: true } : h));
     setActiveRouteId('route-1');
-    setRouteToastMessage('⚠️ Skenario 3: Ruas jalan ditutup banjir 65cm. Smart routing otomatis mengalihkan rute.');
+    setRouteToastMessage('Skenario 3: Ruas jalan ditutup banjir 65cm. Smart routing otomatis mengalihkan rute.');
   };
 
   const handleScenario4AllBlocked = () => {
@@ -994,14 +1001,14 @@ export default function SafeRoute({
       allRoutesBlocked: true,
       detourNotice: 'Seluruh jalan arteri dan tol tergenang banjir deras >60 cm.'
     }));
-    setRouteToastMessage('🛑 Skenario 4: Semua rute darat terhalang banjir terverifikasi. Peringatan darurat SAR aktif.');
+    setRouteToastMessage('Skenario 4: Semua rute darat terhalang banjir terverifikasi. Peringatan darurat SAR aktif.');
   };
 
   const handleScenario5OfflineGPS = () => {
     setActiveScenarioLabel('Skenario 5: Sensor GPS & Mode Vektor Ringan');
     retryGps();
     setMapViewMode('schematic');
-    setRouteToastMessage('📡 Skenario 5: Mode skema vektor aktif untuk kondisi hemat daya / minim sinyal.');
+    setRouteToastMessage('Skenario 5: Mode skema vektor aktif untuk kondisi hemat daya / minim sinyal.');
   };
 
   const handleResetScenarios = () => {
@@ -1015,7 +1022,7 @@ export default function SafeRoute({
     setDynamicRouteData(null);
     setActiveRouteId('route-0');
     setMapViewMode('leaflet');
-    setRouteToastMessage('✨ Pengaturan skenario telah direset ke kondisi standar.');
+    setRouteToastMessage('Pengaturan skenario telah direset ke kondisi standar.');
   };
 
   // --- COMMUNITY REPORT HANDLERS ---
@@ -1024,7 +1031,7 @@ export default function SafeRoute({
     try {
       const res = await api.reportHazardBlocked(hazardId, sessionId);
       if (res.alreadyReported) {
-        setRouteToastMessage('ℹ️ Anda sudah melaporkan titik bahaya ini sebelumnya.');
+        setRouteToastMessage('Anda sudah melaporkan titik bahaya ini sebelumnya.');
         setTimeout(() => setRouteToastMessage(null), 3000);
         return;
       }
@@ -1044,14 +1051,14 @@ export default function SafeRoute({
       const justBlocked = newCount >= (updatedHazard?.block_threshold || 5);
 
       if (justBlocked) {
-        setRouteToastMessage(`⚠️ Rute terblokir oleh ${newCount} laporan warga! Dialihkan ke rute alternatif.`);
+        setRouteToastMessage(`Rute terblokir oleh ${newCount} laporan warga! Dialihkan ke rute alternatif.`);
         setActiveRouteId(prev => prev === 'route-0' ? 'route-1' : 'route-0');
       } else {
-        setRouteToastMessage(`🚨 Laporan terkirim! ${newCount}/${updatedHazard?.block_threshold || 5} warga melaporkan titik ini.`);
+        setRouteToastMessage(`Laporan terkirim! ${newCount}/${updatedHazard?.block_threshold || 5} warga melaporkan titik ini.`);
       }
       setTimeout(() => setRouteToastMessage(null), 4000);
     } catch {
-      setRouteToastMessage('⚠️ Gagal mengirim laporan. Periksa koneksi lalu coba lagi.');
+      setRouteToastMessage('Gagal mengirim laporan. Periksa koneksi lalu coba lagi.');
       setTimeout(() => setRouteToastMessage(null), 3000);
     } finally {
       setReportingHazardId(null);
@@ -1073,10 +1080,10 @@ export default function SafeRoute({
         const isBlocked = newCount >= (h.block_threshold || 5);
         return { ...h, report_count: newCount, is_blocked_by_community: isBlocked };
       }));
-      setRouteToastMessage('✓ Laporan Anda berhasil dibatalkan.');
+      setRouteToastMessage('Laporan Anda berhasil dibatalkan.');
       setTimeout(() => setRouteToastMessage(null), 3000);
     } catch {
-      setRouteToastMessage('⚠️ Gagal membatalkan laporan. Coba lagi.');
+      setRouteToastMessage('Gagal membatalkan laporan. Coba lagi.');
       setTimeout(() => setRouteToastMessage(null), 3000);
     } finally {
       setReportingHazardId(null);
@@ -1102,17 +1109,17 @@ export default function SafeRoute({
 
       {/* Floating Active Route Notification Toast */}
       {routeToastMessage && (
-        <div className="p-3.5 bg-slate-900 text-white border border-slate-700 rounded-2xl shadow-xl flex items-center justify-between gap-3 text-xs font-bold animate-fadeIn">
+        <div className="p-3.5 bg-white text-slate-800 border border-slate-200/90 rounded-2xl shadow-lg flex items-center justify-between gap-3 text-xs font-bold animate-fadeIn">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-white font-extrabold">{routeToastMessage}</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="text-slate-900 font-extrabold">{routeToastMessage}</span>
           </div>
           <button
             type="button"
             onClick={() => setRouteToastMessage(null)}
-            className="text-slate-400 hover:text-white px-2 py-0.5 rounded cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 p-1 rounded cursor-pointer"
           >
-            ✕
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
@@ -1120,8 +1127,8 @@ export default function SafeRoute({
       {/* Unified Target & Evaluator Scenario Bar */}
       <div className="rounded-2xl border border-slate-300 bg-white/95 backdrop-blur-md p-2.5 shadow-sm flex items-center justify-between gap-2.5">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 border border-blue-200 font-black text-xs">
-            🎯
+          <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 border border-blue-200">
+            <Target className="w-4 h-4" />
           </span>
           <div className="min-w-0 flex-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block leading-none">
@@ -1176,12 +1183,12 @@ export default function SafeRoute({
           {/* Symmetrical 2-column Grid for all 6 scenarios */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
             {[
-              { id: 1, label: '1. Rute Tercepat', desc: 'Standar bebas hambatan', icon: '⚡', action: handleScenario1Fastest, active: activeScenarioLabel.includes('Skenario 1') },
-              { id: 2, label: '2. Rute Opsi', desc: 'Jalur alternatif arteri', icon: '🔀', action: handleScenario2Alternative, active: activeScenarioLabel.includes('Skenario 2') },
-              { id: 3, label: '3. Tutup Jalan', desc: 'Banjir 65cm di Drangong', icon: '🌊', action: handleScenario3RoadClosure, active: activeScenarioLabel.includes('Skenario 3') },
-              { id: 4, label: '4. Terhalang Total', desc: 'Akses darat terputus', icon: '🛑', action: handleScenario4AllBlocked, active: activeScenarioLabel.includes('Skenario 4') },
-              { id: 5, label: '5. Skema Vektor', desc: 'Hemat daya / offline', icon: '📐', action: handleScenario5OfflineGPS, active: activeScenarioLabel.includes('Skenario 5') },
-              { id: 6, label: '6. Blokir Warga', desc: '5 laporan warga', icon: '👥', action: () => {
+              { id: 1, label: '1. Rute Tercepat', desc: 'Standar bebas hambatan', icon: Zap, action: handleScenario1Fastest, active: activeScenarioLabel.includes('Skenario 1') },
+              { id: 2, label: '2. Rute Opsi', desc: 'Jalur alternatif arteri', icon: Shuffle, action: handleScenario2Alternative, active: activeScenarioLabel.includes('Skenario 2') },
+              { id: 3, label: '3. Tutup Jalan', desc: 'Banjir 65cm di Drangong', icon: Waves, action: handleScenario3RoadClosure, active: activeScenarioLabel.includes('Skenario 3') },
+              { id: 4, label: '4. Terhalang Total', desc: 'Akses darat terputus', icon: AlertOctagon, action: handleScenario4AllBlocked, active: activeScenarioLabel.includes('Skenario 4') },
+              { id: 5, label: '5. Skema Vektor', desc: 'Hemat daya / offline', icon: Navigation, action: handleScenario5OfflineGPS, active: activeScenarioLabel.includes('Skenario 5') },
+              { id: 6, label: '6. Blokir Warga', desc: '5 laporan warga', icon: Users, action: () => {
                 setActiveScenarioLabel('Skenario 6: Demo Blokir Komunitas (5 Laporan)');
                 setRoadHazards(prev => prev.map(h =>
                   h.id === 'hazard-cilegon-drangong'
@@ -1189,31 +1196,34 @@ export default function SafeRoute({
                     : h
                 ));
                 setActiveRouteId('route-1');
-                setRouteToastMessage('👥 Skenario 6: 5 laporan warga mengonfirmasi blokir. Rute dialihkan ke alternatif.');
+                setRouteToastMessage('Skenario 6: 5 laporan warga mengonfirmasi blokir. Rute dialihkan ke alternatif.');
               }, active: activeScenarioLabel.includes('Skenario 6') }
-            ].map(sc => (
-              <button
-                key={sc.id}
-                type="button"
-                onClick={sc.action}
-                className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                  sc.active
-                    ? 'bg-blue-50/90 border-blue-600 ring-2 ring-blue-300 shadow-sm'
-                    : 'bg-white hover:bg-slate-50 border-slate-200 shadow-xs'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <span className="font-black text-xs text-slate-900 flex items-center gap-1.5">
-                    <span>{sc.icon}</span>
-                    <span>{sc.label}</span>
+            ].map(sc => {
+              const ScIcon = sc.icon;
+              return (
+                <button
+                  key={sc.id}
+                  type="button"
+                  onClick={sc.action}
+                  className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    sc.active
+                      ? 'bg-blue-50/90 border-blue-600 ring-2 ring-blue-300 shadow-sm'
+                      : 'bg-white hover:bg-slate-50 border-slate-200 shadow-xs'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-black text-xs text-slate-900 flex items-center gap-1.5">
+                      <ScIcon className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>{sc.label}</span>
+                    </span>
+                    {sc.active && <Check className="w-3 h-3 text-blue-700 shrink-0" />}
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-semibold mt-1">
+                    {sc.desc}
                   </span>
-                  {sc.active && <span className="text-[10px] text-blue-700 font-black">✓</span>}
-                </div>
-                <span className="text-[10px] text-slate-500 font-semibold mt-1">
-                  {sc.desc}
-                </span>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -1327,7 +1337,7 @@ export default function SafeRoute({
               activeRouteId={activeRouteId}
               onSelectRoute={(newRouteId) => {
                 setActiveRouteId(newRouteId);
-                setRouteToastMessage(`🔀 Memilih ${newRouteId === 'route-0' ? 'Rute 1 (Jalur Tercepat)' : 'Rute 2 (Jalur Alternatif)'}.`);
+                setRouteToastMessage(`Memilih ${newRouteId === 'route-0' ? 'Rute 1 (Jalur Tercepat)' : 'Rute 2 (Jalur Alternatif)'}.`);
               }}
               hazards={roadHazards}
               allRoutesBlocked={Boolean(dynamicRouteData?.allRoutesBlocked)}
@@ -1428,7 +1438,7 @@ export default function SafeRoute({
                 key={route.id}
                 onClick={() => {
                   setActiveRouteId(route.id);
-                  setRouteToastMessage(`🎯 Memilih ${route.name} (${route.summary}).`);
+                  setRouteToastMessage(`Memilih ${route.name} (${route.summary}).`);
                 }}
                 className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
                   isSelected
@@ -1472,7 +1482,7 @@ export default function SafeRoute({
                             : 'bg-slate-50 text-slate-700 border-slate-200'
                       }`}>
                         <span className="font-extrabold block text-[10px] uppercase tracking-wider mb-0.5">
-                          {route.isRecommended ? '✓ Alasan Pemilihan:' : route.isBlocked ? '⚠️ Catatan Bahaya:' : 'ℹ️ Info Rute:'}
+                          {route.isRecommended ? 'Alasan Pemilihan:' : route.isBlocked ? 'Catatan Bahaya:' : 'Info Rute:'}
                         </span>
                         {route.selectionReason}
                       </div>
@@ -1489,10 +1499,16 @@ export default function SafeRoute({
                 </div>
 
                 <div className="mt-2.5 pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
-                  <span className={`font-extrabold flex items-center gap-1 ${
+                  <span className={`font-extrabold flex items-center gap-1.5 ${
                     isBlocked ? 'text-rose-600' : isImpacted ? 'text-amber-700' : 'text-emerald-700'
                   }`}>
-                    {isBlocked ? '⛔' : isImpacted ? '⚠️' : '✓'}
+                    {isBlocked ? (
+                      <AlertOctagon className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                    ) : isImpacted ? (
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    )}
                     <span>{route.statusLabel}</span>
                   </span>
                 </div>
@@ -1547,7 +1563,7 @@ export default function SafeRoute({
                         ? isClosed ? 'bg-rose-600 text-white' : 'bg-amber-600 text-white'
                         : 'bg-slate-200 text-slate-600'
                   }`}>
-                    {isBlockedByCommunity ? '⛔ BLOKIR KOMUNITAS' : hazard.active ? (isClosed ? 'TUTUP' : 'GENANGAN') : 'NORMAL'}
+                    {isBlockedByCommunity ? 'BLOKIR KOMUNITAS' : hazard.active ? (isClosed ? 'TUTUP' : 'GENANGAN') : 'NORMAL'}
                   </span>
                 </div>
 
@@ -1556,7 +1572,7 @@ export default function SafeRoute({
                 </p>
 
                 <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 flex items-center justify-between text-[9px] text-slate-500">
-                  <span>{isVerified ? '✓ Terverifikasi BPBD/SAR' : '⚠️ Laporan Warga'}</span>
+                  <span>{isVerified ? 'Terverifikasi BPBD/SAR' : 'Laporan Warga'}</span>
                   <span>{hazard.active || isBlockedByCommunity ? 'Aktif Menghalangi' : 'Aman Dilewati'}</span>
                 </div>
 
@@ -1588,8 +1604,9 @@ export default function SafeRoute({
                       />
                     </div>
                     {isBlockedByCommunity && (
-                      <p className="text-[10px] text-rose-700 font-bold leading-tight">
-                        ⛔ {reportCount} warga mengonfirmasi jalan ini tidak bisa dilewati. Rute dialihkan ke alternatif.
+                      <p className="text-[10px] text-rose-700 font-bold leading-tight flex items-center gap-1">
+                        <AlertOctagon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{reportCount} warga mengonfirmasi jalan ini tidak bisa dilewati. Rute dialihkan ke alternatif.</span>
                       </p>
                     )}
                   </div>
@@ -1607,7 +1624,7 @@ export default function SafeRoute({
                       ) : (
                         <Check className="w-3 h-3 text-emerald-600" />
                       )}
-                      <span>{isLoadingThis ? 'Memproses...' : '✓ Laporan Terkirim — Batalkan'}</span>
+                      <span>{isLoadingThis ? 'Memproses...' : 'Laporan Terkirim — Batalkan'}</span>
                     </button>
                   ) : (
                     <button
@@ -1629,8 +1646,8 @@ export default function SafeRoute({
                         {isLoadingThis
                           ? 'Mengirim...'
                           : isBlockedByCommunity
-                            ? '⛔ Sudah Diblokir Komunitas'
-                            : '🚨 Laporkan Jalan Ini Terblokir'}
+                            ? 'Sudah Diblokir Komunitas'
+                            : 'Laporkan Jalan Ini Terblokir'}
                       </span>
                     </button>
                   )}
@@ -1875,7 +1892,7 @@ export default function SafeRoute({
 
                       {isSelected && (
                         <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-extrabold rounded-md flex items-center gap-1 animate-pulse">
-                          <span>🎯 TARGET RUTE AKTIF</span>
+                          <span>TARGET RUTE AKTIF</span>
                         </span>
                       )}
                     </div>
@@ -1921,7 +1938,7 @@ export default function SafeRoute({
                     }`}
                   >
                     <Navigation className="w-4 h-4" />
-                    <span>{isSelected ? '✓ Rute Sedang Ditampilkan (Pusatkan)' : '🧭 Arahkan Rute ke Posko Ini'}</span>
+                    <span>{isSelected ? 'Rute Sedang Ditampilkan (Pusatkan)' : 'Arahkan Rute ke Posko Ini'}</span>
                   </button>
                 </div>
               </div>
@@ -1988,7 +2005,7 @@ export default function SafeRoute({
                     }`}
                   >
                     <Navigation className="w-4 h-4" />
-                    <span>{isSelected ? '✓ Rute Rumah Sakit Aktif (Pusatkan)' : '🧭 Arahkan Rute ke Rumah Sakit'}</span>
+                    <span>{isSelected ? 'Rute Rumah Sakit Aktif (Pusatkan)' : 'Arahkan Rute ke Rumah Sakit'}</span>
                   </button>
                 </div>
               </div>
@@ -2054,7 +2071,7 @@ export default function SafeRoute({
                     }`}
                   >
                     <Navigation className="w-4 h-4" />
-                    <span>{isSelected ? '✓ Rute Sedang Ditampilkan (Pusatkan)' : '🧭 Arahkan Rute ke Anggota Keluarga'}</span>
+                    <span>{isSelected ? 'Rute Sedang Ditampilkan (Pusatkan)' : 'Arahkan Rute ke Anggota Keluarga'}</span>
                   </button>
                 </div>
               </div>
@@ -2131,7 +2148,7 @@ export default function SafeRoute({
                     }`}
                   >
                     <Navigation className="w-4 h-4" />
-                    <span>{isSelected ? '✓ Rute Penyelamatan Aktif (Pusatkan)' : '🧭 Arahkan Rute Penyelamatan'}</span>
+                    <span>{isSelected ? 'Rute Penyelamatan Aktif (Pusatkan)' : 'Arahkan Rute Penyelamatan'}</span>
                   </button>
                 </div>
               </div>

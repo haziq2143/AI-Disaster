@@ -27,6 +27,7 @@ export default function LeafletMapCanvas({
   poskoList = [],
   wargaList = [],
   laporanDaruratList = [],
+  zonaBencanaList = [],
   selectedItem,
   onSelectItem,
   onNavigateRoute,
@@ -157,7 +158,7 @@ export default function LeafletMapCanvas({
         const userSosMarker = L.marker([userLat, userLng], { icon: sosIcon, zIndexOffset: 1000 });
         userSosMarker.bindPopup(`
           <div class="text-xs space-y-1">
-            <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-extrabold text-[10px]">🚨 LOKASI PRESISI AKTIF</span>
+            <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-extrabold text-[10px]">LOKASI PRESISI AKTIF</span>
             <p class="font-bold text-slate-900 mt-1">Titik Darurat Anda (GPS Aktual)</p>
             <p class="text-slate-600 text-[11px]">Titik presisi hanya ditampilkan pada prototipe ini; tidak dikirim ke tim SAR atau posko.</p>
             <p class="text-[10px] font-mono text-slate-500">${userLat.toFixed(5)}, ${userLng.toFixed(5)} (${accuracyText})</p>
@@ -192,7 +193,7 @@ export default function LeafletMapCanvas({
             <span class="px-2 py-0.5 rounded ${
               perspective === 'public' ? 'bg-indigo-100 text-indigo-900' : 'bg-blue-100 text-blue-800'
             } font-bold text-[10px]">
-              ${perspective === 'public' ? '👥 SUDUT PANDANG PUBLIK • RADIUS 1 KM' : '🔵 SUDUT PANDANG SAYA • RADIUS 1 KM'}
+              ${perspective === 'public' ? 'SUDUT PANDANG PUBLIK • RADIUS 1 KM' : 'SUDUT PANDANG SAYA • RADIUS 1 KM'}
             </span>
             <p class="font-bold text-slate-900 mt-1">Area Perkiraan Lokasi Anda</p>
             <p class="text-slate-600 text-[11px]">
@@ -375,7 +376,7 @@ export default function LeafletMapCanvas({
             <p class="text-[11px] text-slate-700">${escapeHtml(warga.notes)}</p>
             <p class="text-[10px] text-slate-500">Waktu pada data contoh: ${escapeHtml(warga.updated_at || 'tidak tersedia')}</p>
             <p class="text-[10px] font-semibold text-blue-700">Jarak: ${escapeHtml(warga.distanceFormatted)} (${escapeHtml(warga.estWalkTime)})</p>
-            <button onclick="window.__leafNavigateRoute('${encodeRoutePayload(warga)}')" class="w-full mt-2 py-1 px-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer">🧭 Arahkan Rute ke Lokasi Ini</button>
+            <button onclick="window.__leafNavigateRoute('${encodeRoutePayload(warga)}')" class="w-full mt-2 py-1 px-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer">Arahkan Rute ke Lokasi Ini</button>
           </div>
         `);
         wargaMarker.on('click', () => onSelectItem({ ...warga, itemType: 'warga' }));
@@ -406,7 +407,7 @@ export default function LeafletMapCanvas({
         reportMarker.bindPopup(`
           <div class="text-xs space-y-1.5 max-w-[240px]">
             <div class="flex items-center gap-1">
-              <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-extrabold text-[10px]">🚨 ${report.source_type === 'user_report' ? 'LAPORAN AKUN' : 'LAPORAN CONTOH'} • BELUM DIVERIFIKASI</span>
+              <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-extrabold text-[10px]">${report.source_type === 'user_report' ? 'LAPORAN AKUN' : 'LAPORAN CONTOH'} • BELUM DIVERIFIKASI</span>
               <span class="text-[10px] text-slate-500">• ${escapeHtml(report.reported_at)}</span>
             </div>
             <p class="font-extrabold text-slate-900 text-sm leading-tight">${escapeHtml(report.reporter_name)}</p>
@@ -416,7 +417,7 @@ export default function LeafletMapCanvas({
               <span class="font-semibold text-blue-700">${escapeHtml(report.distanceFormatted)}</span>
               <a href="tel:112" class="px-2 py-0.5 rounded bg-rose-600 text-white font-bold text-[10px]">Hubungi 112</a>
             </div>
-            <button onclick="window.__leafNavigateRoute('${encodeRoutePayload(report)}')" class="w-full mt-1.5 py-1 px-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-lg text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer">🧭 Arahkan Rute Penyelamatan</button>
+            <button onclick="window.__leafNavigateRoute('${encodeRoutePayload(report)}')" class="w-full mt-1.5 py-1 px-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-lg text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer">Arahkan Rute Penyelamatan</button>
           </div>
         `);
         reportMarker.on('click', () => onSelectItem({ ...report, itemType: 'laporan_darurat' }));
@@ -424,7 +425,7 @@ export default function LeafletMapCanvas({
       });
 
       // 5. RENDER DISASTER ZONES (Zona Bencana & Level Bahaya dari Tim SAR)
-      const disasterZoneList = Array.isArray(dbMarkers.zona_bencana) ? dbMarkers.zona_bencana : [];
+      const disasterZoneList = Array.isArray(zonaBencanaList) ? zonaBencanaList : [];
       disasterZoneList.forEach(zone => {
         if (zone.status !== 'active') return;
         const isLevel3 = zone.severity_level === 'level_3_critical';
@@ -448,7 +449,7 @@ export default function LeafletMapCanvas({
             <h4 class="font-extrabold text-slate-900 text-sm mt-1">${escapeHtml(zone.name)}</h4>
             <p class="text-slate-600 text-[11px] leading-relaxed">${escapeHtml(zone.description || '')}</p>
             <p class="text-[10px] text-slate-500 font-semibold">Radius: ${zone.radius_km} km · Ditetapkan oleh: ${escapeHtml(zone.declared_by || 'Tim SAR')}</p>
-            ${isLevel3 ? '<p class="text-[10px] font-bold text-rose-700 bg-rose-50 p-1.5 rounded-lg border border-rose-200">⚠️ Pengawasan korban terjebak (PASS Dead-Man Switch) aktif di area ini.</p>' : ''}
+            ${isLevel3 ? '<p class="text-[10px] font-bold text-rose-700 bg-rose-50 p-1.5 rounded-lg border border-rose-200">Pengawasan korban terjebak (PASS Dead-Man Switch) aktif di area ini.</p>' : ''}
           </div>
         `);
         layerGroup.addLayer(circle);
@@ -460,7 +461,7 @@ export default function LeafletMapCanvas({
     return () => {
       isCancelled = true;
     };
-  }, [userLat, userLng, isRealGpsActive, isUserInDanger, accuracyText, poskoList, wargaList, laporanDaruratList, onSelectItem, perspective]);
+  }, [userLat, userLng, isRealGpsActive, isUserInDanger, accuracyText, poskoList, wargaList, laporanDaruratList, zonaBencanaList, onSelectItem, perspective]);
 
   return (
     <div className="w-full h-full relative">
