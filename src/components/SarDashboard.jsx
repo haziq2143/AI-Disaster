@@ -676,7 +676,7 @@ export default function SarDashboard({ currentUser, onSwitchToCitizenView }) {
       </aside>
 
       {/* COLUMN 2: CENTER EXPANSIVE MAIN CONTENT (FULL VW/VH RESPONSIVE) */}
-      <main className="flex-1 min-h-screen p-4 sm:p-6 lg:p-8 pb-28 xl:pb-8 space-y-6 overflow-y-auto">
+      <main className="flex-1 min-h-screen p-4 sm:p-6 lg:p-8 pb-36 xl:pb-8 space-y-6 overflow-y-auto">
         
         {/* Top Notifications Banner */}
         {error && (
@@ -832,9 +832,9 @@ export default function SarDashboard({ currentUser, onSwitchToCitizenView }) {
                   </span>
                 </div>
 
-                {/* Smooth Spline SVG Line Chart */}
-                <div className="my-2 py-1">
-                  <svg viewBox="0 0 320 90" className="w-full h-20 overflow-visible">
+                {/* Smooth Spline SVG Line Chart with Responsive Bounds */}
+                <div className="my-2 py-1 overflow-hidden">
+                  <svg viewBox="0 0 320 90" className="w-full h-20 overflow-hidden rounded-xl" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="mooneyGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#2563EB" stopOpacity="0.25" />
@@ -842,21 +842,21 @@ export default function SarDashboard({ currentUser, onSwitchToCitizenView }) {
                       </linearGradient>
                     </defs>
                     <path
-                      d="M 10,65 C 60,60 90,75 130,40 C 170,10 200,55 240,25 C 270,12 290,18 310,20 L 310,85 L 10,85 Z"
+                      d="M 12,65 C 55,60 85,75 125,40 C 165,10 195,55 235,25 C 260,12 280,18 305,20 L 305,85 L 12,85 Z"
                       fill="url(#mooneyGradient)"
                     />
                     <path
-                      d="M 10,65 C 60,60 90,75 130,40 C 170,10 200,55 240,25 C 270,12 290,18 310,20"
+                      d="M 12,65 C 55,60 85,75 125,40 C 165,10 195,55 235,25 C 260,12 280,18 305,20"
                       fill="none"
                       stroke="#2563EB"
                       strokeWidth="3.5"
                       strokeLinecap="round"
                     />
-                    <circle cx="240" cy="25" r="5.5" fill="#F43F5E" className="animate-ping" opacity="0.75" />
-                    <circle cx="240" cy="25" r="4.5" fill="#2563EB" stroke="#FFFFFF" strokeWidth="2.5" />
+                    <circle cx="235" cy="25" r="5" fill="#F43F5E" className="animate-ping" opacity="0.75" />
+                    <circle cx="235" cy="25" r="4" fill="#2563EB" stroke="#FFFFFF" strokeWidth="2.5" />
                   </svg>
 
-                  <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 px-1 pt-1">
+                  <div className="flex items-center justify-between text-[8px] sm:text-[9px] font-bold text-slate-400 px-1 pt-1">
                     <span>06:00</span>
                     <span>09:00</span>
                     <span>12:00</span>
@@ -868,10 +868,17 @@ export default function SarDashboard({ currentUser, onSwitchToCitizenView }) {
 
                 <div className="flex items-center justify-between text-[11px] pt-2 border-t border-slate-100">
                   <span className="text-slate-500 font-medium">Tingkat keberhasilan evakuasi</span>
-                  <span className="text-emerald-600 font-extrabold flex items-center gap-0.5">
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    {resolvedCount} Korban Tertangani
-                  </span>
+                  {resolvedCount > 0 ? (
+                    <span className="text-emerald-600 font-extrabold flex items-center gap-0.5">
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      {resolvedCount} Korban Tertangani
+                    </span>
+                  ) : (
+                    <span className="text-slate-500 font-semibold flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      Siaga · Menunggu Aksi
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -1770,23 +1777,23 @@ export default function SarDashboard({ currentUser, onSwitchToCitizenView }) {
         title={pickerModal.title}
       />
 
-      {/* FIXED BOTTOM NAV FOR MOBILE VIEW (xl:hidden) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 px-2 py-1.5 flex items-center justify-around xl:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
+      {/* FIXED BOTTOM NAV FOR MOBILE VIEW (xl:hidden) - Higher z-index than Leaflet (1000) */}
+      <nav className="fixed bottom-0 left-0 right-0 z-[1200] bg-white border-t border-slate-200/90 px-1.5 sm:px-3 py-1.5 flex items-center justify-around xl:hidden shadow-[0_-10px_35px_rgba(0,0,0,0.12)]">
         <button
           type="button"
           onClick={() => setActiveTab('overview')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'overview' ? 'text-blue-600 font-black' : 'text-slate-500 font-semibold'
           }`}
         >
           <LayoutDashboard className={`w-4 h-4 ${activeTab === 'overview' ? 'stroke-[2.5]' : ''}`} />
-          <span className="text-[9px]">Dashboard</span>
+          <span className="text-[9px]">Utama</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('map')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'map' ? 'text-blue-600 font-black' : 'text-slate-500 font-semibold'
           }`}
         >
@@ -1797,13 +1804,13 @@ export default function SarDashboard({ currentUser, onSwitchToCitizenView }) {
         <button
           type="button"
           onClick={() => setActiveTab('triage')}
-          className={`relative flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+          className={`relative flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'triage' ? 'text-blue-600 font-black' : 'text-slate-500 font-semibold'
           }`}
         >
           <AlertTriangle className={`w-4 h-4 ${activeTab === 'triage' ? 'stroke-[2.5]' : ''}`} />
           {criticalReportsCount + trappedReportsCount > 0 && (
-            <span className="absolute top-0.5 right-2 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+            <span className="absolute top-0.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
           )}
           <span className="text-[9px]">Triase</span>
         </button>
@@ -1811,7 +1818,7 @@ export default function SarDashboard({ currentUser, onSwitchToCitizenView }) {
         <button
           type="button"
           onClick={() => setActiveTab('posko')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'posko' ? 'text-blue-600 font-black' : 'text-slate-500 font-semibold'
           }`}
         >
@@ -1822,7 +1829,7 @@ export default function SarDashboard({ currentUser, onSwitchToCitizenView }) {
         <button
           type="button"
           onClick={() => setActiveTab('zones')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'zones' ? 'text-blue-600 font-black' : 'text-slate-500 font-semibold'
           }`}
         >

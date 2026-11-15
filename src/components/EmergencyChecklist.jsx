@@ -1037,23 +1037,23 @@ export default function EmergencyChecklist({
         </div>
       )}
 
-      {/* Bottom Navigation Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200">
+      {/* Bottom Navigation Actions (Mobile-Optimized) */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-4 border-t border-slate-200">
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer"
+          className="order-3 sm:order-1 flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer w-full sm:w-auto shadow-2xs"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Kembali ke Beranda</span>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="order-1 sm:order-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           {onNavigateScreen && (
             <button
               type="button"
-              onClick={() => onNavigateScreen('safe_route')}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all cursor-pointer"
+              onClick={() => onNavigateScreen('route')}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all cursor-pointer w-full sm:w-auto shadow-2xs"
             >
               <Navigation className="w-3.5 h-3.5 text-blue-600" />
               <span>Cek Rute Evakuasi</span>
@@ -1064,7 +1064,7 @@ export default function EmergencyChecklist({
             <button
               type="button"
               onClick={() => onNavigateScreen('confirm_safe')}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer w-full sm:w-auto hover-lift"
             >
               <span>Konfirmasi Posko Aman</span>
               <ArrowRight className="w-4 h-4" />

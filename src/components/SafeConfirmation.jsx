@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
   CheckCircle2, 
   ShieldCheck, 
@@ -11,7 +11,15 @@ import {
   Share2, 
   Copy, 
   FileText, 
-  Package
+  Package,
+  MapPin,
+  Navigation,
+  Crosshair,
+  Sparkles,
+  Phone,
+  Clock,
+  ChevronDown,
+  Building2
 } from 'lucide-react';
 import { OFFICIAL_SOURCES } from '../data/mockData';
 
@@ -22,11 +30,97 @@ export default function SafeConfirmation({
   onNavigateScreen 
 }) {
   const [confirmedSafe, setConfirmedSafe] = useState(false);
-  const [locationReached, setLocationReached] = useState('Balai Warga RW 04 (Posko Utama)');
   const [registeredWithOfficer, setRegisteredWithOfficer] = useState(true);
   const [medicalCheckDone, setMedicalCheckDone] = useState(false);
   const [rationReceived, setRationReceived] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+
+  // Daftar Posko dari Sistem SAR & State Pilihan Cerdas
+  const [poskoList, setPoskoList] = useState([]);
+  const [selectedPoskoId, setSelectedPoskoId] = useState('');
+  const [customPoskoName, setCustomPoskoName] = useState('');
+  const [isLoadingPosko, setIsLoadingPosko] = useState(true);
+  const [isLocatingGps, setIsLocatingGps] = useState(false);
+  const [userCoords, setUserCoords] = useState(null);
+
+  // Ambil daftar posko terdekat saat komponen dimuat
+  const loadPoskos = async (lat, lng) => {
+    setIsLoadingPosko(true);
+    try {
+      const url = lat && lng 
+        ? `/api/map/markers?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`
+        : '/api/map/markers';
+      const res = await fetch(url, { cache: 'no-store' });
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data?.posko) && json.data.posko.length > 0) {
+        setPoskoList(json.data.posko);
+        // Otomatis sarankan posko terdekat (elemen pertama hasil sortir jarak)
+        const nearest = json.data.posko[0];
+        setSelectedPoskoId(nearest.id);
+      }
+    } catch (err) {
+      console.warn('Gagal memuat posko resmi terdekat:', err);
+    } finally {
+      setIsLoadingPosko(false);
+    }
+  };
+
+  // Deteksi GPS otomatis saat layar dibuka
+  useEffect(() => {
+    const defaultCoords = { lat: -6.8858, lng: 107.5932 };
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      setIsLocatingGps(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setUserCoords(coords);
+          setIsLocatingGps(false);
+          loadPoskos(coords.lat, coords.lng);
+        },
+        () => {
+          setUserCoords(defaultCoords);
+          setIsLocatingGps(false);
+          loadPoskos(defaultCoords.lat, defaultCoords.lng);
+        },
+        { timeout: 6000, enableHighAccuracy: false }
+      );
+    } else {
+      setUserCoords(defaultCoords);
+      loadPoskos(defaultCoords.lat, defaultCoords.lng);
+    }
+  }, []);
+
+  // Perbarui GPS manual jika pengguna menekan tombol Segarkan GPS
+  const handleRefreshGps = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) return;
+    setIsLocatingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserCoords(coords);
+        setIsLocatingGps(false);
+        loadPoskos(coords.lat, coords.lng);
+      },
+      () => {
+        setIsLocatingGps(false);
+      },
+      { timeout: 6000, enableHighAccuracy: true }
+    );
+  };
+
+  // Posko yang sedang aktif dipilih
+  const currentSelectedPosko = useMemo(() => {
+    if (selectedPoskoId === 'custom') return null;
+    return poskoList.find(p => p.id === selectedPoskoId) || poskoList[0] || null;
+  }, [poskoList, selectedPoskoId]);
+
+  // Nama lokasi yang dikonfirmasi
+  const locationReached = useMemo(() => {
+    if (selectedPoskoId === 'custom') {
+      return customPoskoName.trim() || 'Posko Pengungsian Mandiri';
+    }
+    return currentSelectedPosko?.name || 'Balai Warga RW 04 (Posko Utama)';
+  }, [selectedPoskoId, customPoskoName, currentSelectedPosko]);
 
   const familyCheckIns = (familyMembers || []).reduce((counts, member) => {
     const status = member.checkInStatus || (member.status === 'together' ? 'safe' : 'unconfirmed');
@@ -142,22 +236,100 @@ export default function SafeConfirmation({
             </div>
           </div>
 
-          {/* Form Checkpoint */}
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-3">
-            <div>
-              <label className="text-xs font-bold text-slate-800 block mb-1">
-                Nama Posko / Lokasi Perlindungan Saat Ini:
-              </label>
-              <input
-                type="text"
-                value={locationReached}
-                onChange={(e) => setLocationReached(e.target.value)}
-                placeholder="Contoh: Balai Warga RW 04, SDN 01..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm text-slate-900 font-semibold outline-none bg-white"
-              />
+          {/* Form Checkpoint dengan Rekomendasi Posko Otomatis Berdasarkan GPS */}
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-3.5">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Posko Perlindungan / Lokasi Pengungsian:</span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleRefreshGps}
+                  disabled={isLocatingGps}
+                  className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Perbarui koordinat GPS untuk mendeteksi posko terdekat"
+                >
+                  <Crosshair className={`w-3.5 h-3.5 ${isLocatingGps ? 'animate-spin text-blue-600' : ''}`} />
+                  <span>{isLocatingGps ? 'Mencari GPS...' : 'Kunci GPS Terkini'}</span>
+                </button>
+              </div>
+
+              {/* Dropdown Pemilihan Posko Otomatis */}
+              <div className="relative">
+                <select
+                  value={selectedPoskoId}
+                  onChange={(e) => setSelectedPoskoId(e.target.value)}
+                  className="w-full px-3.5 py-3 rounded-2xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-xs sm:text-sm text-slate-900 font-bold outline-none bg-white pr-10 cursor-pointer appearance-none shadow-2xs transition-all"
+                >
+                  {isLoadingPosko && (
+                    <option value="">Memuat posko terdekat...</option>
+                  )}
+                  {poskoList.map((p, idx) => (
+                    <option key={p.id} value={p.id}>
+                      {idx === 0 ? '[Terdekat] ' : ''}{p.name}{p.distanceFormatted ? ` — ${p.distanceFormatted}` : ''}
+                    </option>
+                  ))}
+                  <option value="custom">+ Lokasi Pengungsian Mandiri / Lainnya (Ketik Manual)...</option>
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
             </div>
 
-            <label className="flex items-center gap-2.5 pt-0.5 cursor-pointer">
+            {/* Kartu Ringkasan Posko Terpilih */}
+            {currentSelectedPosko && (
+              <div className="bg-white rounded-xl p-3 sm:p-3.5 border border-slate-200 shadow-2xs space-y-2 animate-fadeIn text-xs">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 text-emerald-800 font-black text-[11px]">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Posko Terdaftar Sistem Siaga SAR</span>
+                  </div>
+                  {currentSelectedPosko.distanceFormatted && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-black flex items-center gap-1">
+                      <Navigation className="w-2.5 h-2.5" />
+                      <span>{currentSelectedPosko.distanceFormatted} {currentSelectedPosko.estWalkTime ? `· ~${currentSelectedPosko.estWalkTime}` : ''}</span>
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-slate-600 text-[11px] leading-relaxed">
+                  <span className="font-bold text-slate-700">Alamat:</span> {currentSelectedPosko.address || 'Dalam zona evakuasi terverifikasi'}
+                </p>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-100 flex-wrap gap-2">
+                  <span>
+                    Kapasitas Posko: <strong className="text-slate-800">{currentSelectedPosko.current_occupancy || 0}/{currentSelectedPosko.max_capacity || 100} jiwa</strong>
+                  </span>
+                  {currentSelectedPosko.contact && (
+                    <span className="flex items-center gap-1 text-slate-600 font-medium">
+                      <Phone className="w-3 h-3 text-slate-400" />
+                      <span>{currentSelectedPosko.contact}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Input Manual Jika Memilih Opsi Mandiri */}
+            {selectedPoskoId === 'custom' && (
+              <div className="space-y-1.5 animate-fadeIn">
+                <label className="text-[11px] font-bold text-slate-700 block">
+                  Nama Posko Mandiri / Alamat Tempat Pengungsian:
+                </label>
+                <input
+                  type="text"
+                  value={customPoskoName}
+                  onChange={(e) => setCustomPoskoName(e.target.value)}
+                  placeholder="Contoh: Masjid Al-Ikhlas RW 05, Rumah Kerabat Jl. Anggrek..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-blue-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 text-xs sm:text-sm text-slate-900 font-semibold outline-none bg-white shadow-2xs"
+                  autoFocus
+                />
+              </div>
+            )}
+
+            <label className="flex items-center gap-2.5 pt-1 cursor-pointer">
               <input
                 type="checkbox"
                 checked={registeredWithOfficer}
@@ -289,7 +461,7 @@ export default function SafeConfirmation({
           <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
-              onClick={() => onNavigateScreen('posko')}
+              onClick={() => onNavigateScreen('route')}
               className="p-3.5 bg-white hover:bg-blue-50/50 rounded-2xl border border-slate-200 hover:border-blue-300 shadow-2xs flex items-center gap-2.5 text-left transition-all cursor-pointer"
             >
               <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">

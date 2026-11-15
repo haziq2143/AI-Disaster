@@ -172,7 +172,7 @@
 
 .bottom-dock-wrap {
   position: fixed;
-  z-index: 60;
+  z-index: 1200;
   right: 0;
   bottom: 0;
   left: 0;
@@ -188,12 +188,12 @@
   gap: 0.25rem;
   width: min(100%, 36rem);
   padding: 0.55rem;
-  border: 1px solid rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(226, 232, 240, 0.95);
   border-radius: 1.65rem;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(239, 247, 255, 0.68));
-  box-shadow: 0 18px 55px rgba(8, 47, 105, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(28px) saturate(1.5);
-  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 16px 45px rgba(8, 47, 105, 0.16), 0 2px 12px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
   pointer-events: auto;
 }
 
@@ -665,10 +665,8 @@
   }
 }
 
-@media (min-width: 1024px) {
-  .app-footer {
-    padding-bottom: 6.5rem;
-  }
+.app-footer {
+  padding-bottom: max(7.5rem, calc(6.5rem + env(safe-area-inset-bottom)));
 }
 
 /* Custom aesthetic scrollbar */

@@ -91,8 +91,22 @@ function familySnapshot(members, plan) {
 }
 
 export default function App() {
-  // Navigation states: 12 screens according to PRD 7.2
+  // Manajemen layar & navigasi alur tanggap darurat
   const [currentScreen, setCurrentScreen] = useState('home');
+
+  const handleNavigateScreen = useCallback((screenName) => {
+    const aliasMap = {
+      'safe_route': 'route',
+      'posko': 'route',
+      'map': 'safety_map',
+      'safetymap': 'safety_map',
+      'emergency_mode': 'emergency',
+      'family_safety': 'family',
+      'emergency_checklist': 'checklist'
+    };
+    const resolvedScreen = aliasMap[screenName] || screenName;
+    setCurrentScreen(resolvedScreen);
+  }, []);
   const [authUser, setAuthUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState('');
@@ -525,9 +539,6 @@ export default function App() {
   const isMoreScreen = secondaryScreens.some(screen => screen.id === currentScreen)
     || currentScreen === 'emergency';
 
-  if (!authReady) {
-    return <main className="flex min-h-dvh items-center justify-center text-sm font-semibold text-slate-600">Memeriksa sesi akun…</main>;
-  }
   if (showOfflineEmergencyCard) {
     return (
       <EmergencyIdentityCard
@@ -608,6 +619,17 @@ export default function App() {
           setCurrentScreen('sar_dashboard');
         }}
       />
+    );
+  }
+
+  if (!authReady) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-[#F8FAFC]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-blue-200 border-t-[#0D47A1] rounded-full animate-spin" />
+          <p className="text-sm font-semibold text-slate-600">Memeriksa sesi akun…</p>
+        </div>
+      </main>
     );
   }
 
@@ -742,11 +764,11 @@ export default function App() {
                 </span>
               </button>
             )}
-            {authUser.role === 'sar' && (
+            {authUser.role === 'sar' && currentScreen !== 'sar_dashboard' && (
               <button
                 type="button"
                 onClick={() => setCurrentScreen('sar_dashboard')}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#0D47A1] hover:bg-blue-800 text-white px-3 py-1.5 text-xs font-black shadow-md shadow-blue-900/20 transition-all cursor-pointer"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-[#0D47A1] hover:bg-blue-800 text-white px-2.5 sm:px-3 py-1.5 text-xs font-black shadow-md shadow-blue-900/20 transition-all cursor-pointer shrink-0"
                 title="Buka Dashboard Komando SAR Full-Screen"
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
@@ -758,12 +780,12 @@ export default function App() {
               <p className="max-w-36 truncate text-xs font-bold text-slate-800">{authUser.name}</p>
               <p className="text-[10px] text-slate-500">{authUser.role === 'sar' ? 'Tim SAR' : 'Pengguna'}</p>
             </div>
-            <button type="button" onClick={handleSignOut} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] font-bold text-slate-600 hover:bg-slate-50 sm:px-2.5">
+            <button type="button" onClick={handleSignOut} className="hidden sm:inline-flex rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-50">
               {authUser.isGuest ? 'Masuk' : 'Keluar'}
             </button>
             <button
               onClick={() => setCurrentScreen('emergency')}
-              className="emergency-header-action"
+              className="emergency-header-action shrink-0"
             >
               <ShieldAlert className="w-4 h-4 text-white" />
               <span className="hidden sm:inline">Mode Darurat</span>
@@ -854,24 +876,24 @@ export default function App() {
           />
         )}
 
-        {currentScreen === 'route' && (
+        {(currentScreen === 'route' || currentScreen === 'safe_route' || currentScreen === 'posko') && (
           <SafeRoute
             hazardData={hazardData}
             familyMembers={familyMembers}
             navigationTarget={navigationTarget}
             setNavigationTarget={setNavigationTarget}
             onBack={() => setCurrentScreen('home')}
-            onNavigateScreen={(scr) => setCurrentScreen(scr)}
+            onNavigateScreen={handleNavigateScreen}
           />
         )}
 
-        {currentScreen === 'checklist' && (
+        {(currentScreen === 'checklist' || currentScreen === 'emergency_checklist') && (
           <EmergencyChecklist
             hazardData={hazardData}
             items={checklistItems}
             setItems={setChecklistItems}
             onBack={() => setCurrentScreen('home')}
-            onNavigateScreen={(scr) => setCurrentScreen(scr)}
+            onNavigateScreen={handleNavigateScreen}
           />
         )}
 
@@ -880,7 +902,7 @@ export default function App() {
             hazardData={hazardData}
             familyMembers={familyMembers}
             onResetFlow={() => setCurrentScreen('home')}
-            onNavigateScreen={(scr) => setCurrentScreen(scr)}
+            onNavigateScreen={handleNavigateScreen}
           />
         )}
 
@@ -892,7 +914,7 @@ export default function App() {
             safetyShareDetails={safetyShareDetails}
             setSafetyShareDetails={setSafetyShareDetails}
             hazardData={hazardData}
-            onNavigateScreen={(scr) => setCurrentScreen(scr)}
+            onNavigateScreen={handleNavigateScreen}
             onNavigateRoute={(target) => {
               setNavigationTarget(target);
               setCurrentScreen('route');
@@ -936,24 +958,22 @@ export default function App() {
             onClear={handleClearOfflineEmergencyCard}
           />
         )}
+
+        {/* Fallback Graceful Safety: Mencegah layar blank jika screen state tidak dikenali */}
+        {![
+          'onboarding', 'home', 'input', 'review', 'assessment', 'emergency',
+          'family', 'route', 'safe_route', 'posko', 'checklist', 'emergency_checklist',
+          'confirm_safe', 'safety_map', 'sar_dashboard', 'share_status', 'settings', 'emergency_card'
+        ].includes(currentScreen) && (
+          <HomeDashboard
+            onSelectFlow={() => setCurrentScreen('input')}
+            onNavigateScreen={handleNavigateScreen}
+            hazardData={hazardData}
+            setHazardData={setHazardData}
+          />
+        )}
         </div>
       </main>
-
-      {/* Floating Quick Action: Kembali ke Dashboard SAR saat sedang menjelajahi Tampilan Warga */}
-      {authUser.role === 'sar' && (
-        <div className="fixed bottom-24 right-4 z-40">
-          <button
-            type="button"
-            onClick={() => setCurrentScreen('sar_dashboard')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 text-white text-xs font-black shadow-xl shadow-blue-900/30 border-2 border-white cursor-pointer hover:scale-105 active:scale-95 transition-all"
-            title="Kembali ke Dashboard Komando SAR"
-          >
-            <ShieldCheck className="w-4 h-4 text-emerald-300" />
-            <span>Kembali ke Dashboard SAR</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-          </button>
-        </div>
-      )}
 
       {currentScreen !== 'emergency' && (
         <div className="bottom-dock-wrap">
@@ -1051,8 +1071,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="app-footer border-t border-slate-200/80 bg-white/70 backdrop-blur-xs py-6 px-4 text-xs text-slate-500">
+      {/* Footer (Ample Bottom Clearance to Prevent Dock Collision) */}
+      <footer className="app-footer border-t border-slate-200/80 bg-white/90 backdrop-blur-md pt-8 pb-32 sm:pb-36 px-4 text-xs text-slate-500">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div className="space-y-1">
             <p className="font-bold text-[#0D47A1] text-sm">

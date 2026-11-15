@@ -343,16 +343,16 @@ export default function UnifiedSarOperationsMap({
         </div>
 
         {/* Bottom Coordinates & Radius Pill */}
-        <div className="absolute bottom-3 left-3 right-14 z-[400] bg-white/95 backdrop-blur-xs px-3.5 py-2 rounded-xl border border-slate-200 shadow-md flex items-center justify-between gap-2 text-xs flex-wrap pointer-events-none">
-          <div className="flex items-center gap-2">
+        <div className="absolute bottom-2.5 left-2.5 right-12 sm:right-14 z-[400] bg-white/95 backdrop-blur-xs px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-slate-200 shadow-md flex items-center justify-between gap-1.5 sm:gap-2 text-[10px] sm:text-xs flex-wrap pointer-events-none">
+          <div className="flex items-center gap-1.5">
             <span className="font-bold text-slate-600">Pin Aktif:</span>
-            <span className="font-mono font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+            <span className="font-mono font-black text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
               {numLat.toFixed(5)}, {numLng.toFixed(5)}
             </span>
           </div>
 
           {currentMode === 'zone' && (
-            <span className="font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-md text-[11px]">
+            <span className="font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px]">
               Radius Bahaya: {numRadius} km (~{(Math.PI * numRadius * numRadius).toFixed(1)} km²)
             </span>
           )}
