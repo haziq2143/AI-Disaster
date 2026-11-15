@@ -375,23 +375,23 @@ export default function SafeConfirmation({
             </div>
 
             {/* Quick Share Buttons */}
-            <div className="pt-1 flex flex-wrap gap-2">
+            <div className="pt-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={handleShareWhatsapp}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-emerald-900 hover:bg-emerald-50 rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer"
+                className="min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-emerald-900 hover:bg-emerald-50 active:scale-98 rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer text-center"
               >
-                <Share2 className="w-3.5 h-3.5 text-emerald-600" />
+                <Share2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>Kabar Aman via WhatsApp</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleCopyStatus}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                className="min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 active:scale-98 text-white border border-white/20 rounded-xl text-xs font-black transition-all cursor-pointer text-center"
               >
-                {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{isCopied ? 'Tersalin!' : 'Salin Pesan'}</span>
+                {isCopied ? <Check className="w-4 h-4 text-emerald-300 stroke-[3] shrink-0" /> : <Copy className="w-4 h-4 shrink-0" />}
+                <span>{isCopied ? 'Teks Tersalin!' : 'Salin Pesan'}</span>
               </button>
             </div>
           </div>

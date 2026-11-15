@@ -130,6 +130,34 @@ export default function SafeRoute({
 
   // Map view switcher: 'leaflet' (real Leaflet + OSM) or 'schematic' (lightweight vector)
   const [mapViewMode, setMapViewMode] = useState('leaflet');
+  const [isDeviceOffline, setIsDeviceOffline] = useState(
+    typeof navigator !== 'undefined' ? !navigator.onLine : false
+  );
+
+  // Monitor jaringan: otomatis beralih ke Skema Vektor saat internet putus total
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleOffline = () => {
+      setIsDeviceOffline(true);
+      setMapViewMode('schematic');
+    };
+    const handleOnline = () => {
+      setIsDeviceOffline(false);
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    if (!navigator.onLine) {
+      setMapViewMode('schematic');
+    }
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []);
 
   // Toast notification when route is activated or updated
   const [routeToastMessage, setRouteToastMessage] = useState(null);
@@ -1302,37 +1330,52 @@ export default function SafeRoute({
 
       {/* MAP VIEWPORT SECTION */}
       <div ref={mapSectionRef} className="space-y-2">
+        {/* Offline Auto-Fallback Notification Banner */}
+        {isDeviceOffline && (
+          <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl text-amber-950 text-xs flex items-center justify-between gap-2 shadow-2xs animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping shrink-0" />
+              <span>Jaringan Seluler Terputus · Otomatis beralih ke <strong>Skema Vektor Offline 100%</strong></span>
+            </div>
+            <span className="text-[10px] font-black uppercase text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded-md shrink-0">
+              Offline
+            </span>
+          </div>
+        )}
+
         {/* View Mode Toggle: Interactive Leaflet vs Light Schematic */}
-        <div className="flex items-center justify-between gap-2 px-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
           <span className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
             <Navigation className="w-3.5 h-3.5 text-blue-600" />
-            <span>Pilihan Tampilan Peta:</span>
+            <span>Pilihan Tampilan Rute:</span>
           </span>
 
-          <div className="flex items-center p-1 bg-slate-200/90 rounded-2xl text-[11px] font-bold">
+          <div className="grid grid-cols-2 sm:flex sm:items-center p-1 bg-slate-200/90 rounded-2xl text-[11px] font-bold w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setMapViewMode('leaflet')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`min-h-[38px] px-3 py-1.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 mapViewMode === 'leaflet'
-                  ? 'bg-white text-blue-900 shadow-md border border-blue-200'
+                  ? 'bg-white text-blue-900 shadow-md border border-blue-200 font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <MapIcon className="w-3.5 h-3.5 text-blue-600" />
-              <span>Peta Nyata (OSM + Leaflet)</span>
+              <span>Peta Nyata</span>
+              <span className="hidden sm:inline text-[10px] opacity-75">(OSM)</span>
             </button>
             <button
               type="button"
               onClick={() => setMapViewMode('schematic')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`min-h-[38px] px-3 py-1.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 mapViewMode === 'schematic'
-                  ? 'bg-white text-blue-900 shadow-md border border-blue-200'
+                  ? 'bg-white text-blue-900 shadow-md border border-blue-200 font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Layers className="w-3.5 h-3.5 text-blue-600" />
-              <span>Skema Vektor (Hemat Daya)</span>
+              <span>Skema Vektor</span>
+              <span className="hidden sm:inline text-[10px] opacity-75">(Hemat Daya)</span>
             </button>
           </div>
         </div>

@@ -374,39 +374,13 @@ export default function GlobalSafetyMap({
           </p>
         </div>
 
-        {/* Header Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          <a
-            href="tel:112"
-            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-extrabold text-rose-700 shadow-sm transition-colors hover:bg-rose-50"
-          >
-            <PhoneCall className="w-3.5 h-3.5" />
-            Telepon 112
-          </a>
-          <button
-            type="button"
-            onClick={handleUseMyLocation}
-            className="secondary-action text-xs"
-            title="Pusatkan peta ke koordinat GPS perangkat Anda"
-          >
-            <LocateFixed className="w-3.5 h-3.5 text-blue-600" />
-            <span>Gunakan Lokasi Saya</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsBeaconOpen(true)}
-            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-slate-800"
-            title="Bunyikan Peluit Darurat & Senter"
-          >
-            <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
-            <span className="hidden sm:inline">Peluit SOS</span>
-          </button>
-
+        {/* Header Action Buttons: Responsive Layout for Clean Mobile & Desktop */}
+        <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Main SOS / Safe Toggle */}
           <button
             type="button"
             onClick={handleOpenEmergencyConsent}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer ${
+            className={`w-full sm:w-auto min-h-[46px] sm:min-h-10 px-5 py-2.5 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-98 ${
               isUserInDanger
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
                 : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/25 animate-pulse'
@@ -414,16 +388,47 @@ export default function GlobalSafetyMap({
           >
             {isUserInDanger ? (
               <>
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
                 <span>Nonaktifkan SOS (Kembali Aman)</span>
               </>
             ) : (
               <>
-                <ShieldAlert className="w-4 h-4" />
+                <ShieldAlert className="w-4 h-4 stroke-[2.5]" />
                 <span>Saya Butuh Bantuan / SOS</span>
               </>
             )}
           </button>
+
+          {/* Sub-actions Row (3 Equal Buttons on Mobile) */}
+          <div className="grid grid-cols-3 sm:flex sm:items-center gap-2">
+            <a
+              href="tel:112"
+              className="min-h-10 items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-white px-2.5 sm:px-3 py-2 text-xs font-black text-rose-700 shadow-2xs transition-colors hover:bg-rose-50 flex active:scale-95"
+            >
+              <PhoneCall className="w-3.5 h-3.5" />
+              <span>112</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={handleUseMyLocation}
+              className="min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2.5 sm:px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors flex active:scale-95 cursor-pointer"
+              title="Pusatkan peta ke koordinat GPS perangkat Anda"
+            >
+              <LocateFixed className="w-3.5 h-3.5 text-blue-600" />
+              <span className="truncate">Lokasi Saya</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsBeaconOpen(true)}
+              className="min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 px-2.5 sm:px-3 py-2 text-xs font-black text-white shadow-2xs transition-colors hover:bg-slate-800 flex active:scale-95 cursor-pointer"
+              title="Bunyikan Peluit Darurat & Senter"
+            >
+              <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+              <span className="truncate">Peluit SOS</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -647,25 +652,31 @@ export default function GlobalSafetyMap({
         )}
       </div>
 
-      {/* 3. Main Interactive Map & Vicinity Layout */}
-      <div className="grid grid-cols-2 gap-2 rounded-xl border border-blue-100 bg-white/70 p-1.5 lg:hidden" role="tablist" aria-label="Tampilan peta dan data">
+      {/* 3. Main Interactive Map & Vicinity Layout Tabs */}
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-100/90 p-1.5 lg:hidden" role="tablist" aria-label="Tampilan peta dan data">
         <button
           type="button"
           role="tab"
           aria-selected={!showList}
           onClick={() => setShowList(false)}
-          className={`min-h-11 rounded-lg px-3 text-sm font-bold transition-colors ${!showList ? 'bg-blue-700 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
+          className={`min-h-[42px] rounded-xl px-3 text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            !showList ? 'bg-white text-blue-700 shadow-sm border border-slate-200' : 'text-slate-600 hover:text-slate-900'
+          }`}
         >
-          Peta
+          <MapPin className="w-3.5 h-3.5" />
+          <span>Tampilan Peta</span>
         </button>
         <button
           type="button"
           role="tab"
           aria-selected={showList}
           onClick={() => setShowList(true)}
-          className={`min-h-11 rounded-lg px-3 text-sm font-bold transition-colors ${showList ? 'bg-blue-700 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
+          className={`min-h-[42px] rounded-xl px-3 text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            showList ? 'bg-white text-blue-700 shadow-sm border border-slate-200' : 'text-slate-600 hover:text-slate-900'
+          }`}
         >
-          Data & bantuan
+          <Layers className="w-3.5 h-3.5" />
+          <span>Data & Posko</span>
         </button>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5 items-start">

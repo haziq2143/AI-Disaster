@@ -23,7 +23,7 @@ export default function InactivityTrapDetector({
   onActivateBeacon
 }) {
   const [isEnabled, setIsEnabled] = useState(true);
-  const [isDemoMode, setIsDemoMode] = useState(false); // Demo: 20 detik; Normal: 60 menit (3600s)
+  const [isDemoMode, setIsDemoMode] = useState(false); // Demo: 20 detik; Normal: 30 menit (1800s)
   const [inactivitySeconds, setInactivitySeconds] = useState(0);
   const [inPreAlarm, setInPreAlarm] = useState(false);
   const [preAlarmCountdown, setPreAlarmCountdown] = useState(15);
@@ -40,7 +40,7 @@ export default function InactivityTrapDetector({
     return dist <= (zone.radius_km * 1000);
   });
 
-  const thresholdSeconds = isDemoMode ? 20 : 3600; // 20 detik (demo) vs 1 jam (real)
+  const thresholdSeconds = isDemoMode ? 20 : 1800; // 20 detik (demo) vs 30 menit (real)
 
   // Reset timer ke 0 saat ada gerakan nyata atau interaksi
   const resetInactivity = () => {
@@ -138,7 +138,7 @@ export default function InactivityTrapDetector({
       reporter_name: userName || 'Warga (Auto-PASS)',
       hazard_type: activeZone?.hazard_type || 'gempa',
       urgency_level: 'KRITIS',
-      needs_description: `[AUTO-TRIGGER PASS] Korban terdeteksi TIDAK BERGERAK selama ${isDemoMode ? 'mode uji coba' : '> 1 jam'} di Zona Bencana ${activeZone?.name || 'Kritis'}. Terindikasi tertimbun reruntuhan atau tidak sadarkan diri. Sinyal suara & senter HP diaktifkan otomatis.`,
+      needs_description: `[AUTO-TRIGGER PASS] Korban terdeteksi TIDAK BERGERAK selama ${isDemoMode ? 'mode uji coba' : '> 30 menit'} di Zona Bencana ${activeZone?.name || 'Kritis'}. Terindikasi tertimbun reruntuhan atau tidak sadarkan diri. Sinyal suara & senter HP diaktifkan otomatis.`,
       lat: userLat,
       lng: userLng,
       precision_consent: true,
@@ -169,9 +169,9 @@ export default function InactivityTrapDetector({
             ? 'bg-rose-50 border-rose-300 text-rose-950'
             : 'bg-white border-slate-200 text-slate-800'
       } shadow-xs`}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
               hasAutoTriggered
                 ? 'bg-white text-rose-600 animate-bounce'
                 : activeZone
@@ -183,14 +183,14 @@ export default function InactivityTrapDetector({
 
             <div className="min-w-0 text-xs">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-extrabold">Deteksi Korban Terjebak (PASS)</span>
+                <span className="font-extrabold text-slate-900">Deteksi Korban Terjebak (PASS)</span>
                 {activeZone && (
-                  <span className="px-1.5 py-0.2 rounded bg-rose-600 text-white text-[10px] font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-bold">
                     ZONA AWAS
                   </span>
                 )}
                 {isDemoMode && (
-                  <span className="px-1.5 py-0.2 rounded bg-amber-500 text-white text-[10px] font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">
                     UJI COBA 20 DETIK
                   </span>
                 )}
@@ -198,20 +198,20 @@ export default function InactivityTrapDetector({
               <p className="text-[11px] opacity-80 mt-0.5 truncate">
                 {hasAutoTriggered 
                   ? 'Sinyal SOS & Peluit Otomatis Sedang Memancar!'
-                  : `Diam tanpa gerak: ${formattedInactivityMinutes}m ${formattedInactivitySeconds}s / ${isDemoMode ? '20s' : '60m'}`}
+                  : `Diam tanpa gerak: ${formattedInactivityMinutes}m ${formattedInactivitySeconds}s / ${isDemoMode ? '20s' : '30m'}`}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
             {!hasAutoTriggered && (
               <button
                 type="button"
                 onClick={() => setIsDemoMode(!isDemoMode)}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] cursor-pointer"
+                className="min-h-[38px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-[11px] cursor-pointer flex items-center justify-center text-center transition-all"
                 title="Beralih ke mode simulasi cepat 20 detik"
               >
-                {isDemoMode ? 'Mode Asli (1 Jam)' : 'Simulasi Uji Coba (20 Detik)'}
+                {isDemoMode ? 'Mode Asli (30m)' : 'Simulasi Uji (20s)'}
               </button>
             )}
 
@@ -222,7 +222,7 @@ export default function InactivityTrapDetector({
                   setHasAutoTriggered(false);
                   resetInactivity();
                 }}
-                className="px-3 py-1.5 rounded-xl bg-white text-rose-700 font-black text-xs hover:bg-rose-50 shadow-sm cursor-pointer"
+                className="col-span-2 sm:col-span-1 min-h-[38px] px-4 py-2 rounded-xl bg-white text-rose-700 font-black text-xs hover:bg-rose-50 active:scale-95 shadow-sm cursor-pointer transition-all flex items-center justify-center text-center"
               >
                 Saya Selamat / Matikan Alarm
               </button>
@@ -230,9 +230,9 @@ export default function InactivityTrapDetector({
               <button
                 type="button"
                 onClick={resetInactivity}
-                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
               >
-                <Check className="w-3 h-3" />
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>Saya Bergerak</span>
               </button>
             )}
@@ -256,7 +256,7 @@ export default function InactivityTrapDetector({
                 Apakah Anda Baik-Baik Saja?
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Ponsel mendeteksi Anda tidak bergerak selama {isDemoMode ? '20 detik (simulasi)' : '1 jam'} di area bencana. Sinyal darurat SOS ke Tim SAR dan peluit akustik akan <strong>otomatis menyala</strong> dalam:
+                Ponsel mendeteksi Anda tidak bergerak selama {isDemoMode ? '20 detik (simulasi)' : '30 menit'} di area bencana. Sinyal darurat SOS ke Tim SAR dan peluit akustik akan <strong>otomatis menyala</strong> dalam:
               </p>
             </div>
 
@@ -269,6 +269,11 @@ export default function InactivityTrapDetector({
                 Detik Menuju Pengiriman Otomatis
               </span>
             </div>
+
+            {/* Shake Gesture Guidance */}
+            <p className="text-[11px] font-bold text-slate-600 bg-slate-100 py-2 px-3 rounded-xl border border-slate-200">
+              Goyangkan HP atau sentuh tombol di bawah untuk membatalkan
+            </p>
 
             {/* Cancel / Confirm Safe Button */}
             <button

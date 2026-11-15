@@ -900,11 +900,11 @@ export default function SarDashboard({ currentUser, onSwitchToCitizenView }) {
                 </div>
 
                 {/* Mode Toggle Pills */}
-                <div className="inline-flex rounded-2xl bg-slate-100 p-1 border border-slate-200">
+                <div className="grid grid-cols-2 sm:inline-flex rounded-2xl bg-slate-100 p-1 border border-slate-200 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={() => setSarMapMode('zone')}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    className={`min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                       sarMapMode === 'zone'
                         ? 'bg-rose-600 text-white shadow-xs'
                         : 'text-slate-600 hover:text-rose-700'
@@ -917,7 +917,7 @@ export default function SarDashboard({ currentUser, onSwitchToCitizenView }) {
                   <button
                     type="button"
                     onClick={() => setSarMapMode('posko')}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    className={`min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                       sarMapMode === 'posko'
                         ? 'bg-blue-600 text-white shadow-xs'
                         : 'text-slate-600 hover:text-blue-800'
@@ -1778,73 +1778,73 @@ export default function SarDashboard({ currentUser, onSwitchToCitizenView }) {
       />
 
       {/* FIXED BOTTOM NAV FOR MOBILE VIEW (xl:hidden) - Higher z-index than Leaflet (1000) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[1200] bg-white border-t border-slate-200/90 px-1.5 sm:px-3 py-1.5 flex items-center justify-around xl:hidden shadow-[0_-10px_35px_rgba(0,0,0,0.12)]">
+      <nav className="fixed bottom-0 left-0 right-0 z-[1200] bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-2 sm:px-4 py-2 flex items-center justify-around xl:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
         <button
           type="button"
           onClick={() => setActiveTab('overview')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all cursor-pointer ${
-            activeTab === 'overview' ? 'text-blue-600 font-black' : 'text-slate-500 font-semibold'
+          className={`flex flex-col items-center justify-center min-h-[44px] min-w-[48px] py-1 px-2.5 rounded-2xl transition-all cursor-pointer ${
+            activeTab === 'overview' ? 'text-blue-700 bg-blue-50/90 font-black' : 'text-slate-500 font-semibold hover:text-slate-900'
           }`}
         >
           <LayoutDashboard className={`w-4 h-4 ${activeTab === 'overview' ? 'stroke-[2.5]' : ''}`} />
-          <span className="text-[9px]">Utama</span>
+          <span className="text-[10px] mt-0.5">Utama</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('map')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all cursor-pointer ${
-            activeTab === 'map' ? 'text-blue-600 font-black' : 'text-slate-500 font-semibold'
+          className={`flex flex-col items-center justify-center min-h-[44px] min-w-[48px] py-1 px-2.5 rounded-2xl transition-all cursor-pointer ${
+            activeTab === 'map' ? 'text-blue-700 bg-blue-50/90 font-black' : 'text-slate-500 font-semibold hover:text-slate-900'
           }`}
         >
           <MapPin className={`w-4 h-4 ${activeTab === 'map' ? 'stroke-[2.5]' : ''}`} />
-          <span className="text-[9px]">Peta</span>
+          <span className="text-[10px] mt-0.5">Peta</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('triage')}
-          className={`relative flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all cursor-pointer ${
-            activeTab === 'triage' ? 'text-blue-600 font-black' : 'text-slate-500 font-semibold'
+          className={`relative flex flex-col items-center justify-center min-h-[44px] min-w-[48px] py-1 px-2.5 rounded-2xl transition-all cursor-pointer ${
+            activeTab === 'triage' ? 'text-blue-700 bg-blue-50/90 font-black' : 'text-slate-500 font-semibold hover:text-slate-900'
           }`}
         >
           <AlertTriangle className={`w-4 h-4 ${activeTab === 'triage' ? 'stroke-[2.5]' : ''}`} />
           {criticalReportsCount + trappedReportsCount > 0 && (
-            <span className="absolute top-0.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+            <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
           )}
-          <span className="text-[9px]">Triase</span>
+          <span className="text-[10px] mt-0.5">Triase</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('posko')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all cursor-pointer ${
-            activeTab === 'posko' ? 'text-blue-600 font-black' : 'text-slate-500 font-semibold'
+          className={`flex flex-col items-center justify-center min-h-[44px] min-w-[48px] py-1 px-2.5 rounded-2xl transition-all cursor-pointer ${
+            activeTab === 'posko' ? 'text-blue-700 bg-blue-50/90 font-black' : 'text-slate-500 font-semibold hover:text-slate-900'
           }`}
         >
           <Home className={`w-4 h-4 ${activeTab === 'posko' ? 'stroke-[2.5]' : ''}`} />
-          <span className="text-[9px]">Posko ({poskos.length})</span>
+          <span className="text-[10px] mt-0.5">Posko ({poskos.length})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('zones')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all cursor-pointer ${
-            activeTab === 'zones' ? 'text-blue-600 font-black' : 'text-slate-500 font-semibold'
+          className={`flex flex-col items-center justify-center min-h-[44px] min-w-[48px] py-1 px-2.5 rounded-2xl transition-all cursor-pointer ${
+            activeTab === 'zones' ? 'text-blue-700 bg-blue-50/90 font-black' : 'text-slate-500 font-semibold hover:text-slate-900'
           }`}
         >
           <Radio className={`w-4 h-4 ${activeTab === 'zones' ? 'stroke-[2.5]' : ''}`} />
-          <span className="text-[9px]">Zona ({zones.length})</span>
+          <span className="text-[10px] mt-0.5">Zona ({zones.length})</span>
         </button>
 
         {onSwitchToCitizenView && (
           <button
             type="button"
             onClick={onSwitchToCitizenView}
-            className="flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl text-blue-700 bg-blue-50/90 border border-blue-200 transition-all cursor-pointer active:scale-95"
+            className="flex flex-col items-center justify-center min-h-[44px] py-1 px-3 rounded-2xl text-blue-700 bg-blue-100/80 border border-blue-300 font-black transition-all cursor-pointer active:scale-95 shadow-xs"
           >
             <Users className="w-4 h-4" />
-            <span className="text-[9px] font-black">Warga</span>
+            <span className="text-[10px] mt-0.5">Warga</span>
           </button>
         )}
       </nav>

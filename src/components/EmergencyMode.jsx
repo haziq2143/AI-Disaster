@@ -689,15 +689,15 @@ export default function EmergencyMode({
           <button
             type="button"
             onClick={handleNextStep}
-            className="flex-1 flex items-center justify-center gap-2.5 py-3.5 sm:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm sm:text-base shadow-md shadow-blue-600/25 hover:shadow-lg transition-all cursor-pointer active:scale-98"
+            className="flex-1 min-h-[48px] flex items-center justify-center gap-2 py-3.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs sm:text-base shadow-md shadow-blue-600/25 hover:shadow-lg transition-all cursor-pointer active:scale-98 text-center"
           >
-            <Check className="w-5 h-5 stroke-[2.5]" />
-            <span>
+            <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5] shrink-0" />
+            <span className="truncate">
               {isLastStep 
-                ? 'Selesai — Konfirmasi Tiba di Posko' 
-                : 'Selesai, Lanjut ke Langkah Berikutnya'}
+                ? 'Konfirmasi Tiba di Posko' 
+                : 'Lanjut Langkah Berikutnya'}
             </span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
         </div>
       </div>

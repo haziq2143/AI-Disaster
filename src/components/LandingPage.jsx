@@ -135,7 +135,7 @@ export default function LandingPage({ onEnterApp, onQuickExplore, onLoginClick, 
     },
     {
       q: 'Apa itu sistem PASS (Personal Alert Safety System) untuk Tim SAR?',
-      a: 'PASS adalah detektor otomatis korban terjebak. Di zona bencana level kritis (Level 3 - AWAS), jika ponsel warga tidak berpindah posisi selama 1 jam, sistem otomatis mengaktifkan sinyal peluit peringatan dan menandai lokasinya di radar SAR sebagai korban yang butuh pertolongan segera.'
+      a: 'PASS adalah detektor otomatis korban terjebak. Di zona bencana level kritis (Level 3 - AWAS), jika ponsel warga tidak berpindah posisi selama 30 menit, sistem otomatis mengaktifkan sinyal peluit peringatan dan menandai lokasinya di radar SAR sebagai korban yang butuh pertolongan segera.'
     },
     {
       q: 'Bagaimana cara Tim SAR menentukan titik evakuasi dan rute aman?',
@@ -1036,7 +1036,7 @@ export default function LandingPage({ onEnterApp, onQuickExplore, onLoginClick, 
                   <div className="space-y-2 pt-2">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Sistem PASS: Otomatis mendeteksi warga tak bergerak &gt; 1 jam di zona kritis.</span>
+                      <span>Sistem PASS: Otomatis mendeteksi warga tak bergerak &gt; 30 menit di zona kritis.</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
