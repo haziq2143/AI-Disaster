@@ -3,7 +3,15 @@ node_modules/
 out/
 dist/
 *.log
+.env
 .env*.local
 Error/
+.agents/
+AGENTS.md
+.vercel/
+coverage/
+*.tsbuildinfo
+Thumbs.db
+.DS_Store
 /data/family_groups.json
 data/accounts.json
