@@ -21,7 +21,6 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
   const [strobeLightOn, setStrobeLightOn] = useState(false);
   const [isTorchAvailable, setIsTorchAvailable] = useState(false);
   const [isTorchActive, setIsTorchActive] = useState(false);
-  const [torchMode, setTorchMode] = useState('sos'); // 'sos' | 'strobe' | 'constant'
   const [isEcoMode, setIsEcoMode] = useState(false);
   const [isHapticSupported, setIsHapticSupported] = useState(false);
   const [currentMorseChar, setCurrentMorseChar] = useState(''); // 'dot' | 'dash' | 'pause'
@@ -30,12 +29,8 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
   const timerRef = useRef(null);
   const torchTrackRef = useRef(null);
   const isPlayingAudioRef = useRef(false);
-  const torchModeRef = useRef(torchMode);
   const isTorchActiveRef = useRef(isTorchActive);
-
-  useEffect(() => {
-    torchModeRef.current = torchMode;
-  }, [torchMode]);
+  const silentTorchLoopRef = useRef(false);
 
   useEffect(() => {
     isTorchActiveRef.current = isTorchActive;
@@ -124,6 +119,99 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
     }
   };
 
+  const stopTorch = () => {
+    silentTorchLoopRef.current = false;
+    if (torchTrackRef.current) {
+      try {
+        torchTrackRef.current.stop();
+      } catch {}
+      torchTrackRef.current = null;
+    }
+    setIsTorchActive(false);
+  };
+
+  const startTorch = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      const track = stream.getVideoTracks()[0];
+      if (track) {
+        torchTrackRef.current = track;
+        setIsTorchActive(true);
+        await track.applyConstraints({ advanced: [{ torch: false }] });
+        if (!isPlayingAudioRef.current) {
+          runSilentTorchSos();
+        }
+      }
+    } catch (err) {
+      console.warn('Torch activation failed', err);
+      setIsTorchActive(false);
+    }
+  };
+
+  const toggleTorch = () => {
+    if (isTorchActive) {
+      stopTorch();
+    } else {
+      startTorch();
+    }
+  };
+
+  // Loop kedip SOS Morse mandiri saat senter dinyalakan tanpa suara peluit
+  const runSilentTorchSos = async () => {
+    silentTorchLoopRef.current = true;
+    const dotTime = 160;
+    const dashTime = 480;
+    const elementPause = 140;
+    const letterPause = 360;
+    const wordPause = 1400;
+
+    while (silentTorchLoopRef.current && isTorchActiveRef.current && !isPlayingAudioRef.current) {
+      // 3 Titik Pendek (S)
+      for (let i = 0; i < 3; i++) {
+        if (!silentTorchLoopRef.current || !isTorchActiveRef.current || isPlayingAudioRef.current) return;
+        setStrobeLightOn(true);
+        setCurrentMorseChar('dot');
+        await setPhysicalTorch(true);
+        await sleep(dotTime);
+        setStrobeLightOn(false);
+        setCurrentMorseChar('');
+        await setPhysicalTorch(false);
+        await sleep(elementPause);
+      }
+      await sleep(letterPause);
+
+      // 3 Garis Panjang (O)
+      for (let i = 0; i < 3; i++) {
+        if (!silentTorchLoopRef.current || !isTorchActiveRef.current || isPlayingAudioRef.current) return;
+        setStrobeLightOn(true);
+        setCurrentMorseChar('dash');
+        await setPhysicalTorch(true);
+        await sleep(dashTime);
+        setStrobeLightOn(false);
+        setCurrentMorseChar('');
+        await setPhysicalTorch(false);
+        await sleep(elementPause);
+      }
+      await sleep(letterPause);
+
+      // 3 Titik Pendek (S)
+      for (let i = 0; i < 3; i++) {
+        if (!silentTorchLoopRef.current || !isTorchActiveRef.current || isPlayingAudioRef.current) return;
+        setStrobeLightOn(true);
+        setCurrentMorseChar('dot');
+        await setPhysicalTorch(true);
+        await sleep(dotTime);
+        setStrobeLightOn(false);
+        setCurrentMorseChar('');
+        await setPhysicalTorch(false);
+        await sleep(elementPause);
+      }
+      await sleep(wordPause);
+    }
+  };
+
   const stopAudio = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
@@ -138,56 +226,12 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
     setIsPlayingAudio(false);
     setStrobeLightOn(false);
     setCurrentMorseChar('');
-    if (isTorchActiveRef.current && torchModeRef.current !== 'constant') {
+    if (isTorchActiveRef.current) {
       setPhysicalTorch(false);
-    }
-  };
-
-  const startTorch = async (mode = 'sos') => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-      const track = stream.getVideoTracks()[0];
-      if (track) {
-        torchTrackRef.current = track;
-        setIsTorchActive(true);
-        setTorchMode(mode);
-        // Jika mode konstan, nyalakan terus; jika sos/strobe, biarkan loop yang mengedipkan
-        if (mode === 'constant') {
-          await track.applyConstraints({ advanced: [{ torch: true }] });
-        } else {
-          await track.applyConstraints({ advanced: [{ torch: false }] });
-        }
+      // Jika senter masih di-toggle aktif, lanjutkan kedip senter tanpa suara
+      if (!silentTorchLoopRef.current) {
+        runSilentTorchSos();
       }
-    } catch (err) {
-      console.warn('Torch activation failed', err);
-      setIsTorchActive(false);
-    }
-  };
-
-  const stopTorch = () => {
-    if (torchTrackRef.current) {
-      try {
-        torchTrackRef.current.stop();
-      } catch {}
-      torchTrackRef.current = null;
-    }
-    setIsTorchActive(false);
-  };
-
-  const toggleTorch = (requestedMode = 'sos') => {
-    if (isTorchActive && torchMode === requestedMode) {
-      stopTorch();
-    } else if (isTorchActive) {
-      setTorchMode(requestedMode);
-      if (requestedMode === 'constant') {
-        setPhysicalTorch(true);
-      } else {
-        setPhysicalTorch(false);
-      }
-    } else {
-      startTorch(requestedMode);
     }
   };
 
@@ -195,14 +239,14 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
   const emitPulse = async (freq, durationMs, charType) => {
     setCurrentMorseChar(charType);
     setStrobeLightOn(true);
-    if (isTorchActiveRef.current && torchModeRef.current !== 'constant') {
+    if (isTorchActiveRef.current) {
       setPhysicalTorch(true);
     }
 
     await playTone(freq, durationMs);
 
     setStrobeLightOn(false);
-    if (isTorchActiveRef.current && torchModeRef.current !== 'constant') {
+    if (isTorchActiveRef.current) {
       setPhysicalTorch(false);
     }
     setCurrentMorseChar('');
@@ -324,29 +368,17 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
               : 'Sinyal suara sedang jeda. Tekan tombol di bawah untuk mengaktifkan.'}
           </p>
           {isTorchAvailable && (
-            <div className="pt-2 flex flex-col items-center gap-2">
+            <div className="pt-2">
               <button
                 type="button"
-                onClick={() => toggleTorch('sos')}
+                onClick={toggleTorch}
                 className={`px-4 py-2.5 rounded-xl text-xs font-bold border transition-colors ${
-                  isTorchActive && torchMode === 'sos'
+                  isTorchActive
                     ? 'bg-amber-400 text-black border-amber-300 shadow-md shadow-amber-400/30' 
                     : 'bg-slate-900 border-slate-700 text-slate-300'
                 }`}
               >
-                {isTorchActive && torchMode === 'sos' ? 'Senter HP: KEDIP MORSE SOS AKTIF' : 'Nyalakan Senter Kedip SOS Morse'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => toggleTorch('constant')}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${
-                  isTorchActive && torchMode === 'constant'
-                    ? 'bg-slate-200 text-black border-white'
-                    : 'bg-black/60 border-slate-800 text-slate-400'
-                }`}
-              >
-                {isTorchActive && torchMode === 'constant' ? 'Mode Senter: Menyala Terus' : 'Ubah ke Senter Menyala Terus'}
+                {isTorchActive ? 'Senter Kedip SOS: AKTIF' : 'Nyalakan Senter Kedip SOS'}
               </button>
             </div>
           )}
@@ -497,7 +529,7 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
             {isTorchAvailable ? (
               <button
                 type="button"
-                onClick={() => toggleTorch(torchMode === 'sos' ? 'constant' : 'sos')}
+                onClick={toggleTorch}
                 className={`p-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
                   isTorchActive
                     ? 'bg-amber-500 text-black border-amber-400 shadow-md shadow-amber-500/20'
@@ -506,10 +538,10 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
               >
                 <div className="flex items-center gap-2">
                   <Flashlight className="w-4 h-4" />
-                  <span>Senter HP</span>
+                  <span>Senter Kedip SOS</span>
                 </div>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-white font-mono">
-                  {isTorchActive ? (torchMode === 'sos' ? 'KEDIP SOS' : 'KONSTAN') : 'OFF'}
+                  {isTorchActive ? 'KEDIP SOS' : 'OFF'}
                 </span>
               </button>
             ) : (
@@ -519,45 +551,6 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
               </div>
             )}
           </div>
-
-          {/* Pengaturan Mode Senter Jika Senter Tersedia */}
-          {isTorchAvailable && (
-            <div className="p-2.5 bg-slate-950/70 border border-slate-800 rounded-xl flex items-center justify-between gap-2 text-xs">
-              <span className="text-[11px] text-slate-400 font-semibold">Mode Senter:</span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTorchMode('sos');
-                    if (!isTorchActive) startTorch('sos');
-                    else setPhysicalTorch(false);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${
-                    isTorchActive && torchMode === 'sos'
-                      ? 'bg-amber-400 text-slate-950 shadow-xs'
-                      : 'bg-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Kedip Morse SOS (... --- ...)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTorchMode('constant');
-                    if (!isTorchActive) startTorch('constant');
-                    else setPhysicalTorch(true);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${
-                    isTorchActive && torchMode === 'constant'
-                      ? 'bg-amber-400 text-slate-950 shadow-xs'
-                      : 'bg-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Menyala Terus
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Indikator Ritme Morse Optik Real-time */}
           <div className="p-2.5 bg-slate-950 border border-slate-800/90 rounded-xl space-y-1.5">
