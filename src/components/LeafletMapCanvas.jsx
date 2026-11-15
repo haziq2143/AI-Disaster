@@ -413,7 +413,7 @@ export default function LeafletMapCanvas({
             <p class="font-extrabold text-slate-900 text-sm leading-tight">${escapeHtml(report.reporter_name)}</p>
             <p class="text-slate-600 text-[11px] leading-relaxed">${escapeHtml(report.needs_description)}</p>
             ${report.vulnerable_members ? `<p class="text-[11px] text-rose-700 font-bold">Keluarga: ${escapeHtml(report.vulnerable_members)}</p>` : ''}
-            <div class="pt-1 flex items-center justify-between text-[11px] border-t border-slate-200">
+            <div class="pt-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 text-[11px] border-t border-slate-200">
               <span class="font-semibold text-blue-700">${escapeHtml(report.distanceFormatted)}</span>
               <a href="tel:112" class="px-2 py-0.5 rounded bg-rose-600 text-white font-bold text-[10px]">Hubungi 112</a>
             </div>

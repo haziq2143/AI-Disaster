@@ -2176,7 +2176,7 @@ export default function SafeRoute({
                   <p className="font-bold">Kebutuhan Evakuasi Darurat:</p>
                   <p className="leading-relaxed">{point.notes}</p>
                   <p className="font-bold text-rose-800 mt-1">Kebutuhan Mendesak: {point.needs}</p>
-                  <div className="pt-2 flex items-center justify-between">
+                  <div className="pt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                     <a
                       href={`tel:${point.contact}`}
                       onClick={(e) => e.stopPropagation()}
