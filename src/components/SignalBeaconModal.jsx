@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Volume2, 
   VolumeX, 
@@ -24,6 +25,7 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
   const [currentMorseChar, setCurrentMorseChar] = useState(''); // 'dot' | 'dash' | 'pause'
   const [batteryLevel, setBatteryLevel] = useState(null);
   const [isBatteryLow, setIsBatteryLow] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   const audioCtxRef = useRef(null);
   const timerRef = useRef(null);
@@ -44,6 +46,10 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
   useEffect(() => {
     isStrobeActiveRef.current = isStrobeActive;
   }, [isStrobeActive]);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Periksa dukungan Web API (Vibration, Torch, Battery, Wake Lock)
   useEffect(() => {
@@ -107,12 +113,12 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
   }, [isOpen]);
 
   const getAudioContext = () => {
-    if (!audioCtxRef.current) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
       audioCtxRef.current = new AudioCtx();
     }
     if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
+      audioCtxRef.current.resume().catch(() => {});
     }
     return audioCtxRef.current;
   };
@@ -279,10 +285,15 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
       timerRef.current = null;
     }
 
-    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-      try {
-        audioCtxRef.current.close();
-      } catch {}
+    if (audioCtxRef.current) {
+      if (audioCtxRef.current.state !== 'closed') {
+        try {
+          const closePromise = audioCtxRef.current.close();
+          if (closePromise && typeof closePromise.catch === 'function') {
+            closePromise.catch(() => {});
+          }
+        } catch {}
+      }
       audioCtxRef.current = null;
     }
 
@@ -314,12 +325,12 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !isMounted || typeof document === 'undefined' || !document.body) return null;
 
   // SURVIVAL ECO MODE (Layar Hitam OLED untuk Menghemat Baterai saat Terjebak Berjam-jam)
   if (isEcoMode) {
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-between p-6 bg-black text-white select-none">
+    return createPortal(
+      <div className="fixed inset-0 z-[1300] flex flex-col items-center justify-between p-6 bg-black text-white select-none">
         <div className="w-full flex items-center justify-between pt-4">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
@@ -378,7 +389,7 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
           <button
             type="button"
             onClick={toggleMasterDistress}
-            className={`w-full py-5 rounded-2xl font-black text-lg border-2 flex items-center justify-center gap-2 cursor-pointer ${
+            className={`w-full min-h-[3.75rem] px-4 py-4 sm:py-5 rounded-2xl font-black text-base sm:text-lg leading-tight border-2 flex items-center justify-center gap-2 cursor-pointer ${
               isPlayingAudio
                 ? 'bg-rose-950 border-rose-500 text-rose-200'
                 : 'bg-emerald-950 border-emerald-500 text-emerald-200'
@@ -395,29 +406,30 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
             Tutup Alat Lapangan
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+  return createPortal(
+    <div className="fixed inset-0 z-[1300] flex justify-center overflow-y-auto overscroll-contain bg-black/80 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm animate-fadeIn sm:p-4">
       {/* Strobo Layar Putih Berkedip Mengikuti Ritme Morse SOS */}
       {isStrobeActive && strobeLightOn && (
         <div className="fixed inset-0 z-40 bg-white pointer-events-none transition-opacity duration-75" />
       )}
 
-      <div className="relative z-50 bg-slate-900 border border-slate-700 text-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5">
+      <div className="relative z-50 mb-auto bg-slate-900 border border-slate-700 text-white rounded-3xl max-w-md w-full p-4 sm:my-auto sm:p-6 shadow-2xl space-y-4 sm:space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-600/30 border border-rose-500/50 flex items-center justify-center text-rose-400">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="w-10 h-10 shrink-0 rounded-2xl bg-rose-600/30 border border-rose-500/50 flex items-center justify-center text-rose-400">
               <Radio className="w-5 h-5 animate-pulse" />
             </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-rose-400">
+            <div className="min-w-0">
+              <span className="block text-[9px] sm:text-[10px] uppercase font-bold tracking-[0.12em] leading-tight text-rose-400">
                 Alat Lapangan Darurat · Aktif Otomatis
               </span>
-              <h3 className="text-lg font-black text-white">
+              <h3 className="text-lg font-black text-white leading-tight">
                 Sinyal Beacon & Peluit SOS
               </h3>
             </div>
@@ -426,7 +438,7 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
           <button
             type="button"
             onClick={handleClose}
-            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="w-9 h-9 shrink-0 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
             aria-label="Tutup"
           >
             <X className="w-4 h-4" />
@@ -436,7 +448,7 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
         {/* Callout Informasi Otomatis */}
         <div className="p-3 bg-amber-950/40 border border-amber-600/40 rounded-xl text-amber-300 text-xs flex items-start gap-2.5">
           <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
+          <p className="leading-snug">
             Sinyal darurat berbunyi dan berkedip otomatis. Menghasilkan frekuensi tajam <strong>3.000 Hz</strong>, strobo kedip SOS, dan senter fisik untuk menembus reruntuhan dan menarik perhatian Tim SAR / K9.
           </p>
         </div>
@@ -465,39 +477,39 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
             Status Saluran Bantuan:
           </span>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-2.5 rounded-xl border border-slate-800 bg-slate-950/70 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs">
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="p-3 rounded-xl border border-slate-800 bg-slate-950/70 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-xs min-w-0">
                 <Volume2 className="w-4 h-4 text-rose-400 shrink-0" />
-                <span className="font-semibold text-slate-200">Audio 3.000 Hz</span>
+                <span className="font-semibold text-slate-200 leading-tight">Audio 3.000 Hz</span>
               </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
+              <span className={`self-start text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
                 isPlayingAudio ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-slate-800 text-slate-400'
               }`}>
                 {isPlayingAudio ? 'AKTIF' : 'JEDA'}
               </span>
             </div>
 
-            <div className="p-2.5 rounded-xl border border-slate-800 bg-slate-950/70 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs">
+            <div className="p-3 rounded-xl border border-slate-800 bg-slate-950/70 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-xs min-w-0">
                 <Flashlight className="w-4 h-4 text-amber-400 shrink-0" />
-                <span className="font-semibold text-slate-200">Senter Kamera</span>
+                <span className="font-semibold text-slate-200 leading-tight">Senter Kamera</span>
               </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
+              <span className={`self-start text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
                 isTorchActive 
                   ? 'bg-amber-950 text-amber-300 border border-amber-700' 
-                  : (isTorchAvailable ? 'SIAGA' : 'TIDAK DIDUKUNG')
+                  : (isTorchAvailable ? 'bg-slate-800 text-slate-400' : 'bg-slate-800 text-slate-500')
               }`}>
                 {isTorchActive ? 'KEDIP SOS' : (isTorchAvailable ? 'SIAGA' : 'TIDAK ADA')}
               </span>
             </div>
 
-            <div className="p-2.5 rounded-xl border border-slate-800 bg-slate-950/70 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs">
+            <div className="p-3 rounded-xl border border-slate-800 bg-slate-950/70 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-xs min-w-0">
                 <Zap className="w-4 h-4 text-amber-400 shrink-0" />
-                <span className="font-semibold text-slate-200">Strobo Layar</span>
+                <span className="font-semibold text-slate-200 leading-tight">Strobo Layar</span>
               </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
+              <span className={`self-start text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
                 isStrobeActive && isPlayingAudio
                   ? 'bg-amber-950 text-amber-300 border border-amber-700'
                   : 'bg-slate-800 text-slate-400'
@@ -506,12 +518,12 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
               </span>
             </div>
 
-            <div className="p-2.5 rounded-xl border border-slate-800 bg-slate-950/70 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs">
+            <div className="p-3 rounded-xl border border-slate-800 bg-slate-950/70 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-xs min-w-0">
                 <Smartphone className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="font-semibold text-slate-200">Getar Haptik</span>
+                <span className="font-semibold text-slate-200 leading-tight">Getar Haptik</span>
               </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
+              <span className={`self-start text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
                 isHapticSupported && isPlayingAudio
                   ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
                   : 'bg-slate-800 text-slate-400'
@@ -523,10 +535,10 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
         </div>
 
         {/* Indikator Ritme Morse Optik Real-time (... --- ...) */}
-        <div className="p-2.5 bg-slate-950 border border-slate-800/90 rounded-xl space-y-1.5">
-          <div className="flex items-center justify-between text-[10px] font-bold">
-            <span className="text-slate-400">Pola Kedip Morse Darurat:</span>
-            <span className="font-mono text-amber-400">
+        <div className="p-3 bg-slate-950 border border-slate-800/90 rounded-xl space-y-2">
+          <div className="flex items-center justify-between gap-3 text-[10px] font-bold">
+            <span className="text-slate-400 min-w-0">Pola Kedip Morse Darurat:</span>
+            <span className="font-mono text-amber-400 shrink-0">
               {strobeLightOn 
                 ? (currentMorseChar === 'dot' ? 'DOT (160ms)' : 'DASH (480ms)') 
                 : (isPlayingAudio ? 'JEDA ELEMENT' : 'SIAGA')}
@@ -539,6 +551,31 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
             <span className="text-slate-600">/</span>
             <span className={`px-1.5 py-0.5 rounded transition-colors ${strobeLightOn && currentMorseChar === 'dot' ? 'bg-amber-400 text-slate-950 font-black' : 'text-slate-500'}`}>• • •</span>
           </div>
+        </div>
+
+        {/* TOMBOL UTAMA KENDALI MASTER */}
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={toggleMasterDistress}
+            className={`w-full min-h-[3.75rem] px-5 py-4 sm:py-5 rounded-2xl font-black text-base sm:text-lg leading-tight flex items-center justify-center gap-2.5 sm:gap-3 transition-all cursor-pointer shadow-lg transform active:scale-[0.98] ${
+              isPlayingAudio
+                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-900/50 animate-pulse'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-900/50'
+            }`}
+          >
+            {isPlayingAudio ? (
+              <>
+                <Square className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 fill-current" />
+                <span>HENTIKAN SINYAL SOS</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+                <span>BUNYIKAN KEMBALI SINYAL SOS</span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Visual Sonar Radar Ripple Wave saat Suara Berbunyi */}
@@ -554,38 +591,13 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
           </div>
         )}
 
-        {/* TOMBOL UTAMA KENDALI MASTER */}
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={toggleMasterDistress}
-            className={`w-full py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all cursor-pointer shadow-lg transform active:scale-[0.98] ${
-              isPlayingAudio
-                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-900/50 animate-pulse'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-900/50'
-            }`}
-          >
-            {isPlayingAudio ? (
-              <>
-                <Square className="w-6 h-6 fill-current" />
-                <span>HENTIKAN SINYAL SOS</span>
-              </>
-            ) : (
-              <>
-                <Volume2 className="w-6 h-6" />
-                <span>BUNYIKAN KEMBALI SINYAL SOS</span>
-              </>
-            )}
-          </button>
-        </div>
-
         {/* Tombol Survival Mode Layar Hitam OLED */}
         <button
           type="button"
           onClick={() => setIsEcoMode(true)}
-          className="w-full py-2.5 px-3 rounded-xl border border-emerald-500/40 bg-emerald-950/30 hover:bg-emerald-900/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+          className="w-full py-3 px-4 rounded-xl border border-emerald-500/40 bg-emerald-950/30 hover:bg-emerald-900/40 text-emerald-300 text-xs font-bold leading-tight text-center flex items-center justify-center gap-2 transition-colors cursor-pointer"
         >
-          <BatteryCharging className="w-4 h-4 text-emerald-400" />
+          <BatteryCharging className="w-4 h-4 shrink-0 text-emerald-400" />
           <span>Aktifkan Mode Hemat Daya Ekstrem (OLED Black)</span>
         </button>
 
@@ -594,6 +606,7 @@ export default function SignalBeaconModal({ isOpen, onClose }) {
           Berjalan 100% offline via Web Audio API browser tanpa kuota internet.
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
